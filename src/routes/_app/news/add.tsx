@@ -246,14 +246,14 @@ function Step1() {
   );
 }
 
-const LANGS = [
+const LANGS: { name: string; status: string; isDefault?: boolean }[] = [
   { name: "हिंदी (Hindi)", status: "Filled", isDefault: true },
   { name: "English", status: "Filled" },
   { name: "मराठी (Marathi)", status: "Filled" },
   { name: "தமிழ் (Tamil)", status: "Partial" },
   { name: "বাংলা (Bengali)", status: "Partial" },
   { name: "ગુજરાતી (Gujarati)", status: "Not Filled" },
-] as const;
+];
 
 function Step2() {
   const [mode, setMode] = useState<"manual" | "ai">("manual");
