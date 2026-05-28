@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { RootLayout } from "@/layouts/RootLayout";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ROUTES } from "@/constants/routes.constants";
@@ -9,13 +9,5 @@ export const Route = createFileRoute("/_app")({
       throw redirect({ to: ROUTES.LOGIN });
     }
   },
-  component: AppShell,
+  component: RootLayout,
 });
-
-function AppShell() {
-  return (
-    <RootLayout>
-      <Outlet />
-    </RootLayout>
-  );
-}
