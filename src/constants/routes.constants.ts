@@ -1,0 +1,26 @@
+export const ROUTES = {
+  LOGIN: "/login",
+  DASHBOARD: "/dashboard",
+  NEWS_ALL: "/news/all",
+  NEWS_ADMIN: "/news/admin",
+  NEWS_ADD: "/news/add",
+  CATEGORIES: "/categories",
+  NEWS_TAGS: "/news-tags",
+  COMPLAINTS: "/complaints",
+  USERS: "/users",
+  CHANNELS: "/channels",
+  REPORTS: "/reports",
+  NOTIFICATIONS: "/notifications",
+  REFERRALS: "/referrals",
+  OFFERS: "/offers",
+  LISTINGS: "/listings",
+  MONETIZATION: "/monetization",
+  SYS_LANGUAGE: "/system/language",
+  SYS_LOCATION: "/system/location",
+  SYS_AUDIT: "/system/audit-logs",
+  SYS_BACKUP: "/system/backup",
+  SYS_ROLES: "/system/roles",
+  SETTINGS: "/settings",
+} as const;
+
+export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
