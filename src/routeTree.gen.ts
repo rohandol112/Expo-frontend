@@ -12,10 +12,34 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppUsersRouteImport } from './routes/_app/users'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppReferralsRouteImport } from './routes/_app/referrals'
+import { Route as AppOffersRouteImport } from './routes/_app/offers'
+import { Route as AppNotificationsRouteImport } from './routes/_app/notifications'
+import { Route as AppNewsTagsRouteImport } from './routes/_app/news-tags'
+import { Route as AppMonetizationRouteImport } from './routes/_app/monetization'
+import { Route as AppListingsRouteImport } from './routes/_app/listings'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppComplaintsRouteImport } from './routes/_app/complaints'
+import { Route as AppChannelsRouteImport } from './routes/_app/channels'
+import { Route as AppCategoriesRouteImport } from './routes/_app/categories'
+import { Route as AppSystemRolesRouteImport } from './routes/_app/system/roles'
+import { Route as AppSystemLocationRouteImport } from './routes/_app/system/location'
+import { Route as AppSystemLanguageRouteImport } from './routes/_app/system/language'
+import { Route as AppSystemBackupRouteImport } from './routes/_app/system/backup'
+import { Route as AppSystemAuditLogsRouteImport } from './routes/_app/system/audit-logs'
 import { Route as AppNewsAllRouteImport } from './routes/_app/news/all'
 import { Route as AppNewsAdminRouteImport } from './routes/_app/news/admin'
 import { Route as AppNewsAddRouteImport } from './routes/_app/news/add'
+import { Route as AppComplaintsComplaintIdRouteImport } from './routes/_app/complaints/$complaintId'
+import { Route as AppChannelsAddRouteImport } from './routes/_app/channels/add'
+import { Route as AppSystemLocationStatesRouteImport } from './routes/_app/system/location/states'
+import { Route as AppSystemLocationDistrictsRouteImport } from './routes/_app/system/location/districts'
+import { Route as AppSystemLocationAreasRouteImport } from './routes/_app/system/location/areas'
+import { Route as AppSystemLanguageAddRouteImport } from './routes/_app/system/language/add'
+import { Route as AppSystemLocationStatesAddRouteImport } from './routes/_app/system/location/states/add'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -31,9 +55,94 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppUsersRoute = AppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReferralsRoute = AppReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOffersRoute = AppOffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNewsTagsRoute = AppNewsTagsRouteImport.update({
+  id: '/news-tags',
+  path: '/news-tags',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMonetizationRoute = AppMonetizationRouteImport.update({
+  id: '/monetization',
+  path: '/monetization',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListingsRoute = AppListingsRouteImport.update({
+  id: '/listings',
+  path: '/listings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComplaintsRoute = AppComplaintsRouteImport.update({
+  id: '/complaints',
+  path: '/complaints',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChannelsRoute = AppChannelsRouteImport.update({
+  id: '/channels',
+  path: '/channels',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCategoriesRoute = AppCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSystemRolesRoute = AppSystemRolesRouteImport.update({
+  id: '/system/roles',
+  path: '/system/roles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSystemLocationRoute = AppSystemLocationRouteImport.update({
+  id: '/system/location',
+  path: '/system/location',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSystemLanguageRoute = AppSystemLanguageRouteImport.update({
+  id: '/system/language',
+  path: '/system/language',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSystemBackupRoute = AppSystemBackupRouteImport.update({
+  id: '/system/backup',
+  path: '/system/backup',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSystemAuditLogsRoute = AppSystemAuditLogsRouteImport.update({
+  id: '/system/audit-logs',
+  path: '/system/audit-logs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNewsAllRoute = AppNewsAllRouteImport.update({
@@ -51,53 +160,241 @@ const AppNewsAddRoute = AppNewsAddRouteImport.update({
   path: '/news/add',
   getParentRoute: () => AppRoute,
 } as any)
+const AppComplaintsComplaintIdRoute =
+  AppComplaintsComplaintIdRouteImport.update({
+    id: '/$complaintId',
+    path: '/$complaintId',
+    getParentRoute: () => AppComplaintsRoute,
+  } as any)
+const AppChannelsAddRoute = AppChannelsAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppChannelsRoute,
+} as any)
+const AppSystemLocationStatesRoute = AppSystemLocationStatesRouteImport.update({
+  id: '/states',
+  path: '/states',
+  getParentRoute: () => AppSystemLocationRoute,
+} as any)
+const AppSystemLocationDistrictsRoute =
+  AppSystemLocationDistrictsRouteImport.update({
+    id: '/districts',
+    path: '/districts',
+    getParentRoute: () => AppSystemLocationRoute,
+  } as any)
+const AppSystemLocationAreasRoute = AppSystemLocationAreasRouteImport.update({
+  id: '/areas',
+  path: '/areas',
+  getParentRoute: () => AppSystemLocationRoute,
+} as any)
+const AppSystemLanguageAddRoute = AppSystemLanguageAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppSystemLanguageRoute,
+} as any)
+const AppSystemLocationStatesAddRoute =
+  AppSystemLocationStatesAddRouteImport.update({
+    id: '/add',
+    path: '/add',
+    getParentRoute: () => AppSystemLocationStatesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/categories': typeof AppCategoriesRoute
+  '/channels': typeof AppChannelsRouteWithChildren
+  '/complaints': typeof AppComplaintsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
+  '/listings': typeof AppListingsRoute
+  '/monetization': typeof AppMonetizationRoute
+  '/news-tags': typeof AppNewsTagsRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/offers': typeof AppOffersRoute
+  '/referrals': typeof AppReferralsRoute
+  '/reports': typeof AppReportsRoute
+  '/settings': typeof AppSettingsRoute
+  '/users': typeof AppUsersRoute
+  '/channels/add': typeof AppChannelsAddRoute
+  '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/news/add': typeof AppNewsAddRoute
   '/news/admin': typeof AppNewsAdminRoute
   '/news/all': typeof AppNewsAllRoute
+  '/system/audit-logs': typeof AppSystemAuditLogsRoute
+  '/system/backup': typeof AppSystemBackupRoute
+  '/system/language': typeof AppSystemLanguageRouteWithChildren
+  '/system/location': typeof AppSystemLocationRouteWithChildren
+  '/system/roles': typeof AppSystemRolesRoute
+  '/system/language/add': typeof AppSystemLanguageAddRoute
+  '/system/location/areas': typeof AppSystemLocationAreasRoute
+  '/system/location/districts': typeof AppSystemLocationDistrictsRoute
+  '/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/system/location/states/add': typeof AppSystemLocationStatesAddRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/categories': typeof AppCategoriesRoute
+  '/channels': typeof AppChannelsRouteWithChildren
+  '/complaints': typeof AppComplaintsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
+  '/listings': typeof AppListingsRoute
+  '/monetization': typeof AppMonetizationRoute
+  '/news-tags': typeof AppNewsTagsRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/offers': typeof AppOffersRoute
+  '/referrals': typeof AppReferralsRoute
+  '/reports': typeof AppReportsRoute
+  '/settings': typeof AppSettingsRoute
+  '/users': typeof AppUsersRoute
+  '/channels/add': typeof AppChannelsAddRoute
+  '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/news/add': typeof AppNewsAddRoute
   '/news/admin': typeof AppNewsAdminRoute
   '/news/all': typeof AppNewsAllRoute
+  '/system/audit-logs': typeof AppSystemAuditLogsRoute
+  '/system/backup': typeof AppSystemBackupRoute
+  '/system/language': typeof AppSystemLanguageRouteWithChildren
+  '/system/location': typeof AppSystemLocationRouteWithChildren
+  '/system/roles': typeof AppSystemRolesRoute
+  '/system/language/add': typeof AppSystemLanguageAddRoute
+  '/system/location/areas': typeof AppSystemLocationAreasRoute
+  '/system/location/districts': typeof AppSystemLocationDistrictsRoute
+  '/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/system/location/states/add': typeof AppSystemLocationStatesAddRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/categories': typeof AppCategoriesRoute
+  '/_app/channels': typeof AppChannelsRouteWithChildren
+  '/_app/complaints': typeof AppComplaintsRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/listings': typeof AppListingsRoute
+  '/_app/monetization': typeof AppMonetizationRoute
+  '/_app/news-tags': typeof AppNewsTagsRoute
+  '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/offers': typeof AppOffersRoute
+  '/_app/referrals': typeof AppReferralsRoute
+  '/_app/reports': typeof AppReportsRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/users': typeof AppUsersRoute
+  '/_app/channels/add': typeof AppChannelsAddRoute
+  '/_app/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/_app/news/add': typeof AppNewsAddRoute
   '/_app/news/admin': typeof AppNewsAdminRoute
   '/_app/news/all': typeof AppNewsAllRoute
+  '/_app/system/audit-logs': typeof AppSystemAuditLogsRoute
+  '/_app/system/backup': typeof AppSystemBackupRoute
+  '/_app/system/language': typeof AppSystemLanguageRouteWithChildren
+  '/_app/system/location': typeof AppSystemLocationRouteWithChildren
+  '/_app/system/roles': typeof AppSystemRolesRoute
+  '/_app/system/language/add': typeof AppSystemLanguageAddRoute
+  '/_app/system/location/areas': typeof AppSystemLocationAreasRoute
+  '/_app/system/location/districts': typeof AppSystemLocationDistrictsRoute
+  '/_app/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/_app/system/location/states/add': typeof AppSystemLocationStatesAddRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/categories'
+    | '/channels'
+    | '/complaints'
     | '/dashboard'
+    | '/listings'
+    | '/monetization'
+    | '/news-tags'
+    | '/notifications'
+    | '/offers'
+    | '/referrals'
+    | '/reports'
+    | '/settings'
+    | '/users'
+    | '/channels/add'
+    | '/complaints/$complaintId'
     | '/news/add'
     | '/news/admin'
     | '/news/all'
+    | '/system/audit-logs'
+    | '/system/backup'
+    | '/system/language'
+    | '/system/location'
+    | '/system/roles'
+    | '/system/language/add'
+    | '/system/location/areas'
+    | '/system/location/districts'
+    | '/system/location/states'
+    | '/system/location/states/add'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/dashboard' | '/news/add' | '/news/admin' | '/news/all'
+  to:
+    | '/'
+    | '/login'
+    | '/categories'
+    | '/channels'
+    | '/complaints'
+    | '/dashboard'
+    | '/listings'
+    | '/monetization'
+    | '/news-tags'
+    | '/notifications'
+    | '/offers'
+    | '/referrals'
+    | '/reports'
+    | '/settings'
+    | '/users'
+    | '/channels/add'
+    | '/complaints/$complaintId'
+    | '/news/add'
+    | '/news/admin'
+    | '/news/all'
+    | '/system/audit-logs'
+    | '/system/backup'
+    | '/system/language'
+    | '/system/location'
+    | '/system/roles'
+    | '/system/language/add'
+    | '/system/location/areas'
+    | '/system/location/districts'
+    | '/system/location/states'
+    | '/system/location/states/add'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
+    | '/_app/categories'
+    | '/_app/channels'
+    | '/_app/complaints'
     | '/_app/dashboard'
+    | '/_app/listings'
+    | '/_app/monetization'
+    | '/_app/news-tags'
+    | '/_app/notifications'
+    | '/_app/offers'
+    | '/_app/referrals'
+    | '/_app/reports'
+    | '/_app/settings'
+    | '/_app/users'
+    | '/_app/channels/add'
+    | '/_app/complaints/$complaintId'
     | '/_app/news/add'
     | '/_app/news/admin'
     | '/_app/news/all'
+    | '/_app/system/audit-logs'
+    | '/_app/system/backup'
+    | '/_app/system/language'
+    | '/_app/system/location'
+    | '/_app/system/roles'
+    | '/_app/system/language/add'
+    | '/_app/system/location/areas'
+    | '/_app/system/location/districts'
+    | '/_app/system/location/states'
+    | '/_app/system/location/states/add'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,11 +426,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/users': {
+      id: '/_app/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AppUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/referrals': {
+      id: '/_app/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof AppReferralsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/offers': {
+      id: '/_app/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof AppOffersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/news-tags': {
+      id: '/_app/news-tags'
+      path: '/news-tags'
+      fullPath: '/news-tags'
+      preLoaderRoute: typeof AppNewsTagsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/monetization': {
+      id: '/_app/monetization'
+      path: '/monetization'
+      fullPath: '/monetization'
+      preLoaderRoute: typeof AppMonetizationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/listings': {
+      id: '/_app/listings'
+      path: '/listings'
+      fullPath: '/listings'
+      preLoaderRoute: typeof AppListingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/complaints': {
+      id: '/_app/complaints'
+      path: '/complaints'
+      fullPath: '/complaints'
+      preLoaderRoute: typeof AppComplaintsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/channels': {
+      id: '/_app/channels'
+      path: '/channels'
+      fullPath: '/channels'
+      preLoaderRoute: typeof AppChannelsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/categories': {
+      id: '/_app/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof AppCategoriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/system/roles': {
+      id: '/_app/system/roles'
+      path: '/system/roles'
+      fullPath: '/system/roles'
+      preLoaderRoute: typeof AppSystemRolesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/system/location': {
+      id: '/_app/system/location'
+      path: '/system/location'
+      fullPath: '/system/location'
+      preLoaderRoute: typeof AppSystemLocationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/system/language': {
+      id: '/_app/system/language'
+      path: '/system/language'
+      fullPath: '/system/language'
+      preLoaderRoute: typeof AppSystemLanguageRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/system/backup': {
+      id: '/_app/system/backup'
+      path: '/system/backup'
+      fullPath: '/system/backup'
+      preLoaderRoute: typeof AppSystemBackupRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/system/audit-logs': {
+      id: '/_app/system/audit-logs'
+      path: '/system/audit-logs'
+      fullPath: '/system/audit-logs'
+      preLoaderRoute: typeof AppSystemAuditLogsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/news/all': {
@@ -157,21 +573,168 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNewsAddRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/complaints/$complaintId': {
+      id: '/_app/complaints/$complaintId'
+      path: '/$complaintId'
+      fullPath: '/complaints/$complaintId'
+      preLoaderRoute: typeof AppComplaintsComplaintIdRouteImport
+      parentRoute: typeof AppComplaintsRoute
+    }
+    '/_app/channels/add': {
+      id: '/_app/channels/add'
+      path: '/add'
+      fullPath: '/channels/add'
+      preLoaderRoute: typeof AppChannelsAddRouteImport
+      parentRoute: typeof AppChannelsRoute
+    }
+    '/_app/system/location/states': {
+      id: '/_app/system/location/states'
+      path: '/states'
+      fullPath: '/system/location/states'
+      preLoaderRoute: typeof AppSystemLocationStatesRouteImport
+      parentRoute: typeof AppSystemLocationRoute
+    }
+    '/_app/system/location/districts': {
+      id: '/_app/system/location/districts'
+      path: '/districts'
+      fullPath: '/system/location/districts'
+      preLoaderRoute: typeof AppSystemLocationDistrictsRouteImport
+      parentRoute: typeof AppSystemLocationRoute
+    }
+    '/_app/system/location/areas': {
+      id: '/_app/system/location/areas'
+      path: '/areas'
+      fullPath: '/system/location/areas'
+      preLoaderRoute: typeof AppSystemLocationAreasRouteImport
+      parentRoute: typeof AppSystemLocationRoute
+    }
+    '/_app/system/language/add': {
+      id: '/_app/system/language/add'
+      path: '/add'
+      fullPath: '/system/language/add'
+      preLoaderRoute: typeof AppSystemLanguageAddRouteImport
+      parentRoute: typeof AppSystemLanguageRoute
+    }
+    '/_app/system/location/states/add': {
+      id: '/_app/system/location/states/add'
+      path: '/add'
+      fullPath: '/system/location/states/add'
+      preLoaderRoute: typeof AppSystemLocationStatesAddRouteImport
+      parentRoute: typeof AppSystemLocationStatesRoute
+    }
   }
 }
 
+interface AppChannelsRouteChildren {
+  AppChannelsAddRoute: typeof AppChannelsAddRoute
+}
+
+const AppChannelsRouteChildren: AppChannelsRouteChildren = {
+  AppChannelsAddRoute: AppChannelsAddRoute,
+}
+
+const AppChannelsRouteWithChildren = AppChannelsRoute._addFileChildren(
+  AppChannelsRouteChildren,
+)
+
+interface AppComplaintsRouteChildren {
+  AppComplaintsComplaintIdRoute: typeof AppComplaintsComplaintIdRoute
+}
+
+const AppComplaintsRouteChildren: AppComplaintsRouteChildren = {
+  AppComplaintsComplaintIdRoute: AppComplaintsComplaintIdRoute,
+}
+
+const AppComplaintsRouteWithChildren = AppComplaintsRoute._addFileChildren(
+  AppComplaintsRouteChildren,
+)
+
+interface AppSystemLanguageRouteChildren {
+  AppSystemLanguageAddRoute: typeof AppSystemLanguageAddRoute
+}
+
+const AppSystemLanguageRouteChildren: AppSystemLanguageRouteChildren = {
+  AppSystemLanguageAddRoute: AppSystemLanguageAddRoute,
+}
+
+const AppSystemLanguageRouteWithChildren =
+  AppSystemLanguageRoute._addFileChildren(AppSystemLanguageRouteChildren)
+
+interface AppSystemLocationStatesRouteChildren {
+  AppSystemLocationStatesAddRoute: typeof AppSystemLocationStatesAddRoute
+}
+
+const AppSystemLocationStatesRouteChildren: AppSystemLocationStatesRouteChildren =
+  {
+    AppSystemLocationStatesAddRoute: AppSystemLocationStatesAddRoute,
+  }
+
+const AppSystemLocationStatesRouteWithChildren =
+  AppSystemLocationStatesRoute._addFileChildren(
+    AppSystemLocationStatesRouteChildren,
+  )
+
+interface AppSystemLocationRouteChildren {
+  AppSystemLocationAreasRoute: typeof AppSystemLocationAreasRoute
+  AppSystemLocationDistrictsRoute: typeof AppSystemLocationDistrictsRoute
+  AppSystemLocationStatesRoute: typeof AppSystemLocationStatesRouteWithChildren
+}
+
+const AppSystemLocationRouteChildren: AppSystemLocationRouteChildren = {
+  AppSystemLocationAreasRoute: AppSystemLocationAreasRoute,
+  AppSystemLocationDistrictsRoute: AppSystemLocationDistrictsRoute,
+  AppSystemLocationStatesRoute: AppSystemLocationStatesRouteWithChildren,
+}
+
+const AppSystemLocationRouteWithChildren =
+  AppSystemLocationRoute._addFileChildren(AppSystemLocationRouteChildren)
+
 interface AppRouteChildren {
+  AppCategoriesRoute: typeof AppCategoriesRoute
+  AppChannelsRoute: typeof AppChannelsRouteWithChildren
+  AppComplaintsRoute: typeof AppComplaintsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
+  AppListingsRoute: typeof AppListingsRoute
+  AppMonetizationRoute: typeof AppMonetizationRoute
+  AppNewsTagsRoute: typeof AppNewsTagsRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppOffersRoute: typeof AppOffersRoute
+  AppReferralsRoute: typeof AppReferralsRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppUsersRoute: typeof AppUsersRoute
   AppNewsAddRoute: typeof AppNewsAddRoute
   AppNewsAdminRoute: typeof AppNewsAdminRoute
   AppNewsAllRoute: typeof AppNewsAllRoute
+  AppSystemAuditLogsRoute: typeof AppSystemAuditLogsRoute
+  AppSystemBackupRoute: typeof AppSystemBackupRoute
+  AppSystemLanguageRoute: typeof AppSystemLanguageRouteWithChildren
+  AppSystemLocationRoute: typeof AppSystemLocationRouteWithChildren
+  AppSystemRolesRoute: typeof AppSystemRolesRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCategoriesRoute: AppCategoriesRoute,
+  AppChannelsRoute: AppChannelsRouteWithChildren,
+  AppComplaintsRoute: AppComplaintsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
+  AppListingsRoute: AppListingsRoute,
+  AppMonetizationRoute: AppMonetizationRoute,
+  AppNewsTagsRoute: AppNewsTagsRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppOffersRoute: AppOffersRoute,
+  AppReferralsRoute: AppReferralsRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppUsersRoute: AppUsersRoute,
   AppNewsAddRoute: AppNewsAddRoute,
   AppNewsAdminRoute: AppNewsAdminRoute,
   AppNewsAllRoute: AppNewsAllRoute,
+  AppSystemAuditLogsRoute: AppSystemAuditLogsRoute,
+  AppSystemBackupRoute: AppSystemBackupRoute,
+  AppSystemLanguageRoute: AppSystemLanguageRouteWithChildren,
+  AppSystemLocationRoute: AppSystemLocationRouteWithChildren,
+  AppSystemRolesRoute: AppSystemRolesRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -184,3 +747,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

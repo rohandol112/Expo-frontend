@@ -59,6 +59,9 @@ const MENU: Item[] = [
     children: [
       { label: "Language Management", to: ROUTES.SYS_LANGUAGE },
       { label: "Location Management", to: ROUTES.SYS_LOCATION },
+      { label: "States", to: ROUTES.SYS_STATES },
+      { label: "Districts", to: ROUTES.SYS_DISTRICTS },
+      { label: "Areas", to: ROUTES.SYS_AREAS },
       { label: "Audit Logs", to: ROUTES.SYS_AUDIT },
       { label: "Backup & Restore", to: ROUTES.SYS_BACKUP },
       { label: "Role & Permission", to: ROUTES.SYS_ROLES },
