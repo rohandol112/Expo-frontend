@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppNewsAllRouteImport } from './routes/_app/news/all'
 import { Route as AppNewsAdminRouteImport } from './routes/_app/news/admin'
+import { Route as AppNewsAddRouteImport } from './routes/_app/news/add'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -45,11 +46,17 @@ const AppNewsAdminRoute = AppNewsAdminRouteImport.update({
   path: '/news/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNewsAddRoute = AppNewsAddRouteImport.update({
+  id: '/news/add',
+  path: '/news/add',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof AppDashboardRoute
+  '/news/add': typeof AppNewsAddRoute
   '/news/admin': typeof AppNewsAdminRoute
   '/news/all': typeof AppNewsAllRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof AppDashboardRoute
+  '/news/add': typeof AppNewsAddRoute
   '/news/admin': typeof AppNewsAdminRoute
   '/news/all': typeof AppNewsAllRoute
 }
@@ -66,20 +74,28 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/news/add': typeof AppNewsAddRoute
   '/_app/news/admin': typeof AppNewsAdminRoute
   '/_app/news/all': typeof AppNewsAllRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/dashboard' | '/news/admin' | '/news/all'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/news/add'
+    | '/news/admin'
+    | '/news/all'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/dashboard' | '/news/admin' | '/news/all'
+  to: '/' | '/login' | '/dashboard' | '/news/add' | '/news/admin' | '/news/all'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
     | '/_app/dashboard'
+    | '/_app/news/add'
     | '/_app/news/admin'
     | '/_app/news/all'
   fileRoutesById: FileRoutesById
@@ -134,17 +150,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNewsAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/news/add': {
+      id: '/_app/news/add'
+      path: '/news/add'
+      fullPath: '/news/add'
+      preLoaderRoute: typeof AppNewsAddRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
+  AppNewsAddRoute: typeof AppNewsAddRoute
   AppNewsAdminRoute: typeof AppNewsAdminRoute
   AppNewsAllRoute: typeof AppNewsAllRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
+  AppNewsAddRoute: AppNewsAddRoute,
   AppNewsAdminRoute: AppNewsAdminRoute,
   AppNewsAllRoute: AppNewsAllRoute,
 }
