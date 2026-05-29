@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Globe, Mail, Lock, Eye, EyeOff } from "lucide-react";
@@ -9,11 +9,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { loginSchema, type LoginFormValues } from "@/validations/loginSchema";
 import { authService } from "@/services/auth.service";
-import { useAuthStore } from "@/store/useAuthStore";
+import { hasPersistedAuthSession, useAuthStore } from "@/store/useAuthStore";
 import { ROUTES } from "@/constants/routes.constants";
 import { handleError } from "@/lib/errorHandler";
 
 export const Route = createFileRoute("/login")({
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+
+    if (useAuthStore.getState().isAuthenticated || hasPersistedAuthSession()) {
+      throw redirect({ to: ROUTES.DASHBOARD });
+    }
+  },
   component: LoginPage,
 });
 
