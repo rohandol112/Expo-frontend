@@ -1,8 +1,11 @@
 import { Outlet } from "@tanstack/react-router";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 export function RootLayout() {
+  useAuthGuard();
+
   return (
     <div className="flex h-screen min-w-[900px] bg-background">
       <Sidebar />
