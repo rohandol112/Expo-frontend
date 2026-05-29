@@ -1,23 +1,17 @@
-export interface User {
+export interface AdminUser {
   id: string;
+  name: string;
   email: string;
-  name?: string;
-  role?: string;
+  role: "super_admin" | "admin" | "manager";
+  avatarUrl?: string;
 }
 
-export interface AuthState {
-  token: string | null;
-  refreshToken: string | null;
-  user: User | null;
-  isLoading: boolean;
-  error: string | null;
+export interface LoginPayload {
+  email: string;
+  password: string;
 }
 
-export interface AuthActions {
-  setAuth: (token: string, refreshToken: string) => void;
-  clearAuth: () => void;
-  setUser: (user: User | null) => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  clearError: () => void;
+export interface LoginResponse {
+  user: AdminUser;
+  token: string;
 }

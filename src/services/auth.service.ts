@@ -1,35 +1,23 @@
-import { ApiEndpoints } from '@/lib/apiEndpoints';
-import { request } from '@/lib/httpClient';
+import type { LoginPayload, LoginResponse, AdminUser } from "@/types/auth";
 
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
+// Mock credentials — replace with real httpClient call when backend is ready.
+const MOCK_USER: AdminUser = {
+  id: "u-1",
+  name: "Admin User",
+  email: "admin@news.com",
+  role: "super_admin",
+  avatarUrl: "https://i.pravatar.cc/100?img=12",
+};
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
-
-export async function loginApi(payload: LoginPayload) {
-  return request<AuthTokens, LoginPayload>({
-    url: ApiEndpoints.AUTH.LOGIN,
-    method: 'POST',
-    body: payload,
-  });
-}
-
-export async function refreshTokenApi(refreshToken: string) {
-  return request<AuthTokens, { refreshToken: string }>({
-    url: ApiEndpoints.AUTH.REFRESH_TOKEN,
-    method: 'POST',
-    body: { refreshToken },
-  });
-}
-
-export async function logoutApi() {
-  return request<void>({
-    url: ApiEndpoints.AUTH.LOGOUT,
-    method: 'POST',
-  });
-}
+export const authService = {
+  async login(payload: LoginPayload): Promise<LoginResponse> {
+    await new Promise((r) => setTimeout(r, 400));
+    if (payload.email !== "admin@news.com" || payload.password !== "admin123") {
+      throw new Error("Invalid email or password");
+    }
+    return { user: MOCK_USER, token: "mock-token-123" };
+  },
+  async logout() {
+    await new Promise((r) => setTimeout(r, 100));
+  },
+};

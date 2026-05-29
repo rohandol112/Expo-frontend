@@ -1,14 +1,17 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet } from "@tanstack/react-router";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Topbar } from "@/components/layout/Topbar";
 
-export default function RootLayout() {
+export function RootLayout() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="border-b px-6 py-4">
-        <h1 className="text-lg font-semibold">Expo Frontend</h1>
-      </header>
-      <main className="flex-1 p-6">
-        <Outlet />
-      </main>
+    <div className="flex h-screen min-w-[900px] bg-background">
+      <Sidebar />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Topbar />
+        <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

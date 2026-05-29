@@ -1,49 +1,24 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { AuthActions, AuthState } from '@/types/auth';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { AdminUser } from "@/types/auth";
 
-type AuthStore = AuthState & AuthActions;
+interface AuthState {
+  user: AdminUser | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  setAuth: (user: AdminUser, token: string) => void;
+  logout: () => void;
+}
 
-export const useAuthStore = create<AuthStore>()(
+export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      token: null,
-      refreshToken: null,
       user: null,
-      isLoading: false,
-      error: null,
-
-      setAuth: (token, refreshToken) =>
-        set({
-          token,
-          refreshToken,
-          isLoading: false,
-          error: null,
-        }),
-
-      clearAuth: () =>
-        set({
-          token: null,
-          refreshToken: null,
-          user: null,
-          isLoading: false,
-          error: null,
-        }),
-
-      setUser: (user) => set({ user }),
-      setLoading: (isLoading) => set({ isLoading }),
-      setError: (error) => set({ error, isLoading: false }),
-      clearError: () => set({ error: null }),
+      token: null,
+      isAuthenticated: false,
+      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
+      logout: () => set({ user: null, token: null, isAuthenticated: false }),
     }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        token: state.token,
-        refreshToken: state.refreshToken,
-        user: state.user,
-      }),
-    }
-  )
+    { name: "news-admin-auth" },
+  ),
 );
-
-export default useAuthStore;

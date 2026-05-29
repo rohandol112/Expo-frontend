@@ -1,11 +1,24 @@
-export const ApiEndpoints = {
-  AUTH: {
-    LOGIN: '/auth/login',
-    LOGOUT: '/auth/logout',
-    REFRESH_TOKEN: '/auth/refresh-token',
+// Central API endpoint registry. Replace BASE_URL when backend is ready.
+export const API_BASE_URL = "/api";
+
+export const API = {
+  auth: {
+    login: "/auth/login",
+    logout: "/auth/logout",
+    me: "/auth/me",
   },
-  USER: {
-    PROFILE: '/users/profile',
-    GET_BY_ID: (userId: string) => `/users/${userId}`,
+  news: {
+    list: "/news",
+    admin: "/news/admin",
+    create: "/news",
+    detail: (id: string) => `/news/${id}`,
+    update: (id: string) => `/news/${id}`,
+    delete: (id: string) => `/news/${id}`,
   },
+  categories: "/categories",
+  channels: "/channels",
+  users: "/users",
+  complaints: "/complaints",
+  reports: "/reports",
+  notifications: "/notifications",
 } as const;
