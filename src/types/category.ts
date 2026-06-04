@@ -12,4 +12,6 @@ export interface Category {
   displayOrder: number;
   createdOn: string;
   updatedOn: string;
+  imageUrl: string;
+  videoUrl?: string;
 }

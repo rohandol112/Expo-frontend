@@ -11,6 +11,12 @@ export interface NewsItem {
   contentType?: ContentType;
   language: string;
   location?: { city: string; region: string };
+  visibility?: {
+    type: "All India" | "By State" | "By District" | "By Area";
+    state?: string;
+    district?: string;
+    area?: string;
+  };
   views: number;
   status: NewsStatus;
   publishedOn?: string;

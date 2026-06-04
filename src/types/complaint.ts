@@ -9,8 +9,12 @@ export interface Complaint {
   reportedBy: string;
   language: string;
   location: string;
+  state: string;
+  district: string;
+  area: string;
   assignedTo: string;
   registeredOn: string;
   description: string;
   images: string[];
+  videos: string[];
 }

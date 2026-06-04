@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MapPin, Save } from "lucide-react";
+import { MapPin, Save, User, Languages, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { ChatBox } from "@/components/admin/ChatBox";
@@ -20,13 +20,25 @@ function ComplaintDetailPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <SectionCard title={complaint.title} description={complaint.description}>
-            <div className="grid gap-3 text-sm md:grid-cols-3"><Meta label="Category" value={complaint.category} /><Meta label="Priority" value={complaint.priority} /><Meta label="Location" value={complaint.location} /></div>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">{complaint.images.length ? complaint.images.map((image) => <img key={image} src={image} alt="" className="h-32 w-full rounded-lg object-cover" />) : <div className="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">No images attached</div>}</div>
+            <div className="grid gap-3 text-sm md:grid-cols-4"><Meta label="Category" value={complaint.category} /><Meta label="Priority" value={complaint.priority} /><Meta label="Status" value={String(complaint.status)} /><Meta label="Location" value={complaint.location} /></div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {complaint.images.map((image) => <img key={image} src={image} alt="" className="h-32 w-full rounded-lg object-cover" />)}
+              {complaint.videos.map((video) => <video key={video} src={video} controls className="h-32 w-full rounded-lg object-cover" />)}
+              {complaint.images.length + complaint.videos.length === 0 && <div className="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">No media attached</div>}
+            </div>
           </SectionCard>
           <SectionCard title="Conversation"><ChatBox messages={[{ id: "m1", sender: complaint.reportedBy, message: complaint.description, time: "20 May 2026, 10:30 AM" }, { id: "m2", sender: "Support", message: "Thanks, we are reviewing the complaint details.", time: "20 May 2026, 11:10 AM", own: true }]} /></SectionCard>
         </div>
         <div className="space-y-6">
-          <SectionCard title="Submitted By"><Meta label="Name" value={complaint.reportedBy} /><Meta label="Language" value={complaint.language} /><Meta label="Registered On" value={complaint.registeredOn} /></SectionCard>
+          <SectionCard title="Reporter Info">
+            <div className="space-y-3">
+              <InfoRow icon={User} label="Reporter" value={complaint.reportedBy} />
+              <InfoRow icon={Languages} label="Language" value={complaint.language} />
+              <InfoRow icon={MapPin} label="Full Location" value={complaint.location} />
+              <InfoRow icon={ShieldCheck} label="Assigned Officer" value={complaint.assignedTo} />
+              <Meta label="Registered On" value={complaint.registeredOn} />
+            </div>
+          </SectionCard>
           <SectionCard title="Workflow">
             <div className="space-y-3">
               <Select defaultValue={complaint.status}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["Pending", "Active", "Resolved"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
@@ -43,4 +55,8 @@ function ComplaintDetailPage() {
 
 function Meta({ label, value }: { label: string; value: string }) {
   return <div className="mb-3"><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm font-medium">{value}</p></div>;
+}
+
+function InfoRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+  return <div className="flex gap-3 rounded-md border p-3"><Icon className="mt-0.5 h-4 w-4 text-primary" /><Meta label={label} value={value} /></div>;
 }

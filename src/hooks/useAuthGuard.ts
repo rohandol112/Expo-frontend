@@ -6,7 +6,9 @@ import { ROUTES } from "@/constants/routes.constants";
 export function useAuthGuard() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasSession = isAuthenticated || hasPersistedAuthSession();
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const hasSession = (isAuthenticated && Boolean(user) && Boolean(token)) || hasPersistedAuthSession();
 
   useEffect(() => {
     if (!hasSession) {

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { MapPin, Plus } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
@@ -11,6 +11,8 @@ export const Route = createFileRoute("/_app/system/location")({ component: Locat
 
 function LocationOverviewPage() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  if (pathname !== ROUTES.SYS_LOCATION) return <Outlet />;
   return (
     <div>
       <PageHeader title="All Locations" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "System" }, { label: "All Locations" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_STATES_ADD })}><Plus className="mr-2 h-4 w-4" />Add</Button>} />

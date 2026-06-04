@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Info, Save } from "lucide-react";
+import { ArrowLeft, Info, Save } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FormSection } from "@/components/forms/FormSection";
 import { SectionCard } from "@/components/admin/SectionCard";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/states/add")({ component: AddStatePage });
 
@@ -18,10 +19,22 @@ const schema = z.object({ name: z.string().min(2), code: z.string().min(2).max(4
 type FormValues = z.infer<typeof schema>;
 
 function AddStatePage() {
+  const navigate = useNavigate();
   const { register, setValue, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { status: "Active" } });
   return (
-    <form onSubmit={handleSubmit(() => undefined)}>
-      <PageHeader title="Add State" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "States", to: ROUTES.SYS_STATES }, { label: "Add State" }]} actions={<Button type="submit"><Save className="mr-2 h-4 w-4" />Save State</Button>} />
+    <form onSubmit={handleSubmit(() => toast.info("Backend API not available yet."))}>
+      <PageHeader
+        title="Add State"
+        breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "States", to: ROUTES.SYS_STATES }, { label: "Add State" }]}
+        actions={
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={() => navigate({ to: ROUTES.SYS_STATES })}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+            <Button type="submit"><Save className="mr-2 h-4 w-4" />Save State</Button>
+          </div>
+        }
+      />
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <FormSection title="State Details">
           <div className="grid gap-4 md:grid-cols-2">

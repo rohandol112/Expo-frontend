@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Save } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
+import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FormSection } from "@/components/forms/FormSection";
-import { FileUploadBox } from "@/components/forms/FileUploadBox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,37 +15,74 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { languages } from "@/mock/system.mock";
 import { states, districts, areas } from "@/mock/location.mock";
 import { ROUTES } from "@/constants/routes.constants";
+import { useCreateChannel } from "@/hooks/api/useChannels";
+import { isAuthApiError } from "@/lib/apiError";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/channels/add")({ component: AddChannelPage });
 
 const schema = z.object({
-  name: z.string().min(2),
+  title: z.string().min(2),
   website: z.string().url().or(z.literal("")),
-  description: z.string().min(5),
+  companyName: z.string().optional(),
   language: z.string().min(1),
   state: z.string().min(1),
   district: z.string().min(1),
   area: z.string().min(1),
   status: z.enum(["Active", "Inactive"]),
   allowUserPosts: z.boolean(),
+  imageUrl: z.string().url().or(z.literal("")),
 });
 type FormValues = z.infer<typeof schema>;
 
 function AddChannelPage() {
+  const navigate = useNavigate();
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const createChannel = useCreateChannel();
   const { register, setValue, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { status: "Active", allowUserPosts: true, website: "" },
+    defaultValues: { status: "Active", allowUserPosts: true, website: "", imageUrl: "" },
   });
+  const onSubmit = async (data: FormValues) => {
+    try {
+      await createChannel.mutateAsync({
+        title: data.title,
+        company_name: data.companyName || undefined,
+        source_url: data.website || "https://example.com",
+        image_url: data.imageUrl || undefined,
+        is_active: data.status === "Active",
+      });
+      toast.success("Channel saved");
+      if (videoFile) toast.info("Channel video upload is pending backend upload support.");
+      navigate({ to: ROUTES.CHANNELS });
+    } catch (err) {
+      toast.error(isAuthApiError(err) ? "Backend admin auth is required to save channel." : "Unable to save channel");
+    }
+  };
   return (
-    <form onSubmit={handleSubmit(() => undefined)}>
-      <PageHeader title="Add Channel" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Channels", to: ROUTES.CHANNELS }, { label: "Add Channel" }]} actions={<Button type="submit"><Save className="mr-2 h-4 w-4" />Save Channel</Button>} />
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <PageHeader
+        title="Add Channel"
+        breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Channels", to: ROUTES.CHANNELS }, { label: "Add Channel" }]}
+        actions={
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={() => navigate({ to: ROUTES.CHANNELS })}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+            <Button type="submit" disabled={createChannel.isPending}><Save className="mr-2 h-4 w-4" />{createChannel.isPending ? "Saving..." : "Save Channel"}</Button>
+          </div>
+        }
+      />
       <div className="grid gap-6 xl:grid-cols-2">
         <FormSection title="Channel Details">
-          <Field label="Channel Name" error={errors.name?.message}><Input {...register("name")} placeholder="Pune Local Desk" /></Field>
-          <FileUploadBox label="Upload channel logo" hint="Recommended 512x512" accept="image/*" />
+          <Field label="Channel Title" error={errors.title?.message}><Input {...register("title")} placeholder="Pune Local Desk" /></Field>
+          <Field label="Company Name"><Input {...register("companyName")} placeholder="Pehli Baat Media" /></Field>
+          <Field label="Image URL" error={errors.imageUrl?.message}><Input {...register("imageUrl")} placeholder="https://example.com/logo.png" /></Field>
+          <Field label="Channel Video"><Input type="file" accept="video/*" onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)} /></Field>
+          <p className="text-xs text-muted-foreground">TODO: Backend channel media supports `image_url` only. Location and video upload remain frontend-only until backend fields are available.</p>
           <Field label="Language"><Select onValueChange={(v) => setValue("language", v)}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{languages.map((l) => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select></Field>
-          <Field label="Website" error={errors.website?.message}><Input {...register("website")} placeholder="https://example.com" /></Field>
-          <Field label="Description" error={errors.description?.message}><Textarea {...register("description")} placeholder="Short channel description" /></Field>
+          <Field label="Source URL" error={errors.website?.message}><Input {...register("website")} placeholder="https://example.com" /></Field>
+          <Field label="Description"><Textarea placeholder="Location fields below are UI-only until backend supports them." /></Field>
         </FormSection>
         <div className="space-y-6">
           <FormSection title="Location Assignment">

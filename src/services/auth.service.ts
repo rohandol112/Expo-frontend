@@ -1,23 +1,60 @@
 import type { LoginPayload, LoginResponse, AdminUser } from "@/types/auth";
+import { API } from "@/lib/apiEndpoints";
+import { httpClient } from "@/lib/httpClient";
 
-// Mock credentials — replace with real httpClient call when backend is ready.
-const MOCK_USER: AdminUser = {
-  id: "u-1",
-  name: "Admin User",
-  email: "admin@news.com",
-  role: "super_admin",
-  avatarUrl: "https://i.pravatar.cc/100?img=12",
-};
+interface AdminLoginApiResponse {
+  token: string;
+  expires_in: number;
+  user: AdminUser;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  email?: string;
+  language_code?: string | null;
+  state_id?: number | null;
+  district_id?: number | null;
+  area_id?: number | null;
+}
+
+export interface ProfilePhotoUploadUrlPayload {
+  file_name: string;
+  content_type: string;
+}
+
+export interface ProfilePhotoUploadUrlResponse {
+  upload_url: string;
+  file_key: string;
+  expires_in: number;
+}
 
 export const authService = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
-    await new Promise((r) => setTimeout(r, 400));
-    if (payload.email !== "admin@news.com" || payload.password !== "admin123") {
-      throw new Error("Invalid email or password");
-    }
-    return { user: MOCK_USER, token: "mock-token-123" };
+    const data = await httpClient.post<AdminLoginApiResponse>(API.auth.adminLogin, payload);
+    return { user: data.user, token: data.token };
   },
   async logout() {
-    await new Promise((r) => setTimeout(r, 100));
+    return httpClient.post<void>(API.auth.logout);
+  },
+  sendOtp(payload: { phone: string }) {
+    return httpClient.post<{ expires_in: number }>(API.auth.sendOtp, payload);
+  },
+  verifyOtp(payload: { phone: string; otp: string; refer_by?: string }) {
+    return httpClient.post<{ token: string; expires_in: number; user: unknown }>(API.auth.verifyOtp, payload);
+  },
+  profile() {
+    return httpClient.get<unknown>(API.auth.profile);
+  },
+  updateProfile(payload: UpdateProfilePayload) {
+    return httpClient.put<unknown>(API.auth.profile, payload);
+  },
+  requestProfilePhotoUploadUrl(payload: ProfilePhotoUploadUrlPayload) {
+    return httpClient.post<ProfilePhotoUploadUrlResponse>(API.auth.profilePhotoUploadUrl, payload);
+  },
+  confirmProfilePhotoUpload(payload: { file_key: string }) {
+    return httpClient.post<unknown>(API.auth.profilePhotoConfirm, payload);
+  },
+  deleteAccount() {
+    return httpClient.delete<void>(API.auth.account);
   },
 };

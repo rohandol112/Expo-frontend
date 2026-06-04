@@ -13,6 +13,7 @@ import {
   Tags,
   List,
   DollarSign,
+  FileText,
   Shield,
   Settings,
   ChevronDown,
@@ -53,6 +54,7 @@ const MENU: Item[] = [
   { label: "Offers", icon: Tags, to: ROUTES.OFFERS },
   { label: "Listings", icon: List, to: ROUTES.LISTINGS },
   { label: "Monetization Management", icon: DollarSign, to: ROUTES.MONETIZATION },
+  { label: "CMS", icon: FileText, to: ROUTES.CMS },
   {
     label: "System Management",
     icon: Shield,

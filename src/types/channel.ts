@@ -11,6 +11,7 @@ export interface Channel {
   district: string;
   areas: string[];
   posts: number;
+  subscribers: number;
   addedOn: string;
   status: AdminStatus;
   allowUserPosts: boolean;

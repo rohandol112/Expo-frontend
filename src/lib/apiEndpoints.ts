@@ -1,24 +1,58 @@
-// Central API endpoint registry. Replace BASE_URL when backend is ready.
-export const API_BASE_URL = "/api";
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://expo-router-backend.onrender.com";
+
+export const API_ORIGIN = configuredBaseUrl.replace(/\/$/, "");
+export const API_BASE_URL = `${API_ORIGIN}/api`;
 
 export const API = {
   auth: {
-    login: "/auth/login",
+    adminLogin: "/admin/auth/login",
+    sendOtp: "/auth/send-otp",
+    verifyOtp: "/auth/verify-otp",
+    mergeGuest: "/auth/merge-guest",
+    profile: "/auth/profile",
+    profilePhotoUploadUrl: "/auth/profile/photo/upload-url",
+    profilePhotoConfirm: "/auth/profile/photo/confirm",
+    account: "/auth/account",
     logout: "/auth/logout",
-    me: "/auth/me",
+  },
+  languages: {
+    publicList: "/languages",
+    adminList: "/admin/languages",
+    detail: (id: string | number) => `/admin/languages/${id}`,
+    status: (id: string | number) => `/admin/languages/${id}/status`,
+  },
+  categories: {
+    publicList: "/categories",
+    publicDetail: (id: string | number) => `/categories/${id}`,
+    subcategories: (id: string | number) => `/categories/${id}/subcategories`,
+    videos: (id: string | number) => `/categories/${id}/videos`,
+    adminList: "/admin/categories",
+    detail: (id: string | number) => `/admin/categories/${id}`,
+    status: (id: string | number) => `/admin/categories/${id}/status`,
+    sort: "/admin/categories/sort",
+  },
+  channels: {
+    publicList: "/channels",
+    adminList: "/admin/channels",
+    detail: (id: string | number) => `/admin/channels/${id}`,
   },
   news: {
     list: "/news",
-    admin: "/news/admin",
-    create: "/news",
-    detail: (id: string) => `/news/${id}`,
-    update: (id: string) => `/news/${id}`,
-    delete: (id: string) => `/news/${id}`,
+    adminList: "/admin/news",
+    adminStats: "/admin/news/stats",
+    detail: (id: string | number) => `/admin/news/${id}`,
+    approve: (id: string | number) => `/admin/news/${id}/approve`,
+    reject: (id: string | number) => `/admin/news/${id}/reject`,
+    schedule: (id: string | number) => `/admin/news/${id}/schedule`,
+    uploadUrl: (id: string | number) => `/news/${id}/upload-url`,
+    uploadConfirm: (id: string | number) => `/news/${id}/upload-confirm`,
+    thumbnailUploadUrl: (id: string | number) => `/news/${id}/thumbnail/upload-url`,
+    thumbnailConfirm: (id: string | number) => `/news/${id}/thumbnail/confirm`,
+    view: (id: string | number) => `/news/${id}/view`,
+    like: (id: string | number) => `/news/${id}/like`,
+    share: (id: string | number) => `/news/${id}/share`,
+    comments: (id: string | number) => `/news/${id}/comments`,
+    categories: (id: string | number) => `/news/${id}/categories`,
   },
-  categories: "/categories",
-  channels: "/channels",
-  users: "/users",
-  complaints: "/complaints",
-  reports: "/reports",
-  notifications: "/notifications",
+  regions: "/regions",
 } as const;

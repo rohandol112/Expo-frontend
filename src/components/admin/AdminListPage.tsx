@@ -16,6 +16,8 @@ export function AdminListPage<T>({
   dropdowns = [],
   showDateRange = false,
   filter,
+  loading = false,
+  error,
 }: {
   title: string;
   breadcrumbs: Crumb[];
@@ -28,6 +30,8 @@ export function AdminListPage<T>({
   dropdowns?: FilterDropdown[];
   showDateRange?: boolean;
   filter?: (row: T, search: string) => boolean;
+  loading?: boolean;
+  error?: React.ReactNode;
 }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -48,10 +52,12 @@ export function AdminListPage<T>({
         showDateRange={showDateRange}
         onReset={() => setSearch("")}
       />
+      {error && <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>}
       <DataTable
         columns={columns}
         data={filtered}
         rowKey={rowKey}
+        loading={loading}
         page={page}
         pageSize={10}
         total={filtered.length}

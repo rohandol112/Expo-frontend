@@ -1,4 +1,4 @@
-import type { ChartPoint, ReportRow } from "@/types/report";
+import type { ChartPoint, DayWiseReport, ReportRow } from "@/types/report";
 
 export const viewsOverview: ChartPoint[] = [
   { name: "Jan", views: 18000 }, { name: "Feb", views: 24000 }, { name: "Mar", views: 31000 },
@@ -26,4 +26,12 @@ export const languageUsage: ReportRow[] = [
   { id: "rl-1", name: "Hindi", value: 182000, change: "+14%" },
   { id: "rl-2", name: "English", value: 92000, change: "+7%" },
   { id: "rl-3", name: "Marathi", value: 44000, change: "+4%" },
+];
+
+export const dayWiseReports: DayWiseReport[] = [
+  { id: "day-1", date: "24 May 2026", news: 42, users: 320, notifications: 18, views: 58400 },
+  { id: "day-2", date: "25 May 2026", news: 38, users: 280, notifications: 16, views: 52100 },
+  { id: "day-3", date: "26 May 2026", news: 51, users: 410, notifications: 22, views: 67250 },
+  { id: "day-4", date: "27 May 2026", news: 47, users: 365, notifications: 19, views: 61900 },
+  { id: "day-5", date: "28 May 2026", news: 56, users: 440, notifications: 24, views: 74200 },
 ];

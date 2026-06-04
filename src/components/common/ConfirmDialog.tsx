@@ -18,6 +18,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   onConfirm,
   destructive = false,
+  children,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -27,6 +28,7 @@ export function ConfirmDialog({
   cancelLabel?: string;
   onConfirm?: () => void;
   destructive?: boolean;
+  children?: React.ReactNode;
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -35,6 +37,7 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {children && <div className="py-2">{children}</div>}
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction

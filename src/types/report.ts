@@ -15,3 +15,12 @@ export interface ReportRow {
   value: number;
   change: string;
 }
+
+export interface DayWiseReport {
+  id: string;
+  date: string;
+  news: number;
+  users: number;
+  notifications: number;
+  views: number;
+}

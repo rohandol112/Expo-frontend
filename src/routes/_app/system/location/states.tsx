@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
@@ -13,6 +13,8 @@ export const Route = createFileRoute("/_app/system/location/states")({ component
 
 function StatesPage() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  if (pathname !== ROUTES.SYS_STATES) return <Outlet />;
   const columns: Column<StateItem>[] = [
     { key: "name", header: "State Name", cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: "code", header: "State Code", cell: (r) => r.code },
