@@ -41,12 +41,17 @@ import { Route as AppListingsAddRouteImport } from './routes/_app/listings/add'
 import { Route as AppComplaintsComplaintIdRouteImport } from './routes/_app/complaints/$complaintId'
 import { Route as AppChannelsAddRouteImport } from './routes/_app/channels/add'
 import { Route as AppCategoriesAddRouteImport } from './routes/_app/categories/add'
+import { Route as AppNewsNewsIdIndexRouteImport } from './routes/_app/news/$newsId/index'
+import { Route as AppChannelsChannelIdIndexRouteImport } from './routes/_app/channels/$channelId/index'
+import { Route as AppCategoriesCategoryIdIndexRouteImport } from './routes/_app/categories/$categoryId/index'
 import { Route as AppSystemLocationStatesRouteImport } from './routes/_app/system/location/states'
 import { Route as AppSystemLocationDistrictsRouteImport } from './routes/_app/system/location/districts'
 import { Route as AppSystemLocationAreasRouteImport } from './routes/_app/system/location/areas'
 import { Route as AppSystemLanguageAddRouteImport } from './routes/_app/system/language/add'
+import { Route as AppNewsNewsIdEditRouteImport } from './routes/_app/news/$newsId/edit'
 import { Route as AppChannelsChannelIdEditRouteImport } from './routes/_app/channels/$channelId/edit'
 import { Route as AppCategoriesCategoryIdEditRouteImport } from './routes/_app/categories/$categoryId/edit'
+import { Route as AppSystemLanguageLanguageIdIndexRouteImport } from './routes/_app/system/language/$languageId/index'
 import { Route as AppSystemLocationStatesAddRouteImport } from './routes/_app/system/location/states/add'
 import { Route as AppSystemLocationDistrictsAddRouteImport } from './routes/_app/system/location/districts/add'
 import { Route as AppSystemLocationAreasAddRouteImport } from './routes/_app/system/location/areas/add'
@@ -212,6 +217,23 @@ const AppCategoriesAddRoute = AppCategoriesAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppCategoriesRoute,
 } as any)
+const AppNewsNewsIdIndexRoute = AppNewsNewsIdIndexRouteImport.update({
+  id: '/news/$newsId/',
+  path: '/news/$newsId/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChannelsChannelIdIndexRoute =
+  AppChannelsChannelIdIndexRouteImport.update({
+    id: '/$channelId/',
+    path: '/$channelId/',
+    getParentRoute: () => AppChannelsRoute,
+  } as any)
+const AppCategoriesCategoryIdIndexRoute =
+  AppCategoriesCategoryIdIndexRouteImport.update({
+    id: '/$categoryId/',
+    path: '/$categoryId/',
+    getParentRoute: () => AppCategoriesRoute,
+  } as any)
 const AppSystemLocationStatesRoute = AppSystemLocationStatesRouteImport.update({
   id: '/states',
   path: '/states',
@@ -233,6 +255,11 @@ const AppSystemLanguageAddRoute = AppSystemLanguageAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppSystemLanguageRoute,
 } as any)
+const AppNewsNewsIdEditRoute = AppNewsNewsIdEditRouteImport.update({
+  id: '/news/$newsId/edit',
+  path: '/news/$newsId/edit',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppChannelsChannelIdEditRoute =
   AppChannelsChannelIdEditRouteImport.update({
     id: '/$channelId/edit',
@@ -244,6 +271,12 @@ const AppCategoriesCategoryIdEditRoute =
     id: '/$categoryId/edit',
     path: '/$categoryId/edit',
     getParentRoute: () => AppCategoriesRoute,
+  } as any)
+const AppSystemLanguageLanguageIdIndexRoute =
+  AppSystemLanguageLanguageIdIndexRouteImport.update({
+    id: '/$languageId/',
+    path: '/$languageId/',
+    getParentRoute: () => AppSystemLanguageRoute,
   } as any)
 const AppSystemLocationStatesAddRoute =
   AppSystemLocationStatesAddRouteImport.update({
@@ -304,14 +337,19 @@ export interface FileRoutesByFullPath {
   '/system/roles': typeof AppSystemRolesRoute
   '/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
   '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/system/language/add': typeof AppSystemLanguageAddRoute
   '/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
   '/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
   '/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/categories/$categoryId/': typeof AppCategoriesCategoryIdIndexRoute
+  '/channels/$channelId/': typeof AppChannelsChannelIdIndexRoute
+  '/news/$newsId/': typeof AppNewsNewsIdIndexRoute
   '/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
   '/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
   '/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
   '/system/location/states/add': typeof AppSystemLocationStatesAddRoute
+  '/system/language/$languageId/': typeof AppSystemLanguageLanguageIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -347,14 +385,19 @@ export interface FileRoutesByTo {
   '/system/roles': typeof AppSystemRolesRoute
   '/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
   '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/system/language/add': typeof AppSystemLanguageAddRoute
   '/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
   '/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
   '/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/categories/$categoryId': typeof AppCategoriesCategoryIdIndexRoute
+  '/channels/$channelId': typeof AppChannelsChannelIdIndexRoute
+  '/news/$newsId': typeof AppNewsNewsIdIndexRoute
   '/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
   '/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
   '/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
   '/system/location/states/add': typeof AppSystemLocationStatesAddRoute
+  '/system/language/$languageId': typeof AppSystemLanguageLanguageIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -392,14 +435,19 @@ export interface FileRoutesById {
   '/_app/system/roles': typeof AppSystemRolesRoute
   '/_app/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
   '/_app/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/_app/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/_app/system/language/add': typeof AppSystemLanguageAddRoute
   '/_app/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
   '/_app/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
   '/_app/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/_app/categories/$categoryId/': typeof AppCategoriesCategoryIdIndexRoute
+  '/_app/channels/$channelId/': typeof AppChannelsChannelIdIndexRoute
+  '/_app/news/$newsId/': typeof AppNewsNewsIdIndexRoute
   '/_app/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
   '/_app/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
   '/_app/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
   '/_app/system/location/states/add': typeof AppSystemLocationStatesAddRoute
+  '/_app/system/language/$languageId/': typeof AppSystemLanguageLanguageIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -437,14 +485,19 @@ export interface FileRouteTypes {
     | '/system/roles'
     | '/categories/$categoryId/edit'
     | '/channels/$channelId/edit'
+    | '/news/$newsId/edit'
     | '/system/language/add'
     | '/system/location/areas'
     | '/system/location/districts'
     | '/system/location/states'
+    | '/categories/$categoryId/'
+    | '/channels/$channelId/'
+    | '/news/$newsId/'
     | '/system/language/$languageId/edit'
     | '/system/location/areas/add'
     | '/system/location/districts/add'
     | '/system/location/states/add'
+    | '/system/language/$languageId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -480,14 +533,19 @@ export interface FileRouteTypes {
     | '/system/roles'
     | '/categories/$categoryId/edit'
     | '/channels/$channelId/edit'
+    | '/news/$newsId/edit'
     | '/system/language/add'
     | '/system/location/areas'
     | '/system/location/districts'
     | '/system/location/states'
+    | '/categories/$categoryId'
+    | '/channels/$channelId'
+    | '/news/$newsId'
     | '/system/language/$languageId/edit'
     | '/system/location/areas/add'
     | '/system/location/districts/add'
     | '/system/location/states/add'
+    | '/system/language/$languageId'
   id:
     | '__root__'
     | '/'
@@ -524,14 +582,19 @@ export interface FileRouteTypes {
     | '/_app/system/roles'
     | '/_app/categories/$categoryId/edit'
     | '/_app/channels/$channelId/edit'
+    | '/_app/news/$newsId/edit'
     | '/_app/system/language/add'
     | '/_app/system/location/areas'
     | '/_app/system/location/districts'
     | '/_app/system/location/states'
+    | '/_app/categories/$categoryId/'
+    | '/_app/channels/$channelId/'
+    | '/_app/news/$newsId/'
     | '/_app/system/language/$languageId/edit'
     | '/_app/system/location/areas/add'
     | '/_app/system/location/districts/add'
     | '/_app/system/location/states/add'
+    | '/_app/system/language/$languageId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -766,6 +829,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCategoriesAddRouteImport
       parentRoute: typeof AppCategoriesRoute
     }
+    '/_app/news/$newsId/': {
+      id: '/_app/news/$newsId/'
+      path: '/news/$newsId'
+      fullPath: '/news/$newsId/'
+      preLoaderRoute: typeof AppNewsNewsIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/channels/$channelId/': {
+      id: '/_app/channels/$channelId/'
+      path: '/$channelId'
+      fullPath: '/channels/$channelId/'
+      preLoaderRoute: typeof AppChannelsChannelIdIndexRouteImport
+      parentRoute: typeof AppChannelsRoute
+    }
+    '/_app/categories/$categoryId/': {
+      id: '/_app/categories/$categoryId/'
+      path: '/$categoryId'
+      fullPath: '/categories/$categoryId/'
+      preLoaderRoute: typeof AppCategoriesCategoryIdIndexRouteImport
+      parentRoute: typeof AppCategoriesRoute
+    }
     '/_app/system/location/states': {
       id: '/_app/system/location/states'
       path: '/states'
@@ -794,6 +878,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSystemLanguageAddRouteImport
       parentRoute: typeof AppSystemLanguageRoute
     }
+    '/_app/news/$newsId/edit': {
+      id: '/_app/news/$newsId/edit'
+      path: '/news/$newsId/edit'
+      fullPath: '/news/$newsId/edit'
+      preLoaderRoute: typeof AppNewsNewsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/channels/$channelId/edit': {
       id: '/_app/channels/$channelId/edit'
       path: '/$channelId/edit'
@@ -807,6 +898,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/categories/$categoryId/edit'
       preLoaderRoute: typeof AppCategoriesCategoryIdEditRouteImport
       parentRoute: typeof AppCategoriesRoute
+    }
+    '/_app/system/language/$languageId/': {
+      id: '/_app/system/language/$languageId/'
+      path: '/$languageId'
+      fullPath: '/system/language/$languageId/'
+      preLoaderRoute: typeof AppSystemLanguageLanguageIdIndexRouteImport
+      parentRoute: typeof AppSystemLanguageRoute
     }
     '/_app/system/location/states/add': {
       id: '/_app/system/location/states/add'
@@ -842,11 +940,13 @@ declare module '@tanstack/react-router' {
 interface AppCategoriesRouteChildren {
   AppCategoriesAddRoute: typeof AppCategoriesAddRoute
   AppCategoriesCategoryIdEditRoute: typeof AppCategoriesCategoryIdEditRoute
+  AppCategoriesCategoryIdIndexRoute: typeof AppCategoriesCategoryIdIndexRoute
 }
 
 const AppCategoriesRouteChildren: AppCategoriesRouteChildren = {
   AppCategoriesAddRoute: AppCategoriesAddRoute,
   AppCategoriesCategoryIdEditRoute: AppCategoriesCategoryIdEditRoute,
+  AppCategoriesCategoryIdIndexRoute: AppCategoriesCategoryIdIndexRoute,
 }
 
 const AppCategoriesRouteWithChildren = AppCategoriesRoute._addFileChildren(
@@ -856,11 +956,13 @@ const AppCategoriesRouteWithChildren = AppCategoriesRoute._addFileChildren(
 interface AppChannelsRouteChildren {
   AppChannelsAddRoute: typeof AppChannelsAddRoute
   AppChannelsChannelIdEditRoute: typeof AppChannelsChannelIdEditRoute
+  AppChannelsChannelIdIndexRoute: typeof AppChannelsChannelIdIndexRoute
 }
 
 const AppChannelsRouteChildren: AppChannelsRouteChildren = {
   AppChannelsAddRoute: AppChannelsAddRoute,
   AppChannelsChannelIdEditRoute: AppChannelsChannelIdEditRoute,
+  AppChannelsChannelIdIndexRoute: AppChannelsChannelIdIndexRoute,
 }
 
 const AppChannelsRouteWithChildren = AppChannelsRoute._addFileChildren(
@@ -929,11 +1031,13 @@ const AppOffersRouteWithChildren = AppOffersRoute._addFileChildren(
 interface AppSystemLanguageRouteChildren {
   AppSystemLanguageAddRoute: typeof AppSystemLanguageAddRoute
   AppSystemLanguageLanguageIdEditRoute: typeof AppSystemLanguageLanguageIdEditRoute
+  AppSystemLanguageLanguageIdIndexRoute: typeof AppSystemLanguageLanguageIdIndexRoute
 }
 
 const AppSystemLanguageRouteChildren: AppSystemLanguageRouteChildren = {
   AppSystemLanguageAddRoute: AppSystemLanguageAddRoute,
   AppSystemLanguageLanguageIdEditRoute: AppSystemLanguageLanguageIdEditRoute,
+  AppSystemLanguageLanguageIdIndexRoute: AppSystemLanguageLanguageIdIndexRoute,
 }
 
 const AppSystemLanguageRouteWithChildren =
@@ -1019,6 +1123,8 @@ interface AppRouteChildren {
   AppSystemLanguageRoute: typeof AppSystemLanguageRouteWithChildren
   AppSystemLocationRoute: typeof AppSystemLocationRouteWithChildren
   AppSystemRolesRoute: typeof AppSystemRolesRoute
+  AppNewsNewsIdEditRoute: typeof AppNewsNewsIdEditRoute
+  AppNewsNewsIdIndexRoute: typeof AppNewsNewsIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1044,6 +1150,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppSystemLanguageRoute: AppSystemLanguageRouteWithChildren,
   AppSystemLocationRoute: AppSystemLocationRouteWithChildren,
   AppSystemRolesRoute: AppSystemRolesRoute,
+  AppNewsNewsIdEditRoute: AppNewsNewsIdEditRoute,
+  AppNewsNewsIdIndexRoute: AppNewsNewsIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

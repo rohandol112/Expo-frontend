@@ -30,6 +30,7 @@ import { useRegions } from "@/hooks/api/useRegions";
 import { useCreateNews } from "@/hooks/api/useNews";
 import { isAuthApiError } from "@/lib/apiError";
 import type { CreateAdminNewsPayload, NewsCreateStatus, NewsVisibilityScope } from "@/services/news.service";
+import { newsService } from "@/services/news.service";
 
 export const Route = createFileRoute("/_app/news/add")({
   component: AddNewsPage,
@@ -83,6 +84,15 @@ function numberOrUndefined(value?: string) {
   return value ? Number(value) : undefined;
 }
 
+async function uploadToPresignedUrl(uploadUrl: string, file: File) {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  if (!response.ok) throw new Error("Unable to upload media file");
+}
+
 function AddNewsPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -132,10 +142,12 @@ function AddNewsPage() {
   }, [categoriesQuery.error, channelsQuery.error, languagesQuery.error, regionsQuery.error]);
 
   const buildPayload = (data: FormValues): CreateAdminNewsPayload => {
-    const visibility: CreateAdminNewsPayload["visibility"] = { scope: data.visibilityScope as NewsVisibilityScope };
-    if (data.visibilityScope === "state") visibility.state_ids = data.visibilityStateIds.map(Number);
-    if (data.visibilityScope === "district") visibility.district_ids = data.visibilityDistrictIds.map(Number);
-    if (data.visibilityScope === "area") visibility.area_ids = data.visibilityAreaIds.map(Number);
+    const visibility: CreateAdminNewsPayload["visibility"] = {
+      scope: data.visibilityScope as NewsVisibilityScope,
+      state_ids: data.visibilityScope === "state" ? data.visibilityStateIds.map(Number) : [],
+      district_ids: data.visibilityScope === "district" ? data.visibilityDistrictIds.map(Number) : [],
+      area_ids: data.visibilityScope === "area" ? data.visibilityAreaIds.map(Number) : [],
+    };
 
     const translations = data.translationTitle
       ? [{ language_code: data.languageCode, title: data.translationTitle, description: data.translationDescription || null }]
@@ -158,21 +170,44 @@ function AddNewsPage() {
       },
       visibility,
       translations,
-      status: data.status as NewsCreateStatus,
-      scheduled_for: data.status === "schedule" && data.scheduledFor ? new Date(data.scheduledFor).toISOString() : undefined,
     };
   };
 
   const submitNews = async (data: FormValues) => {
     try {
-      await createNews.mutateAsync(buildPayload(data));
-      toast.success("News create request sent to backend");
-      if (thumbnailFile || videoFile) {
-        toast.info("Media upload is not executed yet. Backend requires creating a news record first, then presigned upload/confirm calls.");
+      const created = await createNews.mutateAsync(buildPayload(data));
+
+      try {
+        await newsService.updateCategories(created.id, {
+          category_ids: [Number(data.categoryId)],
+          subcategory_ids: data.subcategoryIds.map(Number),
+        });
+      } catch {
+        // Deployed backend may already persist categories during create; this compatibility call is best-effort.
       }
+
+      if (thumbnailFile) {
+        const upload = await newsService.requestThumbnailUploadUrl(created.id, {
+          file_name: thumbnailFile.name,
+          content_type: thumbnailFile.type || "image/jpeg",
+        });
+        await uploadToPresignedUrl(upload.upload_url, thumbnailFile);
+        await newsService.confirmThumbnailUpload(created.id, { file_key: upload.file_key });
+      }
+
+      if (videoFile) {
+        const upload = await newsService.requestVideoUploadUrl(created.id, {
+          file_name: videoFile.name,
+          content_type: videoFile.type || "video/mp4",
+        });
+        await uploadToPresignedUrl(upload.upload_url, videoFile);
+        await newsService.confirmVideoUpload(created.id, { file_key: upload.file_key });
+      }
+
+      toast.success(thumbnailFile || videoFile ? "News and media uploaded" : "News create request sent to backend");
       navigate({ to: ROUTES.NEWS_ADMIN });
     } catch (err) {
-      toast.error(isAuthApiError(err) ? "Backend admin auth is required to create news." : "Unable to create news");
+      toast.error(isAuthApiError(err) ? "Backend admin auth is required to create news." : "Unable to create news or upload media");
     }
   };
 
@@ -352,7 +387,6 @@ function AddNewsPage() {
               <Input type="file" accept="image/*" onChange={(event) => setThumbnailFile(event.target.files?.[0] ?? null)} />
               <Input type="file" accept="video/*" onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)} />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">TODO: upload requires create success, presigned upload URL, direct PUT, then confirm.</p>
           </div>
           <Field label="Bottom Description"><Input {...register("bottomDescription")} placeholder="Optional bottom description" maxLength={2000} /></Field>
         </FormSection>

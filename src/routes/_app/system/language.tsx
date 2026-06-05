@@ -57,6 +57,7 @@ function LanguagesPage() {
       header: "Actions",
       cell: (r) => (
         <ActionMenu
+          onView={() => navigate({ to: "/system/language/$languageId", params: { languageId: r.id } })}
           onEdit={() => navigate({ to: "/system/language/$languageId/edit", params: { languageId: r.id } })}
           onDelete={() => setDeleteTarget(r)}
         />

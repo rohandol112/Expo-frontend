@@ -39,6 +39,7 @@ function ChannelsPage() {
       header: "Actions",
       cell: (r) => (
         <ActionMenu
+          onView={() => navigate({ to: "/channels/$channelId", params: { channelId: r.id } })}
           onEdit={() => navigate({ to: "/channels/$channelId/edit", params: { channelId: r.id } })}
           onDelete={() => setDeleteTarget(r)}
         />

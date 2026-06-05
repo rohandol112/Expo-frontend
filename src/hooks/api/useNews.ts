@@ -39,6 +39,17 @@ export function useCreateNews() {
   });
 }
 
+export function useUpdateNews() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: unknown }) => newsService.update(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: newsKeys.all });
+      queryClient.invalidateQueries({ queryKey: newsKeys.detail(variables.id) });
+    },
+  });
+}
+
 export function useUpdateNewsCategories() {
   const queryClient = useQueryClient();
   return useMutation({

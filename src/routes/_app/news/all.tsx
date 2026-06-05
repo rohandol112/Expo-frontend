@@ -141,7 +141,13 @@ function AllNewsPage() {
     {
       key: "actions",
       header: "Actions",
-      cell: (r) => <ActionMenu onDelete={() => setDeleteTarget(r)} />,
+      cell: (r) => (
+        <ActionMenu
+          onView={() => navigate({ to: "/news/$newsId", params: { newsId: r.id } })}
+          onEdit={() => navigate({ to: "/news/$newsId/edit", params: { newsId: r.id } })}
+          onDelete={() => setDeleteTarget(r)}
+        />
+      ),
     },
   ];
 

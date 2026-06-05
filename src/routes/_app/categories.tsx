@@ -78,6 +78,7 @@ function CategoriesPage() {
       header: "Actions",
       cell: (r) => (
         <ActionMenu
+          onView={() => navigate({ to: "/categories/$categoryId", params: { categoryId: r.id } })}
           onEdit={() => navigate({ to: "/categories/$categoryId/edit", params: { categoryId: r.id } })}
           onDelete={() => setDeleteTarget(r)}
         />

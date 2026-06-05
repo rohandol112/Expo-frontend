@@ -167,7 +167,8 @@ function AdminNewsPage() {
       header: "Actions",
       cell: (r) => (
         <ActionMenu
-          onEdit={() => toast.info("Admin news edit form needs channel/category id mapping before safe backend writes.")}
+          onView={() => navigate({ to: "/news/$newsId", params: { newsId: r.id } })}
+          onEdit={() => navigate({ to: "/news/$newsId/edit", params: { newsId: r.id } })}
           onDelete={() => setDeleteTarget(r)}
           extraItems={[
             {
