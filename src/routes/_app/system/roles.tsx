@@ -1,40 +1,57 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Save, SquarePen, Users } from "lucide-react";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { Filter, Plus, Search } from "lucide-react";
+import { ActionMenu } from "@/components/common/ActionMenu";
 import { PageHeader } from "@/components/common/PageHeader";
-import { SectionCard } from "@/components/admin/SectionCard";
-import { PermissionGroup } from "@/components/admin/PermissionGroup";
-import { StatsGrid } from "@/components/admin/StatsGrid";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { roles, permissionActions, permissionGroups } from "@/mock/roles.mock";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { DataTable, type Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
+import { roleRows, type RoleRow } from "@/mock/admin-extra.mock";
 
 export const Route = createFileRoute("/_app/system/roles")({ component: RolesPage });
 
 function RolesPage() {
-  const [selectedRoleId, setSelectedRoleId] = useState(roles[0].id);
-  const [expanded, setExpanded] = useState(true);
-  const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? roles[0];
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  if (pathname !== ROUTES.SYS_ROLES) return <Outlet />;
+
+  const columns: Column<RoleRow>[] = [
+    { key: "name", header: "Role Name", cell: (row) => <span className="font-medium">{row.name}</span> },
+    { key: "description", header: "Role Description", cell: (row) => <span className="text-muted-foreground">{row.description}</span> },
+    { key: "scope", header: "Scope", cell: (row) => row.scope },
+    { key: "permissions", header: "Total Permissions", cell: (row) => row.permissions },
+    { key: "contentTypes", header: "Content Types", cell: (row) => row.contentTypes },
+    { key: "status", header: "Status", cell: (row) => <StatusBadge status={row.status} /> },
+    { key: "createdAt", header: "Created At", cell: (row) => row.createdAt },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (row) => (
+        <ActionMenu
+          onView={() => navigate({ to: "/system/roles/$roleId", params: { roleId: row.id } })}
+          onEdit={() => navigate({ to: "/system/roles/$roleId/edit", params: { roleId: row.id } })}
+          extraItems={[{ label: "Duplicate" }, { label: "Permissions" }]}
+        />
+      ),
+    },
+  ];
+
   return (
     <div>
-      <PageHeader title="Role & Permission Management" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "System" }, { label: "Roles" }]} actions={<><Button variant="outline"><SquarePen className="mr-2 h-4 w-4" />Edit Role</Button><Button><Plus className="mr-2 h-4 w-4" />Create New Role</Button></>} />
-      <StatsGrid items={[{ title: "Total Roles", value: roles.length, icon: Users, variant: "blue" }, { title: "Assigned Users", value: roles.reduce((a, r) => a + r.users, 0), icon: Users, variant: "green" }]} />
-      <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
-        <SectionCard title="Roles">
-          <div className="space-y-2">
-            {roles.map((role) => (
-              <button key={role.id} onClick={() => setSelectedRoleId(role.id)} className={cn("w-full rounded-lg border p-3 text-left transition", selectedRole.id === role.id ? "border-primary bg-primary/5" : "hover:bg-muted/40")}>
-                <p className="font-medium">{role.name}</p>
-                <p className="text-xs text-muted-foreground">{role.users} users</p>
-              </button>
-            ))}
-          </div>
-        </SectionCard>
-        <SectionCard title={selectedRole.name} description={selectedRole.description} action={<div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setExpanded(true)}><ChevronDown className="mr-2 h-4 w-4" />Expand All</Button><Button variant="outline" size="sm" onClick={() => setExpanded(false)}><ChevronUp className="mr-2 h-4 w-4" />Collapse All</Button><Button size="sm"><Save className="mr-2 h-4 w-4" />Save Changes</Button></div>}>
-          {expanded ? <div className="space-y-4">{permissionGroups.map((group) => <PermissionGroup key={group} title={group} permissions={permissionActions} />)}</div> : <p className="text-sm text-muted-foreground">Permission matrix collapsed.</p>}
-        </SectionCard>
+      <PageHeader
+        title="Role Management"
+        breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "System Management" }, { label: "Roles" }]}
+        actions={<Button onClick={() => navigate({ to: ROUTES.SYS_ROLES_ADD })}><Plus className="mr-2 h-4 w-4" />Add Role</Button>}
+      />
+      <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-4 md:flex-row md:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search by role name or description" />
+        </div>
+        <Button variant="outline"><Filter className="mr-2 h-4 w-4" />Filter</Button>
       </div>
+      <DataTable columns={columns} data={roleRows} rowKey={(row) => row.id} pageSize={10} total={roleRows.length} />
     </div>
   );
 }

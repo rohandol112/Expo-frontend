@@ -14,6 +14,7 @@ import {
   List,
   DollarSign,
   FileText,
+  MessageSquareText,
   Shield,
   Settings,
   ChevronDown,
@@ -54,6 +55,7 @@ const MENU: Item[] = [
   { label: "Offers", icon: Tags, to: ROUTES.OFFERS },
   { label: "Listings", icon: List, to: ROUTES.LISTINGS },
   { label: "Monetization Management", icon: DollarSign, to: ROUTES.MONETIZATION },
+  { label: "Feedback", icon: MessageSquareText, to: ROUTES.FEEDBACK },
   { label: "CMS", icon: FileText, to: ROUTES.CMS },
   {
     label: "System Management",
@@ -67,6 +69,7 @@ const MENU: Item[] = [
       { label: "Audit Logs", to: ROUTES.SYS_AUDIT },
       { label: "Backup & Restore", to: ROUTES.SYS_BACKUP },
       { label: "Role & Permission", to: ROUTES.SYS_ROLES },
+      { label: "Translation Management", to: ROUTES.SYS_TRANSLATIONS },
     ],
   },
   { label: "Settings", icon: Settings, to: ROUTES.SETTINGS },

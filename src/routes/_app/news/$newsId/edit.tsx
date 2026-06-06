@@ -38,10 +38,11 @@ function EditNewsPage() {
   const languagesQuery = useLanguages();
   const updateNews = useUpdateNews();
   const news = newsQuery.data;
-  const { register, setValue, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+  const { register, setValue, watch, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { type: "article", sourceLink: "", thumbnailUrl: "" },
   });
+  const values = watch();
 
   useEffect(() => {
     if (!news) return;
@@ -49,12 +50,12 @@ function EditNewsPage() {
     const languageCode = languagesQuery.data?.items.find((language) => language.name === news.language || language.code === news.language)?.code;
     reset({
       title: news.title,
-      description: "",
-      bottomDescription: "",
-      languageCode,
-      type: typeMap[news.contentType ?? "Article"],
-      sourceLink: "",
-      thumbnailUrl: news.thumbnail || "",
+      description: news.description || "",
+      bottomDescription: news.bottomDescription || "",
+      languageCode: languageCode || news.languageCode,
+      type: news.type || typeMap[news.contentType ?? "Article"],
+      sourceLink: news.sourceLink || "",
+      thumbnailUrl: news.thumbnailUrl || "",
     });
   }, [languagesQuery.data?.items, news, reset]);
 
@@ -89,11 +90,17 @@ function EditNewsPage() {
       <FormSection title="News Details" description={newsQuery.error ? "Unable to load news from backend." : newsQuery.isLoading ? "Loading news details..." : "This edits the fields currently accepted by the backend news update API."}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Title" error={errors.title?.message}><Input {...register("title")} /></Field>
-          <Field label="Content Type"><Select defaultValue="article" onValueChange={(value) => setValue("type", value as FormValues["type"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="article">Article</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="short">Shorts</SelectItem><SelectItem value="story">Story</SelectItem></SelectContent></Select></Field>
-          <Field label="Language"><Select onValueChange={(value) => setValue("languageCode", value)}><SelectTrigger><SelectValue placeholder={news?.language ?? "Select language"} /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label="Content Type"><Select value={values.type} onValueChange={(value) => setValue("type", value as FormValues["type"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="article">Article</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="short">Shorts</SelectItem><SelectItem value="story">Story</SelectItem></SelectContent></Select></Field>
+          <Field label="Language"><Select value={values.languageCode} onValueChange={(value) => setValue("languageCode", value)}><SelectTrigger><SelectValue placeholder={news?.language ?? "Select language"} /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}</SelectContent></Select></Field>
           <Field label="Source Link" error={errors.sourceLink?.message}><Input {...register("sourceLink")} placeholder="https://example.com/source" /></Field>
           <Field label="Thumbnail URL" error={errors.thumbnailUrl?.message}><Input {...register("thumbnailUrl")} /></Field>
         </div>
+        {news?.videoUrl && (
+          <div className="rounded-md border p-4">
+            <Label className="mb-2 block">Existing Video</Label>
+            <video src={news.videoUrl} controls className="aspect-video w-full max-w-xl rounded-md bg-black object-contain" />
+          </div>
+        )}
         <Field label="Description" error={errors.description?.message}><Textarea {...register("description")} className="min-h-[140px]" /></Field>
         <Field label="Bottom Description" error={errors.bottomDescription?.message}><Textarea {...register("bottomDescription")} /></Field>
       </FormSection>

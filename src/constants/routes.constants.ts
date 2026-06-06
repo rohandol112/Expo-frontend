@@ -23,6 +23,7 @@ export const ROUTES = {
   LISTINGS_ADD: "/listings/add",
   MONETIZATION: "/monetization",
   MONETIZATION_ADD: "/monetization/add",
+  FEEDBACK: "/feedback",
   SYS_LANGUAGE: "/system/language",
   SYS_LANGUAGE_ADD: "/system/language/add",
   SYS_LANGUAGE_EDIT: (id: string) => `/system/language/${id}/edit`,
@@ -36,6 +37,8 @@ export const ROUTES = {
   SYS_AUDIT: "/system/audit-logs",
   SYS_BACKUP: "/system/backup",
   SYS_ROLES: "/system/roles",
+  SYS_ROLES_ADD: "/system/roles/add",
+  SYS_TRANSLATIONS: "/system/translations",
   SETTINGS: "/settings",
   CMS: "/cms",
 } as const;

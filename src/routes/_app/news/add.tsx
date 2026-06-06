@@ -144,16 +144,16 @@ function AddNewsPage() {
   const buildPayload = (data: FormValues): CreateAdminNewsPayload => {
     const visibility: CreateAdminNewsPayload["visibility"] = {
       scope: data.visibilityScope as NewsVisibilityScope,
-      state_ids: data.visibilityScope === "state" ? data.visibilityStateIds.map(Number) : [],
-      district_ids: data.visibilityScope === "district" ? data.visibilityDistrictIds.map(Number) : [],
-      area_ids: data.visibilityScope === "area" ? data.visibilityAreaIds.map(Number) : [],
     };
+    if (data.visibilityScope === "state") visibility.state_ids = data.visibilityStateIds.map(Number);
+    if (data.visibilityScope === "district") visibility.district_ids = data.visibilityDistrictIds.map(Number);
+    if (data.visibilityScope === "area") visibility.area_ids = data.visibilityAreaIds.map(Number);
 
     const translations = data.translationTitle
       ? [{ language_code: data.languageCode, title: data.translationTitle, description: data.translationDescription || null }]
       : undefined;
 
-    return {
+    const payload: CreateAdminNewsPayload = {
       type: data.type,
       language_code: data.languageCode,
       title: data.title,
@@ -162,7 +162,6 @@ function AddNewsPage() {
       news_source_id: Number(data.newsSourceId),
       source_link: data.sourceLink || undefined,
       category_ids: [Number(data.categoryId)],
-      subcategory_ids: data.subcategoryIds.map(Number),
       location: {
         state_id: numberOrUndefined(data.stateId) ?? null,
         district_id: numberOrUndefined(data.districtId) ?? null,
@@ -171,6 +170,12 @@ function AddNewsPage() {
       visibility,
       translations,
     };
+
+    if (data.subcategoryIds.length > 0) {
+      payload.subcategory_ids = data.subcategoryIds.map(Number);
+    }
+
+    return payload;
   };
 
   const submitNews = async (data: FormValues) => {
@@ -178,10 +183,11 @@ function AddNewsPage() {
       const created = await createNews.mutateAsync(buildPayload(data));
 
       try {
-        await newsService.updateCategories(created.id, {
+        const categoryPayload = {
           category_ids: [Number(data.categoryId)],
-          subcategory_ids: data.subcategoryIds.map(Number),
-        });
+          ...(data.subcategoryIds.length > 0 ? { subcategory_ids: data.subcategoryIds.map(Number) } : {}),
+        };
+        await newsService.updateCategories(created.id, categoryPayload);
       } catch {
         // Deployed backend may already persist categories during create; this compatibility call is best-effort.
       }
