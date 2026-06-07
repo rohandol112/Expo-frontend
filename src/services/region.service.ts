@@ -22,9 +22,17 @@ interface RegionTreeResponse {
   states: RegionState[];
 }
 
+export interface RegionListParams {
+  language_code?: string;
+}
+
+const DEFAULT_REGION_LANGUAGE_CODE = "en";
+
 export const regionService = {
-  async list() {
-    const data = await httpClient.get<RegionTreeResponse>(API.regions);
+  async list(params: RegionListParams = {}) {
+    const data = await httpClient.get<RegionTreeResponse>(API.regions, {
+      params: { language_code: params.language_code || DEFAULT_REGION_LANGUAGE_CODE },
+    });
     return data.states || [];
   },
 };

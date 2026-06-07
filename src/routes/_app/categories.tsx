@@ -7,11 +7,11 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { languages } from "@/mock/system.mock";
 import type { Category } from "@/types/category";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
 import { useCategories, useDeleteCategory, useUpdateCategoryStatus } from "@/hooks/api/useCategories";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 
@@ -23,6 +23,7 @@ function CategoriesPage() {
   if (pathname !== ROUTES.CATEGORIES) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const categoriesQuery = useCategories();
+  const languagesQuery = useLanguages();
   const deleteCategory = useDeleteCategory();
   const updateStatus = useUpdateCategoryStatus();
   const rows = categoriesQuery.data?.items ?? [];
@@ -86,7 +87,7 @@ function CategoriesPage() {
     },
   ];
   return <>
-    <AdminListPage title="Categories" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Categories" }]} actions={<Button onClick={() => navigate({ to: ROUTES.CATEGORIES_ADD })}><Plus className="mr-2 h-4 w-4" />Add Category</Button>} stats={[{ title: "Total Categories", value: rows.length, icon: FolderTree, variant: "blue" }, { title: "Total Posts", value: rows.reduce((a, c) => a + c.posts, 0).toLocaleString(), icon: CheckCircle2, variant: "green" }, { title: "Featured Categories", value: rows.filter((c) => c.featured).length, icon: Star, variant: "amber" }, { title: "Active Categories", value: rows.filter((c) => c.status === "Active").length, icon: ToggleRight, variant: "violet" }, { title: "Inactive Categories", value: rows.filter((c) => c.status === "Inactive").length, icon: ToggleLeft, variant: "rose" }]} data={rows} columns={columns} rowKey={(r) => r.id} loading={categoriesQuery.isLoading} error={error} searchPlaceholder="Search category..." dropdowns={[{ key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }, { key: "featured", placeholder: "Featured", options: ["Featured", "Not Featured"].map((s) => ({ label: s, value: s })) }, { key: "language", placeholder: "Language", options: languages.map((l) => ({ label: l.name, value: l.name })) }]} filter={(row, search) => row.name.toLowerCase().includes(search.toLowerCase()) || row.slug.toLowerCase().includes(search.toLowerCase())} />
+    <AdminListPage title="Categories" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Categories" }]} actions={<Button onClick={() => navigate({ to: ROUTES.CATEGORIES_ADD })}><Plus className="mr-2 h-4 w-4" />Add Category</Button>} stats={[{ title: "Total Categories", value: rows.length, icon: FolderTree, variant: "blue" }, { title: "Total Posts", value: rows.reduce((a, c) => a + c.posts, 0).toLocaleString(), icon: CheckCircle2, variant: "green" }, { title: "Featured Categories", value: rows.filter((c) => c.featured).length, icon: Star, variant: "amber" }, { title: "Active Categories", value: rows.filter((c) => c.status === "Active").length, icon: ToggleRight, variant: "violet" }, { title: "Inactive Categories", value: rows.filter((c) => c.status === "Inactive").length, icon: ToggleLeft, variant: "rose" }]} data={rows} columns={columns} rowKey={(r) => r.id} loading={categoriesQuery.isLoading} error={error} searchPlaceholder="Search category..." dropdowns={[{ key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }, { key: "featured", placeholder: "Featured", options: ["Featured", "Not Featured"].map((s) => ({ label: s, value: s })) }, { key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.name })) }]} filter={(row, search) => row.name.toLowerCase().includes(search.toLowerCase()) || row.slug.toLowerCase().includes(search.toLowerCase())} />
     <ConfirmDialog
       open={Boolean(deleteTarget)}
       onOpenChange={(open) => !open && setDeleteTarget(null)}

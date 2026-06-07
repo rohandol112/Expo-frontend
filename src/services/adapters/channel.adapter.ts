@@ -7,6 +7,11 @@ export interface BackendChannel {
   company_name?: string | null;
   source_url?: string;
   image_url?: string | null;
+  language_name?: string | null;
+  language_code?: string | null;
+  state?: string | null;
+  district?: string | null;
+  areas?: string[] | null;
   is_active?: boolean;
   created_at?: string;
   post_count?: number;
@@ -33,12 +38,12 @@ export function toChannel(row: BackendChannel): Channel {
     id: String(row.id),
     name,
     logo: initials(name) || "CH",
-    language: "Hindi",
+    language: row.language_name || row.language_code || "—",
     website: row.source_url || "",
-    description: row.company_name || "News source",
-    state: "All India",
-    district: "—",
-    areas: ["All Areas"],
+    description: row.company_name || "—",
+    state: row.state || "—",
+    district: row.district || "—",
+    areas: row.areas?.length ? row.areas : ["—"],
     posts: row.post_count ?? 0,
     subscribers: row.subscribers ?? 0,
     addedOn: formatDate(row.created_at),

@@ -4,9 +4,6 @@ import { AdminListPage } from "@/components/admin/AdminListPage";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { Button } from "@/components/ui/button";
-import { complaints } from "@/mock/complaints.mock";
-import { languages } from "@/mock/system.mock";
-import { areas, districts, states } from "@/mock/location.mock";
 import type { Complaint } from "@/types/complaint";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
@@ -17,6 +14,7 @@ function ComplaintsPage() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   if (pathname !== ROUTES.COMPLAINTS) return <Outlet />;
+  const rows: Complaint[] = [];
   const columns: Column<Complaint>[] = [
     { key: "title", header: "Title", cell: (r) => <span className="font-medium">{r.title}</span> },
     { key: "category", header: "Category", cell: (r) => r.category },
@@ -29,5 +27,5 @@ function ComplaintsPage() {
     { key: "registered", header: "Registered On", cell: (r) => r.registeredOn },
     { key: "actions", header: "Actions", cell: (r) => <ActionMenu onView={() => navigate({ to: "/complaints/$complaintId", params: { complaintId: r.id } })} /> },
   ];
-  return <AdminListPage title="Complaint Management" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Complaints" }]} actions={<><Button variant="outline"><Download className="mr-2 h-4 w-4" />Export</Button><Button><Plus className="mr-2 h-4 w-4" />Add New Complaint</Button></>} data={complaints} columns={columns} rowKey={(r) => r.id} searchPlaceholder="Search complaints..." showDateRange dropdowns={[{ key: "status", placeholder: "Status", options: ["Active", "Pending", "Resolved"].map((s) => ({ label: s, value: s })) }, { key: "priority", placeholder: "Priority", options: ["Low", "Medium", "High", "Critical"].map((s) => ({ label: s, value: s })) }, { key: "category", placeholder: "Category", options: ["Content", "Abuse", "Technical"].map((s) => ({ label: s, value: s })) }, { key: "language", placeholder: "Language", options: languages.map((l) => ({ label: l.name, value: l.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "area", placeholder: "Area", options: areas.map((a) => ({ label: a.name, value: a.name })) }, { key: "assigned", placeholder: "Assigned Officer", options: ["Priya Admin", "Rohit Support", "Unassigned"].map((s) => ({ label: s, value: s })) }]} filter={(row, search) => [row.title, row.reportedBy, row.location, row.language].some((v) => v.toLowerCase().includes(search.toLowerCase()))} />;
+  return <AdminListPage title="Complaint Management" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Complaints" }]} actions={<><Button variant="outline"><Download className="mr-2 h-4 w-4" />Export</Button><Button><Plus className="mr-2 h-4 w-4" />Add New Complaint</Button></>} data={rows} columns={columns} rowKey={(r) => r.id} error="Complaint backend API is not available in OpenAPI yet." searchPlaceholder="Search complaints..." showDateRange dropdowns={[{ key: "status", placeholder: "Status", options: ["New", "Pending", "Resolved"].map((s) => ({ label: s, value: s })) }, { key: "priority", placeholder: "Priority", options: ["Low", "Medium", "High", "Critical"].map((s) => ({ label: s, value: s })) }, { key: "category", placeholder: "Category", options: ["Content", "Abuse", "Technical"].map((s) => ({ label: s, value: s })) }]} filter={(row, search) => [row.title, row.reportedBy, row.location, row.language].some((v) => v.toLowerCase().includes(search.toLowerCase()))} />;
 }

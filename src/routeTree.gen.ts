@@ -65,6 +65,9 @@ import { Route as AppSystemLocationStatesAddRouteImport } from './routes/_app/sy
 import { Route as AppSystemLocationDistrictsAddRouteImport } from './routes/_app/system/location/districts/add'
 import { Route as AppSystemLocationAreasAddRouteImport } from './routes/_app/system/location/areas/add'
 import { Route as AppSystemLanguageLanguageIdEditRouteImport } from './routes/_app/system/language/$languageId/edit'
+import { Route as AppSystemLocationStatesStateIdEditRouteImport } from './routes/_app/system/location/states/$stateId/edit'
+import { Route as AppSystemLocationDistrictsDistrictIdEditRouteImport } from './routes/_app/system/location/districts/$districtId/edit'
+import { Route as AppSystemLocationAreasAreaIdEditRouteImport } from './routes/_app/system/location/areas/$areaId/edit'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -362,6 +365,24 @@ const AppSystemLanguageLanguageIdEditRoute =
     path: '/$languageId/edit',
     getParentRoute: () => AppSystemLanguageRoute,
   } as any)
+const AppSystemLocationStatesStateIdEditRoute =
+  AppSystemLocationStatesStateIdEditRouteImport.update({
+    id: '/$stateId/edit',
+    path: '/$stateId/edit',
+    getParentRoute: () => AppSystemLocationStatesRoute,
+  } as any)
+const AppSystemLocationDistrictsDistrictIdEditRoute =
+  AppSystemLocationDistrictsDistrictIdEditRouteImport.update({
+    id: '/$districtId/edit',
+    path: '/$districtId/edit',
+    getParentRoute: () => AppSystemLocationDistrictsRoute,
+  } as any)
+const AppSystemLocationAreasAreaIdEditRoute =
+  AppSystemLocationAreasAreaIdEditRouteImport.update({
+    id: '/$areaId/edit',
+    path: '/$areaId/edit',
+    getParentRoute: () => AppSystemLocationAreasRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -419,6 +440,9 @@ export interface FileRoutesByFullPath {
   '/system/language/$languageId/': typeof AppSystemLanguageLanguageIdIndexRoute
   '/system/roles/$roleId/': typeof AppSystemRolesRoleIdIndexRoute
   '/system/translations/$translationId/': typeof AppSystemTranslationsTranslationIdIndexRoute
+  '/system/location/areas/$areaId/edit': typeof AppSystemLocationAreasAreaIdEditRoute
+  '/system/location/districts/$districtId/edit': typeof AppSystemLocationDistrictsDistrictIdEditRoute
+  '/system/location/states/$stateId/edit': typeof AppSystemLocationStatesStateIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -476,6 +500,9 @@ export interface FileRoutesByTo {
   '/system/language/$languageId': typeof AppSystemLanguageLanguageIdIndexRoute
   '/system/roles/$roleId': typeof AppSystemRolesRoleIdIndexRoute
   '/system/translations/$translationId': typeof AppSystemTranslationsTranslationIdIndexRoute
+  '/system/location/areas/$areaId/edit': typeof AppSystemLocationAreasAreaIdEditRoute
+  '/system/location/districts/$districtId/edit': typeof AppSystemLocationDistrictsDistrictIdEditRoute
+  '/system/location/states/$stateId/edit': typeof AppSystemLocationStatesStateIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -535,6 +562,9 @@ export interface FileRoutesById {
   '/_app/system/language/$languageId/': typeof AppSystemLanguageLanguageIdIndexRoute
   '/_app/system/roles/$roleId/': typeof AppSystemRolesRoleIdIndexRoute
   '/_app/system/translations/$translationId/': typeof AppSystemTranslationsTranslationIdIndexRoute
+  '/_app/system/location/areas/$areaId/edit': typeof AppSystemLocationAreasAreaIdEditRoute
+  '/_app/system/location/districts/$districtId/edit': typeof AppSystemLocationDistrictsDistrictIdEditRoute
+  '/_app/system/location/states/$stateId/edit': typeof AppSystemLocationStatesStateIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -594,6 +624,9 @@ export interface FileRouteTypes {
     | '/system/language/$languageId/'
     | '/system/roles/$roleId/'
     | '/system/translations/$translationId/'
+    | '/system/location/areas/$areaId/edit'
+    | '/system/location/districts/$districtId/edit'
+    | '/system/location/states/$stateId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -651,6 +684,9 @@ export interface FileRouteTypes {
     | '/system/language/$languageId'
     | '/system/roles/$roleId'
     | '/system/translations/$translationId'
+    | '/system/location/areas/$areaId/edit'
+    | '/system/location/districts/$districtId/edit'
+    | '/system/location/states/$stateId/edit'
   id:
     | '__root__'
     | '/'
@@ -709,6 +745,9 @@ export interface FileRouteTypes {
     | '/_app/system/language/$languageId/'
     | '/_app/system/roles/$roleId/'
     | '/_app/system/translations/$translationId/'
+    | '/_app/system/location/areas/$areaId/edit'
+    | '/_app/system/location/districts/$districtId/edit'
+    | '/_app/system/location/states/$stateId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1111,6 +1150,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSystemLanguageLanguageIdEditRouteImport
       parentRoute: typeof AppSystemLanguageRoute
     }
+    '/_app/system/location/states/$stateId/edit': {
+      id: '/_app/system/location/states/$stateId/edit'
+      path: '/$stateId/edit'
+      fullPath: '/system/location/states/$stateId/edit'
+      preLoaderRoute: typeof AppSystemLocationStatesStateIdEditRouteImport
+      parentRoute: typeof AppSystemLocationStatesRoute
+    }
+    '/_app/system/location/districts/$districtId/edit': {
+      id: '/_app/system/location/districts/$districtId/edit'
+      path: '/$districtId/edit'
+      fullPath: '/system/location/districts/$districtId/edit'
+      preLoaderRoute: typeof AppSystemLocationDistrictsDistrictIdEditRouteImport
+      parentRoute: typeof AppSystemLocationDistrictsRoute
+    }
+    '/_app/system/location/areas/$areaId/edit': {
+      id: '/_app/system/location/areas/$areaId/edit'
+      path: '/$areaId/edit'
+      fullPath: '/system/location/areas/$areaId/edit'
+      preLoaderRoute: typeof AppSystemLocationAreasAreaIdEditRouteImport
+      parentRoute: typeof AppSystemLocationAreasRoute
+    }
   }
 }
 
@@ -1236,11 +1296,14 @@ const AppSystemLanguageRouteWithChildren =
 
 interface AppSystemLocationAreasRouteChildren {
   AppSystemLocationAreasAddRoute: typeof AppSystemLocationAreasAddRoute
+  AppSystemLocationAreasAreaIdEditRoute: typeof AppSystemLocationAreasAreaIdEditRoute
 }
 
 const AppSystemLocationAreasRouteChildren: AppSystemLocationAreasRouteChildren =
   {
     AppSystemLocationAreasAddRoute: AppSystemLocationAreasAddRoute,
+    AppSystemLocationAreasAreaIdEditRoute:
+      AppSystemLocationAreasAreaIdEditRoute,
   }
 
 const AppSystemLocationAreasRouteWithChildren =
@@ -1250,11 +1313,14 @@ const AppSystemLocationAreasRouteWithChildren =
 
 interface AppSystemLocationDistrictsRouteChildren {
   AppSystemLocationDistrictsAddRoute: typeof AppSystemLocationDistrictsAddRoute
+  AppSystemLocationDistrictsDistrictIdEditRoute: typeof AppSystemLocationDistrictsDistrictIdEditRoute
 }
 
 const AppSystemLocationDistrictsRouteChildren: AppSystemLocationDistrictsRouteChildren =
   {
     AppSystemLocationDistrictsAddRoute: AppSystemLocationDistrictsAddRoute,
+    AppSystemLocationDistrictsDistrictIdEditRoute:
+      AppSystemLocationDistrictsDistrictIdEditRoute,
   }
 
 const AppSystemLocationDistrictsRouteWithChildren =
@@ -1264,11 +1330,14 @@ const AppSystemLocationDistrictsRouteWithChildren =
 
 interface AppSystemLocationStatesRouteChildren {
   AppSystemLocationStatesAddRoute: typeof AppSystemLocationStatesAddRoute
+  AppSystemLocationStatesStateIdEditRoute: typeof AppSystemLocationStatesStateIdEditRoute
 }
 
 const AppSystemLocationStatesRouteChildren: AppSystemLocationStatesRouteChildren =
   {
     AppSystemLocationStatesAddRoute: AppSystemLocationStatesAddRoute,
+    AppSystemLocationStatesStateIdEditRoute:
+      AppSystemLocationStatesStateIdEditRoute,
   }
 
 const AppSystemLocationStatesRouteWithChildren =

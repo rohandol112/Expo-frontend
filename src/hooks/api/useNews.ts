@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { newsService, type CreateAdminNewsPayload, type NewsCommentListParams, type NewsListParams } from "@/services/news.service";
+import { newsService, type BulkNewsPayload, type CreateAdminNewsPayload, type NewsCommentListParams, type NewsListParams } from "@/services/news.service";
 
 export const newsKeys = {
   all: ["news"] as const,
@@ -123,6 +123,22 @@ export function useScheduleNews() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, scheduledFor }: { id: string; scheduledFor: string }) => newsService.schedule(id, scheduledFor),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: newsKeys.all }),
+  });
+}
+
+export function useSetNewsFeatured() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isFeatured }: { id: string; isFeatured: boolean }) => newsService.setFeatured(id, isFeatured),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: newsKeys.all }),
+  });
+}
+
+export function useBulkNewsAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: BulkNewsPayload) => newsService.bulk(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: newsKeys.all }),
   });
 }

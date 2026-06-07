@@ -23,7 +23,7 @@ function formatDate(value?: string) {
 
 function languageName(code?: string) {
   const map: Record<string, string> = { hi: "Hindi", en: "English", mr: "Marathi", ta: "Tamil", bn: "Bengali", gu: "Gujarati", pa: "Punjabi" };
-  return code ? map[code] ?? code.toUpperCase() : "Hindi";
+  return code ? map[code] ?? code.toUpperCase() : "—";
 }
 
 export function toCategory(row: BackendCategory): Category {
@@ -40,6 +40,6 @@ export function toCategory(row: BackendCategory): Category {
     displayOrder: row.sort_order ?? 0,
     createdOn: formatDate(row.created_at),
     updatedOn: formatDate(row.updated_at),
-    imageUrl: row.icon_url || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=120&h=120&fit=crop",
+    imageUrl: row.icon_url || "",
   };
 }

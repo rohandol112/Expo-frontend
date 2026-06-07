@@ -86,7 +86,7 @@ function visibility(value: BackendNews["visibility"]): NewsItem["visibility"] {
 }
 
 export function toNewsItem(row: BackendNews): NewsItem {
-  const thumbnail = row.thumbnail_url || "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=320&h=180&fit=crop";
+  const thumbnail = row.thumbnail_url || "";
 
   return {
     id: String(row.id),
@@ -108,7 +108,7 @@ export function toNewsItem(row: BackendNews): NewsItem {
     contentType: contentType(row.type),
     type: row.type,
     languageCode: row.language_code,
-    language: row.language_name || row.language_code || "Hindi",
+    language: row.language_name || row.language_code || "—",
     location: row.location
       ? {
           state: row.location.state ?? row.location.state_id ?? null,

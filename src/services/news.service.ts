@@ -97,6 +97,19 @@ export interface NewsCommentListParams {
   per_page?: number;
 }
 
+export interface BulkNewsPayload {
+  ids: number[];
+  action: "approve" | "reject" | "delete";
+  reason?: string;
+}
+
+export interface BulkNewsResult {
+  requested?: number;
+  succeeded?: number;
+  failed?: number;
+  errors?: unknown[];
+}
+
 export const newsService = {
   async list(params?: NewsListParams): Promise<{ items: NewsItem[]; total: number; page: number; perPage: number }> {
     const data = await httpClient.get<ListResponse<BackendNews>>(API.news.adminList, { params });
@@ -138,6 +151,14 @@ export const newsService = {
 
   async schedule(id: string, scheduledFor: string) {
     return toNewsItem(await httpClient.post<BackendNews>(API.news.schedule(id), { scheduled_for: scheduledFor }));
+  },
+
+  async setFeatured(id: string, isFeatured: boolean) {
+    return httpClient.put<void>(API.news.feature(id), { is_featured: isFeatured });
+  },
+
+  async bulk(payload: BulkNewsPayload) {
+    return httpClient.post<BulkNewsResult>(API.news.bulk, payload);
   },
 
   async requestVideoUploadUrl(id: string, payload: UploadUrlPayload) {

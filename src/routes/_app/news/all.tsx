@@ -78,7 +78,7 @@ function AllNewsPage() {
       header: "News Details",
       cell: (r) => (
         <div className="flex items-center gap-3">
-          <img src={r.thumbnail} alt="" className="h-12 w-16 rounded object-cover shrink-0" />
+          {r.thumbnail ? <img src={r.thumbnail} alt="" className="h-12 w-16 rounded object-cover shrink-0" /> : <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-muted text-xs text-muted-foreground">No media</div>}
           <div className="min-w-0">
             <p className="text-sm font-medium line-clamp-1">{r.title}</p>
             <p className="text-xs text-muted-foreground">ID: #{r.code}</p>

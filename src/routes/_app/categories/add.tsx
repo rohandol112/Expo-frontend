@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ArrowLeft, Save } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FormSection } from "@/components/forms/FormSection";
 import { Button } from "@/components/ui/button";
@@ -38,10 +38,17 @@ function AddCategoryPage() {
   const createCategory = useCreateCategory();
   const languagesQuery = useLanguages();
   const categoriesQuery = useCategories();
-  const { register, setValue, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { status: "Active", featured: false, displayOrder: 1, iconUrl: "", parentId: "none" },
   });
+  const selectedLanguage = watch("language");
+
+  useEffect(() => {
+    if (!selectedLanguage && languagesQuery.data?.items?.[0]?.code) {
+      setValue("language", languagesQuery.data.items[0].code, { shouldValidate: true });
+    }
+  }, [languagesQuery.data?.items, selectedLanguage, setValue]);
   const onSubmit = async (data: FormValues) => {
     try {
       await createCategory.mutateAsync({
@@ -60,8 +67,10 @@ function AddCategoryPage() {
     }
   };
 
+  const onInvalid = () => toast.error("Please complete the required category fields.");
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
       <PageHeader
         title="Add Category"
         breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Categories", to: ROUTES.CATEGORIES }, { label: "Add Category" }]}
@@ -78,9 +87,9 @@ function AddCategoryPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Category Name" error={errors.name?.message}><Input {...register("name")} placeholder="Politics" /></Field>
           <Field label="Slug" error={errors.slug?.message}><Input {...register("slug")} placeholder="politics" /></Field>
-          <Field label="Language"><Select onValueChange={(v) => setValue("language", v)}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((l) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}</SelectContent></Select></Field>
-          <Field label="Parent Category"><Select defaultValue="none" onValueChange={(v) => setValue("parentId", v)}><SelectTrigger><SelectValue placeholder="Optional parent" /></SelectTrigger><SelectContent><SelectItem value="none">No Parent</SelectItem>{(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}</SelectContent></Select></Field>
-          <Field label="Status"><Select defaultValue="Active" onValueChange={(v) => setValue("status", v as FormValues["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
+          <Field label="Language" error={errors.language?.message}><Select value={selectedLanguage} onValueChange={(v) => setValue("language", v, { shouldValidate: true })}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((l) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label="Parent Category"><Select defaultValue="none" onValueChange={(v) => setValue("parentId", v, { shouldValidate: true })}><SelectTrigger><SelectValue placeholder="Optional parent" /></SelectTrigger><SelectContent><SelectItem value="none">No Parent</SelectItem>{(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label="Status"><Select defaultValue="Active" onValueChange={(v) => setValue("status", v as FormValues["status"], { shouldValidate: true })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
           <Field label="Display Order" error={errors.displayOrder?.message}><Input type="number" {...register("displayOrder")} /></Field>
           <Field label="Icon URL" error={errors.iconUrl?.message}><Input {...register("iconUrl")} placeholder="https://example.com/category.png" /></Field>
           <Field label="Category Video"><Input type="file" accept="video/*" onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)} /></Field>

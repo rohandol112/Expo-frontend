@@ -11,18 +11,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
+import { useCreateState } from "@/hooks/api/useLocations";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/states/add")({ component: AddStatePage });
 
-const schema = z.object({ name: z.string().min(2), code: z.string().min(2).max(4), status: z.enum(["Active", "Inactive"]) });
+const schema = z.object({
+  name: z.string().min(2),
+  code: z.string().min(2).max(12),
+  languageCode: z.string().min(1),
+  sortOrder: z.coerce.number().min(0),
+  status: z.enum(["Active", "Inactive"]),
+});
 type FormValues = z.infer<typeof schema>;
 
 function AddStatePage() {
   const navigate = useNavigate();
-  const { register, setValue, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { status: "Active" } });
+  const createState = useCreateState();
+  const { register, setValue, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { languageCode: "en", sortOrder: 0, status: "Active" } });
+  const onSubmit = (values: FormValues) => {
+    createState.mutate(
+      { language_code: values.languageCode, code: values.code, name: values.name, sort_order: values.sortOrder, is_active: values.status === "Active" },
+      {
+        onSuccess: () => {
+          toast.success("State created.");
+          navigate({ to: ROUTES.SYS_STATES });
+        },
+        onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to create state."),
+      },
+    );
+  };
   return (
-    <form onSubmit={handleSubmit(() => toast.info("Backend API not available yet."))}>
+    <form onSubmit={handleSubmit(onSubmit)}>
       <PageHeader
         title="Add State"
         breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "States", to: ROUTES.SYS_STATES }, { label: "Add State" }]}
@@ -31,7 +51,7 @@ function AddStatePage() {
             <Button type="button" variant="outline" onClick={() => navigate({ to: ROUTES.SYS_STATES })}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            <Button type="submit"><Save className="mr-2 h-4 w-4" />Save State</Button>
+            <Button type="submit" disabled={createState.isPending}><Save className="mr-2 h-4 w-4" />Save State</Button>
           </div>
         }
       />
@@ -40,6 +60,8 @@ function AddStatePage() {
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="State Name" error={errors.name?.message}><Input {...register("name")} placeholder="Maharashtra" /></Field>
             <Field label="State Code" error={errors.code?.message}><Input {...register("code")} placeholder="MH" /></Field>
+            <Field label="Language Code" error={errors.languageCode?.message}><Input {...register("languageCode")} placeholder="en" /></Field>
+            <Field label="Sort Order" error={errors.sortOrder?.message}><Input type="number" min={0} {...register("sortOrder")} /></Field>
             <Field label="Status"><Select defaultValue="Active" onValueChange={(v) => setValue("status", v as FormValues["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
           </div>
         </FormSection>

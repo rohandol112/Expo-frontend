@@ -100,7 +100,7 @@ function AdminNewsPage() {
       header: "News Details",
       cell: (r) => (
         <div className="flex items-center gap-3">
-          <img src={r.thumbnail} alt="" className="h-12 w-16 rounded object-cover" />
+          {r.thumbnail ? <img src={r.thumbnail} alt="" className="h-12 w-16 rounded object-cover" /> : <div className="flex h-12 w-16 items-center justify-center rounded bg-muted text-xs text-muted-foreground">No media</div>}
           <div>
             <p className="text-sm font-medium line-clamp-2 max-w-[220px]">{r.title}</p>
             <span className="inline-flex items-center gap-1 mt-1 text-xs text-muted-foreground">

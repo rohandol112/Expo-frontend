@@ -21,6 +21,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ROUTES } from "@/constants/routes.constants";
+import { isSupportedNewsCategoryId } from "@/constants/newsCategories.constants";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCategories, useCategorySubcategories } from "@/hooks/api/useCategories";
@@ -121,6 +122,14 @@ function AddNewsPage() {
 
   const values = watch();
   const subcategoriesQuery = useCategorySubcategories(values.categoryId || "", { page: 1, per_page: 100 });
+  const newsCategories = useMemo(
+    () => (categoriesQuery.data?.items ?? []).filter((category) => isSupportedNewsCategoryId(category.id)),
+    [categoriesQuery.data?.items],
+  );
+  const newsSubcategories = useMemo(
+    () => (subcategoriesQuery.data?.items ?? []).filter((subcategory) => isSupportedNewsCategoryId(subcategory.id)),
+    [subcategoriesQuery.data?.items],
+  );
   const states = regionsQuery.data ?? [];
   const selectedState = states.find((state) => String(state.id) === values.stateId);
   const districts = selectedState?.districts ?? [];
@@ -138,8 +147,11 @@ function AddNewsPage() {
     if (categoriesQuery.error || channelsQuery.error || languagesQuery.error || regionsQuery.error) {
       return "Some backend master data could not be loaded. Add News needs real channel, category, language, and region data.";
     }
+    if (!categoriesQuery.isLoading && newsCategories.length === 0) {
+      return "No backend-supported news categories are available. News create currently accepts only canonical category IDs 1 to 12.";
+    }
     return undefined;
-  }, [categoriesQuery.error, channelsQuery.error, languagesQuery.error, regionsQuery.error]);
+  }, [categoriesQuery.error, categoriesQuery.isLoading, channelsQuery.error, languagesQuery.error, newsCategories.length, regionsQuery.error]);
 
   const buildPayload = (data: FormValues): CreateAdminNewsPayload => {
     const visibility: CreateAdminNewsPayload["visibility"] = {
@@ -162,14 +174,20 @@ function AddNewsPage() {
       news_source_id: Number(data.newsSourceId),
       source_link: data.sourceLink || undefined,
       category_ids: [Number(data.categoryId)],
-      location: {
-        state_id: numberOrUndefined(data.stateId) ?? null,
-        district_id: numberOrUndefined(data.districtId) ?? null,
-        area_id: numberOrUndefined(data.areaId) ?? null,
-      },
       visibility,
       translations,
     };
+
+    const stateId = numberOrUndefined(data.stateId);
+    const districtId = numberOrUndefined(data.districtId);
+    const areaId = numberOrUndefined(data.areaId);
+    if (data.visibilityScope !== "all_india" && (stateId || districtId || areaId)) {
+      payload.location = {
+        state_id: stateId ?? null,
+        district_id: districtId ?? null,
+        area_id: areaId ?? null,
+      };
+    }
 
     if (data.subcategoryIds.length > 0) {
       payload.subcategory_ids = data.subcategoryIds.map(Number);
@@ -180,6 +198,10 @@ function AddNewsPage() {
 
   const submitNews = async (data: FormValues) => {
     try {
+      if (!isSupportedNewsCategoryId(data.categoryId)) {
+        toast.error("Selected category is not accepted by the backend News API. Please choose a canonical news category.");
+        return;
+      }
       const created = await createNews.mutateAsync(buildPayload(data));
 
       try {
@@ -282,8 +304,13 @@ function AddNewsPage() {
           <Field label="Category *" error={errors.categoryId?.message}>
             <Select value={values.categoryId} onValueChange={(value) => { setValue("categoryId", value); setValue("subcategoryIds", []); }}>
               <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-              <SelectContent>{(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {newsCategories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+              </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              News API currently accepts only canonical backend category IDs 1 to 12. Admin-created categories are listed in Category Management but cannot be used for News until backend validation is updated.
+            </p>
           </Field>
 
           {values.categoryId && (
@@ -296,7 +323,7 @@ function AddNewsPage() {
               ) : (
                 <MultiCheckList
                   title="Subcategories"
-                  items={(subcategoriesQuery.data?.items ?? []).map((subcategory) => ({ id: subcategory.id, name: subcategory.name }))}
+                  items={newsSubcategories.map((subcategory) => ({ id: subcategory.id, name: subcategory.name }))}
                   selected={values.subcategoryIds ?? []}
                   onChange={(next) => setValue("subcategoryIds", next)}
                   emptyText="No subcategories found"
