@@ -33,3 +33,46 @@ export interface AreaItem {
   status: AdminStatus;
   addedOn: string;
 }
+
+export interface LocationPage<T> {
+  items: T[];
+  page: number;
+  perPage: number;
+  total: number;
+  hasMore: boolean;
+}
+
+export interface BackendState {
+  id: number;
+  language_code: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  sort_order?: number;
+}
+
+export interface BackendDistrict {
+  id: number;
+  language_code: string;
+  state_id: number;
+  code?: string | null;
+  name: string;
+  is_active: boolean;
+  sort_order?: number;
+}
+
+export interface BackendArea {
+  id: number;
+  language_code: string;
+  district_id: number;
+  name: string;
+  is_active: boolean;
+  sort_order?: number;
+}
+
+export interface LocationSummaryItem {
+  language_code: string;
+  states: number;
+  districts: number;
+  areas: number;
+}

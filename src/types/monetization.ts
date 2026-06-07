@@ -12,3 +12,6 @@ export interface AdUnit {
   impressions: number;
   status: AdminStatus;
 }
+
+export type AdType = "Banner" | "Interstitial" | "Native" | "Video";
+export type AdPlacement = "Home Feed" | "News Detail" | "Listings" | "Category Page";

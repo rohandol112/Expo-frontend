@@ -21,25 +21,53 @@ import { Route as AppNotificationsRouteImport } from './routes/_app/notification
 import { Route as AppNewsTagsRouteImport } from './routes/_app/news-tags'
 import { Route as AppMonetizationRouteImport } from './routes/_app/monetization'
 import { Route as AppListingsRouteImport } from './routes/_app/listings'
+import { Route as AppFeedbackRouteImport } from './routes/_app/feedback'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppComplaintsRouteImport } from './routes/_app/complaints'
+import { Route as AppCmsRouteImport } from './routes/_app/cms'
 import { Route as AppChannelsRouteImport } from './routes/_app/channels'
 import { Route as AppCategoriesRouteImport } from './routes/_app/categories'
+import { Route as AppSystemTranslationsRouteImport } from './routes/_app/system/translations'
 import { Route as AppSystemRolesRouteImport } from './routes/_app/system/roles'
 import { Route as AppSystemLocationRouteImport } from './routes/_app/system/location'
 import { Route as AppSystemLanguageRouteImport } from './routes/_app/system/language'
 import { Route as AppSystemBackupRouteImport } from './routes/_app/system/backup'
 import { Route as AppSystemAuditLogsRouteImport } from './routes/_app/system/audit-logs'
+import { Route as AppOffersAddRouteImport } from './routes/_app/offers/add'
+import { Route as AppNotificationsAddRouteImport } from './routes/_app/notifications/add'
 import { Route as AppNewsAllRouteImport } from './routes/_app/news/all'
 import { Route as AppNewsAdminRouteImport } from './routes/_app/news/admin'
 import { Route as AppNewsAddRouteImport } from './routes/_app/news/add'
+import { Route as AppMonetizationAddRouteImport } from './routes/_app/monetization/add'
+import { Route as AppListingsAddRouteImport } from './routes/_app/listings/add'
 import { Route as AppComplaintsComplaintIdRouteImport } from './routes/_app/complaints/$complaintId'
 import { Route as AppChannelsAddRouteImport } from './routes/_app/channels/add'
+import { Route as AppCategoriesAddRouteImport } from './routes/_app/categories/add'
+import { Route as AppNewsNewsIdIndexRouteImport } from './routes/_app/news/$newsId/index'
+import { Route as AppFeedbackFeedbackIdIndexRouteImport } from './routes/_app/feedback/$feedbackId/index'
+import { Route as AppChannelsChannelIdIndexRouteImport } from './routes/_app/channels/$channelId/index'
+import { Route as AppCategoriesCategoryIdIndexRouteImport } from './routes/_app/categories/$categoryId/index'
+import { Route as AppSystemRolesAddRouteImport } from './routes/_app/system/roles/add'
 import { Route as AppSystemLocationStatesRouteImport } from './routes/_app/system/location/states'
 import { Route as AppSystemLocationDistrictsRouteImport } from './routes/_app/system/location/districts'
 import { Route as AppSystemLocationAreasRouteImport } from './routes/_app/system/location/areas'
 import { Route as AppSystemLanguageAddRouteImport } from './routes/_app/system/language/add'
+import { Route as AppNewsNewsIdEditRouteImport } from './routes/_app/news/$newsId/edit'
+import { Route as AppFeedbackFeedbackIdEditRouteImport } from './routes/_app/feedback/$feedbackId/edit'
+import { Route as AppChannelsChannelIdEditRouteImport } from './routes/_app/channels/$channelId/edit'
+import { Route as AppCategoriesCategoryIdEditRouteImport } from './routes/_app/categories/$categoryId/edit'
+import { Route as AppSystemTranslationsTranslationIdIndexRouteImport } from './routes/_app/system/translations/$translationId/index'
+import { Route as AppSystemRolesRoleIdIndexRouteImport } from './routes/_app/system/roles/$roleId/index'
+import { Route as AppSystemLanguageLanguageIdIndexRouteImport } from './routes/_app/system/language/$languageId/index'
+import { Route as AppSystemTranslationsTranslationIdEditRouteImport } from './routes/_app/system/translations/$translationId/edit'
+import { Route as AppSystemRolesRoleIdEditRouteImport } from './routes/_app/system/roles/$roleId/edit'
 import { Route as AppSystemLocationStatesAddRouteImport } from './routes/_app/system/location/states/add'
+import { Route as AppSystemLocationDistrictsAddRouteImport } from './routes/_app/system/location/districts/add'
+import { Route as AppSystemLocationAreasAddRouteImport } from './routes/_app/system/location/areas/add'
+import { Route as AppSystemLanguageLanguageIdEditRouteImport } from './routes/_app/system/language/$languageId/edit'
+import { Route as AppSystemLocationStatesStateIdEditRouteImport } from './routes/_app/system/location/states/$stateId/edit'
+import { Route as AppSystemLocationDistrictsDistrictIdEditRouteImport } from './routes/_app/system/location/districts/$districtId/edit'
+import { Route as AppSystemLocationAreasAreaIdEditRouteImport } from './routes/_app/system/location/areas/$areaId/edit'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -100,6 +128,11 @@ const AppListingsRoute = AppListingsRouteImport.update({
   path: '/listings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFeedbackRoute = AppFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -110,6 +143,11 @@ const AppComplaintsRoute = AppComplaintsRouteImport.update({
   path: '/complaints',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCmsRoute = AppCmsRouteImport.update({
+  id: '/cms',
+  path: '/cms',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppChannelsRoute = AppChannelsRouteImport.update({
   id: '/channels',
   path: '/channels',
@@ -118,6 +156,11 @@ const AppChannelsRoute = AppChannelsRouteImport.update({
 const AppCategoriesRoute = AppCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSystemTranslationsRoute = AppSystemTranslationsRouteImport.update({
+  id: '/system/translations',
+  path: '/system/translations',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSystemRolesRoute = AppSystemRolesRouteImport.update({
@@ -145,6 +188,16 @@ const AppSystemAuditLogsRoute = AppSystemAuditLogsRouteImport.update({
   path: '/system/audit-logs',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOffersAddRoute = AppOffersAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppOffersRoute,
+} as any)
+const AppNotificationsAddRoute = AppNotificationsAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppNotificationsRoute,
+} as any)
 const AppNewsAllRoute = AppNewsAllRouteImport.update({
   id: '/news/all',
   path: '/news/all',
@@ -160,6 +213,16 @@ const AppNewsAddRoute = AppNewsAddRouteImport.update({
   path: '/news/add',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMonetizationAddRoute = AppMonetizationAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppMonetizationRoute,
+} as any)
+const AppListingsAddRoute = AppListingsAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppListingsRoute,
+} as any)
 const AppComplaintsComplaintIdRoute =
   AppComplaintsComplaintIdRouteImport.update({
     id: '/$complaintId',
@@ -170,6 +233,39 @@ const AppChannelsAddRoute = AppChannelsAddRouteImport.update({
   id: '/add',
   path: '/add',
   getParentRoute: () => AppChannelsRoute,
+} as any)
+const AppCategoriesAddRoute = AppCategoriesAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppCategoriesRoute,
+} as any)
+const AppNewsNewsIdIndexRoute = AppNewsNewsIdIndexRouteImport.update({
+  id: '/news/$newsId/',
+  path: '/news/$newsId/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFeedbackFeedbackIdIndexRoute =
+  AppFeedbackFeedbackIdIndexRouteImport.update({
+    id: '/$feedbackId/',
+    path: '/$feedbackId/',
+    getParentRoute: () => AppFeedbackRoute,
+  } as any)
+const AppChannelsChannelIdIndexRoute =
+  AppChannelsChannelIdIndexRouteImport.update({
+    id: '/$channelId/',
+    path: '/$channelId/',
+    getParentRoute: () => AppChannelsRoute,
+  } as any)
+const AppCategoriesCategoryIdIndexRoute =
+  AppCategoriesCategoryIdIndexRouteImport.update({
+    id: '/$categoryId/',
+    path: '/$categoryId/',
+    getParentRoute: () => AppCategoriesRoute,
+  } as any)
+const AppSystemRolesAddRoute = AppSystemRolesAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppSystemRolesRoute,
 } as any)
 const AppSystemLocationStatesRoute = AppSystemLocationStatesRouteImport.update({
   id: '/states',
@@ -192,110 +288,283 @@ const AppSystemLanguageAddRoute = AppSystemLanguageAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppSystemLanguageRoute,
 } as any)
+const AppNewsNewsIdEditRoute = AppNewsNewsIdEditRouteImport.update({
+  id: '/news/$newsId/edit',
+  path: '/news/$newsId/edit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFeedbackFeedbackIdEditRoute =
+  AppFeedbackFeedbackIdEditRouteImport.update({
+    id: '/$feedbackId/edit',
+    path: '/$feedbackId/edit',
+    getParentRoute: () => AppFeedbackRoute,
+  } as any)
+const AppChannelsChannelIdEditRoute =
+  AppChannelsChannelIdEditRouteImport.update({
+    id: '/$channelId/edit',
+    path: '/$channelId/edit',
+    getParentRoute: () => AppChannelsRoute,
+  } as any)
+const AppCategoriesCategoryIdEditRoute =
+  AppCategoriesCategoryIdEditRouteImport.update({
+    id: '/$categoryId/edit',
+    path: '/$categoryId/edit',
+    getParentRoute: () => AppCategoriesRoute,
+  } as any)
+const AppSystemTranslationsTranslationIdIndexRoute =
+  AppSystemTranslationsTranslationIdIndexRouteImport.update({
+    id: '/$translationId/',
+    path: '/$translationId/',
+    getParentRoute: () => AppSystemTranslationsRoute,
+  } as any)
+const AppSystemRolesRoleIdIndexRoute =
+  AppSystemRolesRoleIdIndexRouteImport.update({
+    id: '/$roleId/',
+    path: '/$roleId/',
+    getParentRoute: () => AppSystemRolesRoute,
+  } as any)
+const AppSystemLanguageLanguageIdIndexRoute =
+  AppSystemLanguageLanguageIdIndexRouteImport.update({
+    id: '/$languageId/',
+    path: '/$languageId/',
+    getParentRoute: () => AppSystemLanguageRoute,
+  } as any)
+const AppSystemTranslationsTranslationIdEditRoute =
+  AppSystemTranslationsTranslationIdEditRouteImport.update({
+    id: '/$translationId/edit',
+    path: '/$translationId/edit',
+    getParentRoute: () => AppSystemTranslationsRoute,
+  } as any)
+const AppSystemRolesRoleIdEditRoute =
+  AppSystemRolesRoleIdEditRouteImport.update({
+    id: '/$roleId/edit',
+    path: '/$roleId/edit',
+    getParentRoute: () => AppSystemRolesRoute,
+  } as any)
 const AppSystemLocationStatesAddRoute =
   AppSystemLocationStatesAddRouteImport.update({
     id: '/add',
     path: '/add',
     getParentRoute: () => AppSystemLocationStatesRoute,
   } as any)
+const AppSystemLocationDistrictsAddRoute =
+  AppSystemLocationDistrictsAddRouteImport.update({
+    id: '/add',
+    path: '/add',
+    getParentRoute: () => AppSystemLocationDistrictsRoute,
+  } as any)
+const AppSystemLocationAreasAddRoute =
+  AppSystemLocationAreasAddRouteImport.update({
+    id: '/add',
+    path: '/add',
+    getParentRoute: () => AppSystemLocationAreasRoute,
+  } as any)
+const AppSystemLanguageLanguageIdEditRoute =
+  AppSystemLanguageLanguageIdEditRouteImport.update({
+    id: '/$languageId/edit',
+    path: '/$languageId/edit',
+    getParentRoute: () => AppSystemLanguageRoute,
+  } as any)
+const AppSystemLocationStatesStateIdEditRoute =
+  AppSystemLocationStatesStateIdEditRouteImport.update({
+    id: '/$stateId/edit',
+    path: '/$stateId/edit',
+    getParentRoute: () => AppSystemLocationStatesRoute,
+  } as any)
+const AppSystemLocationDistrictsDistrictIdEditRoute =
+  AppSystemLocationDistrictsDistrictIdEditRouteImport.update({
+    id: '/$districtId/edit',
+    path: '/$districtId/edit',
+    getParentRoute: () => AppSystemLocationDistrictsRoute,
+  } as any)
+const AppSystemLocationAreasAreaIdEditRoute =
+  AppSystemLocationAreasAreaIdEditRouteImport.update({
+    id: '/$areaId/edit',
+    path: '/$areaId/edit',
+    getParentRoute: () => AppSystemLocationAreasRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/categories': typeof AppCategoriesRoute
+  '/categories': typeof AppCategoriesRouteWithChildren
   '/channels': typeof AppChannelsRouteWithChildren
+  '/cms': typeof AppCmsRoute
   '/complaints': typeof AppComplaintsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
-  '/listings': typeof AppListingsRoute
-  '/monetization': typeof AppMonetizationRoute
+  '/feedback': typeof AppFeedbackRouteWithChildren
+  '/listings': typeof AppListingsRouteWithChildren
+  '/monetization': typeof AppMonetizationRouteWithChildren
   '/news-tags': typeof AppNewsTagsRoute
-  '/notifications': typeof AppNotificationsRoute
-  '/offers': typeof AppOffersRoute
+  '/notifications': typeof AppNotificationsRouteWithChildren
+  '/offers': typeof AppOffersRouteWithChildren
   '/referrals': typeof AppReferralsRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/users': typeof AppUsersRoute
+  '/categories/add': typeof AppCategoriesAddRoute
   '/channels/add': typeof AppChannelsAddRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
+  '/listings/add': typeof AppListingsAddRoute
+  '/monetization/add': typeof AppMonetizationAddRoute
   '/news/add': typeof AppNewsAddRoute
   '/news/admin': typeof AppNewsAdminRoute
   '/news/all': typeof AppNewsAllRoute
+  '/notifications/add': typeof AppNotificationsAddRoute
+  '/offers/add': typeof AppOffersAddRoute
   '/system/audit-logs': typeof AppSystemAuditLogsRoute
   '/system/backup': typeof AppSystemBackupRoute
   '/system/language': typeof AppSystemLanguageRouteWithChildren
   '/system/location': typeof AppSystemLocationRouteWithChildren
-  '/system/roles': typeof AppSystemRolesRoute
+  '/system/roles': typeof AppSystemRolesRouteWithChildren
+  '/system/translations': typeof AppSystemTranslationsRouteWithChildren
+  '/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
+  '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
+  '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/system/language/add': typeof AppSystemLanguageAddRoute
-  '/system/location/areas': typeof AppSystemLocationAreasRoute
-  '/system/location/districts': typeof AppSystemLocationDistrictsRoute
+  '/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
+  '/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
   '/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/system/roles/add': typeof AppSystemRolesAddRoute
+  '/categories/$categoryId/': typeof AppCategoriesCategoryIdIndexRoute
+  '/channels/$channelId/': typeof AppChannelsChannelIdIndexRoute
+  '/feedback/$feedbackId/': typeof AppFeedbackFeedbackIdIndexRoute
+  '/news/$newsId/': typeof AppNewsNewsIdIndexRoute
+  '/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
+  '/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
+  '/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
   '/system/location/states/add': typeof AppSystemLocationStatesAddRoute
+  '/system/roles/$roleId/edit': typeof AppSystemRolesRoleIdEditRoute
+  '/system/translations/$translationId/edit': typeof AppSystemTranslationsTranslationIdEditRoute
+  '/system/language/$languageId/': typeof AppSystemLanguageLanguageIdIndexRoute
+  '/system/roles/$roleId/': typeof AppSystemRolesRoleIdIndexRoute
+  '/system/translations/$translationId/': typeof AppSystemTranslationsTranslationIdIndexRoute
+  '/system/location/areas/$areaId/edit': typeof AppSystemLocationAreasAreaIdEditRoute
+  '/system/location/districts/$districtId/edit': typeof AppSystemLocationDistrictsDistrictIdEditRoute
+  '/system/location/states/$stateId/edit': typeof AppSystemLocationStatesStateIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/categories': typeof AppCategoriesRoute
+  '/categories': typeof AppCategoriesRouteWithChildren
   '/channels': typeof AppChannelsRouteWithChildren
+  '/cms': typeof AppCmsRoute
   '/complaints': typeof AppComplaintsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
-  '/listings': typeof AppListingsRoute
-  '/monetization': typeof AppMonetizationRoute
+  '/feedback': typeof AppFeedbackRouteWithChildren
+  '/listings': typeof AppListingsRouteWithChildren
+  '/monetization': typeof AppMonetizationRouteWithChildren
   '/news-tags': typeof AppNewsTagsRoute
-  '/notifications': typeof AppNotificationsRoute
-  '/offers': typeof AppOffersRoute
+  '/notifications': typeof AppNotificationsRouteWithChildren
+  '/offers': typeof AppOffersRouteWithChildren
   '/referrals': typeof AppReferralsRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/users': typeof AppUsersRoute
+  '/categories/add': typeof AppCategoriesAddRoute
   '/channels/add': typeof AppChannelsAddRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
+  '/listings/add': typeof AppListingsAddRoute
+  '/monetization/add': typeof AppMonetizationAddRoute
   '/news/add': typeof AppNewsAddRoute
   '/news/admin': typeof AppNewsAdminRoute
   '/news/all': typeof AppNewsAllRoute
+  '/notifications/add': typeof AppNotificationsAddRoute
+  '/offers/add': typeof AppOffersAddRoute
   '/system/audit-logs': typeof AppSystemAuditLogsRoute
   '/system/backup': typeof AppSystemBackupRoute
   '/system/language': typeof AppSystemLanguageRouteWithChildren
   '/system/location': typeof AppSystemLocationRouteWithChildren
-  '/system/roles': typeof AppSystemRolesRoute
+  '/system/roles': typeof AppSystemRolesRouteWithChildren
+  '/system/translations': typeof AppSystemTranslationsRouteWithChildren
+  '/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
+  '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
+  '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/system/language/add': typeof AppSystemLanguageAddRoute
-  '/system/location/areas': typeof AppSystemLocationAreasRoute
-  '/system/location/districts': typeof AppSystemLocationDistrictsRoute
+  '/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
+  '/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
   '/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/system/roles/add': typeof AppSystemRolesAddRoute
+  '/categories/$categoryId': typeof AppCategoriesCategoryIdIndexRoute
+  '/channels/$channelId': typeof AppChannelsChannelIdIndexRoute
+  '/feedback/$feedbackId': typeof AppFeedbackFeedbackIdIndexRoute
+  '/news/$newsId': typeof AppNewsNewsIdIndexRoute
+  '/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
+  '/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
+  '/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
   '/system/location/states/add': typeof AppSystemLocationStatesAddRoute
+  '/system/roles/$roleId/edit': typeof AppSystemRolesRoleIdEditRoute
+  '/system/translations/$translationId/edit': typeof AppSystemTranslationsTranslationIdEditRoute
+  '/system/language/$languageId': typeof AppSystemLanguageLanguageIdIndexRoute
+  '/system/roles/$roleId': typeof AppSystemRolesRoleIdIndexRoute
+  '/system/translations/$translationId': typeof AppSystemTranslationsTranslationIdIndexRoute
+  '/system/location/areas/$areaId/edit': typeof AppSystemLocationAreasAreaIdEditRoute
+  '/system/location/districts/$districtId/edit': typeof AppSystemLocationDistrictsDistrictIdEditRoute
+  '/system/location/states/$stateId/edit': typeof AppSystemLocationStatesStateIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/categories': typeof AppCategoriesRoute
+  '/_app/categories': typeof AppCategoriesRouteWithChildren
   '/_app/channels': typeof AppChannelsRouteWithChildren
+  '/_app/cms': typeof AppCmsRoute
   '/_app/complaints': typeof AppComplaintsRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/listings': typeof AppListingsRoute
-  '/_app/monetization': typeof AppMonetizationRoute
+  '/_app/feedback': typeof AppFeedbackRouteWithChildren
+  '/_app/listings': typeof AppListingsRouteWithChildren
+  '/_app/monetization': typeof AppMonetizationRouteWithChildren
   '/_app/news-tags': typeof AppNewsTagsRoute
-  '/_app/notifications': typeof AppNotificationsRoute
-  '/_app/offers': typeof AppOffersRoute
+  '/_app/notifications': typeof AppNotificationsRouteWithChildren
+  '/_app/offers': typeof AppOffersRouteWithChildren
   '/_app/referrals': typeof AppReferralsRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/users': typeof AppUsersRoute
+  '/_app/categories/add': typeof AppCategoriesAddRoute
   '/_app/channels/add': typeof AppChannelsAddRoute
   '/_app/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
+  '/_app/listings/add': typeof AppListingsAddRoute
+  '/_app/monetization/add': typeof AppMonetizationAddRoute
   '/_app/news/add': typeof AppNewsAddRoute
   '/_app/news/admin': typeof AppNewsAdminRoute
   '/_app/news/all': typeof AppNewsAllRoute
+  '/_app/notifications/add': typeof AppNotificationsAddRoute
+  '/_app/offers/add': typeof AppOffersAddRoute
   '/_app/system/audit-logs': typeof AppSystemAuditLogsRoute
   '/_app/system/backup': typeof AppSystemBackupRoute
   '/_app/system/language': typeof AppSystemLanguageRouteWithChildren
   '/_app/system/location': typeof AppSystemLocationRouteWithChildren
-  '/_app/system/roles': typeof AppSystemRolesRoute
+  '/_app/system/roles': typeof AppSystemRolesRouteWithChildren
+  '/_app/system/translations': typeof AppSystemTranslationsRouteWithChildren
+  '/_app/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
+  '/_app/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/_app/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
+  '/_app/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/_app/system/language/add': typeof AppSystemLanguageAddRoute
-  '/_app/system/location/areas': typeof AppSystemLocationAreasRoute
-  '/_app/system/location/districts': typeof AppSystemLocationDistrictsRoute
+  '/_app/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
+  '/_app/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
   '/_app/system/location/states': typeof AppSystemLocationStatesRouteWithChildren
+  '/_app/system/roles/add': typeof AppSystemRolesAddRoute
+  '/_app/categories/$categoryId/': typeof AppCategoriesCategoryIdIndexRoute
+  '/_app/channels/$channelId/': typeof AppChannelsChannelIdIndexRoute
+  '/_app/feedback/$feedbackId/': typeof AppFeedbackFeedbackIdIndexRoute
+  '/_app/news/$newsId/': typeof AppNewsNewsIdIndexRoute
+  '/_app/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
+  '/_app/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
+  '/_app/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
   '/_app/system/location/states/add': typeof AppSystemLocationStatesAddRoute
+  '/_app/system/roles/$roleId/edit': typeof AppSystemRolesRoleIdEditRoute
+  '/_app/system/translations/$translationId/edit': typeof AppSystemTranslationsTranslationIdEditRoute
+  '/_app/system/language/$languageId/': typeof AppSystemLanguageLanguageIdIndexRoute
+  '/_app/system/roles/$roleId/': typeof AppSystemRolesRoleIdIndexRoute
+  '/_app/system/translations/$translationId/': typeof AppSystemTranslationsTranslationIdIndexRoute
+  '/_app/system/location/areas/$areaId/edit': typeof AppSystemLocationAreasAreaIdEditRoute
+  '/_app/system/location/districts/$districtId/edit': typeof AppSystemLocationDistrictsDistrictIdEditRoute
+  '/_app/system/location/states/$stateId/edit': typeof AppSystemLocationStatesStateIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -304,8 +573,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/categories'
     | '/channels'
+    | '/cms'
     | '/complaints'
     | '/dashboard'
+    | '/feedback'
     | '/listings'
     | '/monetization'
     | '/news-tags'
@@ -315,29 +586,57 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/users'
+    | '/categories/add'
     | '/channels/add'
     | '/complaints/$complaintId'
+    | '/listings/add'
+    | '/monetization/add'
     | '/news/add'
     | '/news/admin'
     | '/news/all'
+    | '/notifications/add'
+    | '/offers/add'
     | '/system/audit-logs'
     | '/system/backup'
     | '/system/language'
     | '/system/location'
     | '/system/roles'
+    | '/system/translations'
+    | '/categories/$categoryId/edit'
+    | '/channels/$channelId/edit'
+    | '/feedback/$feedbackId/edit'
+    | '/news/$newsId/edit'
     | '/system/language/add'
     | '/system/location/areas'
     | '/system/location/districts'
     | '/system/location/states'
+    | '/system/roles/add'
+    | '/categories/$categoryId/'
+    | '/channels/$channelId/'
+    | '/feedback/$feedbackId/'
+    | '/news/$newsId/'
+    | '/system/language/$languageId/edit'
+    | '/system/location/areas/add'
+    | '/system/location/districts/add'
     | '/system/location/states/add'
+    | '/system/roles/$roleId/edit'
+    | '/system/translations/$translationId/edit'
+    | '/system/language/$languageId/'
+    | '/system/roles/$roleId/'
+    | '/system/translations/$translationId/'
+    | '/system/location/areas/$areaId/edit'
+    | '/system/location/districts/$districtId/edit'
+    | '/system/location/states/$stateId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/categories'
     | '/channels'
+    | '/cms'
     | '/complaints'
     | '/dashboard'
+    | '/feedback'
     | '/listings'
     | '/monetization'
     | '/news-tags'
@@ -347,21 +646,47 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/users'
+    | '/categories/add'
     | '/channels/add'
     | '/complaints/$complaintId'
+    | '/listings/add'
+    | '/monetization/add'
     | '/news/add'
     | '/news/admin'
     | '/news/all'
+    | '/notifications/add'
+    | '/offers/add'
     | '/system/audit-logs'
     | '/system/backup'
     | '/system/language'
     | '/system/location'
     | '/system/roles'
+    | '/system/translations'
+    | '/categories/$categoryId/edit'
+    | '/channels/$channelId/edit'
+    | '/feedback/$feedbackId/edit'
+    | '/news/$newsId/edit'
     | '/system/language/add'
     | '/system/location/areas'
     | '/system/location/districts'
     | '/system/location/states'
+    | '/system/roles/add'
+    | '/categories/$categoryId'
+    | '/channels/$channelId'
+    | '/feedback/$feedbackId'
+    | '/news/$newsId'
+    | '/system/language/$languageId/edit'
+    | '/system/location/areas/add'
+    | '/system/location/districts/add'
     | '/system/location/states/add'
+    | '/system/roles/$roleId/edit'
+    | '/system/translations/$translationId/edit'
+    | '/system/language/$languageId'
+    | '/system/roles/$roleId'
+    | '/system/translations/$translationId'
+    | '/system/location/areas/$areaId/edit'
+    | '/system/location/districts/$districtId/edit'
+    | '/system/location/states/$stateId/edit'
   id:
     | '__root__'
     | '/'
@@ -369,8 +694,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/categories'
     | '/_app/channels'
+    | '/_app/cms'
     | '/_app/complaints'
     | '/_app/dashboard'
+    | '/_app/feedback'
     | '/_app/listings'
     | '/_app/monetization'
     | '/_app/news-tags'
@@ -380,21 +707,47 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/settings'
     | '/_app/users'
+    | '/_app/categories/add'
     | '/_app/channels/add'
     | '/_app/complaints/$complaintId'
+    | '/_app/listings/add'
+    | '/_app/monetization/add'
     | '/_app/news/add'
     | '/_app/news/admin'
     | '/_app/news/all'
+    | '/_app/notifications/add'
+    | '/_app/offers/add'
     | '/_app/system/audit-logs'
     | '/_app/system/backup'
     | '/_app/system/language'
     | '/_app/system/location'
     | '/_app/system/roles'
+    | '/_app/system/translations'
+    | '/_app/categories/$categoryId/edit'
+    | '/_app/channels/$channelId/edit'
+    | '/_app/feedback/$feedbackId/edit'
+    | '/_app/news/$newsId/edit'
     | '/_app/system/language/add'
     | '/_app/system/location/areas'
     | '/_app/system/location/districts'
     | '/_app/system/location/states'
+    | '/_app/system/roles/add'
+    | '/_app/categories/$categoryId/'
+    | '/_app/channels/$channelId/'
+    | '/_app/feedback/$feedbackId/'
+    | '/_app/news/$newsId/'
+    | '/_app/system/language/$languageId/edit'
+    | '/_app/system/location/areas/add'
+    | '/_app/system/location/districts/add'
     | '/_app/system/location/states/add'
+    | '/_app/system/roles/$roleId/edit'
+    | '/_app/system/translations/$translationId/edit'
+    | '/_app/system/language/$languageId/'
+    | '/_app/system/roles/$roleId/'
+    | '/_app/system/translations/$translationId/'
+    | '/_app/system/location/areas/$areaId/edit'
+    | '/_app/system/location/districts/$districtId/edit'
+    | '/_app/system/location/states/$stateId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -489,6 +842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppListingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/feedback': {
+      id: '/_app/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof AppFeedbackRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -503,6 +863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppComplaintsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/cms': {
+      id: '/_app/cms'
+      path: '/cms'
+      fullPath: '/cms'
+      preLoaderRoute: typeof AppCmsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/channels': {
       id: '/_app/channels'
       path: '/channels'
@@ -515,6 +882,13 @@ declare module '@tanstack/react-router' {
       path: '/categories'
       fullPath: '/categories'
       preLoaderRoute: typeof AppCategoriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/system/translations': {
+      id: '/_app/system/translations'
+      path: '/system/translations'
+      fullPath: '/system/translations'
+      preLoaderRoute: typeof AppSystemTranslationsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/system/roles': {
@@ -552,6 +926,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSystemAuditLogsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/offers/add': {
+      id: '/_app/offers/add'
+      path: '/add'
+      fullPath: '/offers/add'
+      preLoaderRoute: typeof AppOffersAddRouteImport
+      parentRoute: typeof AppOffersRoute
+    }
+    '/_app/notifications/add': {
+      id: '/_app/notifications/add'
+      path: '/add'
+      fullPath: '/notifications/add'
+      preLoaderRoute: typeof AppNotificationsAddRouteImport
+      parentRoute: typeof AppNotificationsRoute
+    }
     '/_app/news/all': {
       id: '/_app/news/all'
       path: '/news/all'
@@ -573,6 +961,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNewsAddRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/monetization/add': {
+      id: '/_app/monetization/add'
+      path: '/add'
+      fullPath: '/monetization/add'
+      preLoaderRoute: typeof AppMonetizationAddRouteImport
+      parentRoute: typeof AppMonetizationRoute
+    }
+    '/_app/listings/add': {
+      id: '/_app/listings/add'
+      path: '/add'
+      fullPath: '/listings/add'
+      preLoaderRoute: typeof AppListingsAddRouteImport
+      parentRoute: typeof AppListingsRoute
+    }
     '/_app/complaints/$complaintId': {
       id: '/_app/complaints/$complaintId'
       path: '/$complaintId'
@@ -586,6 +988,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/channels/add'
       preLoaderRoute: typeof AppChannelsAddRouteImport
       parentRoute: typeof AppChannelsRoute
+    }
+    '/_app/categories/add': {
+      id: '/_app/categories/add'
+      path: '/add'
+      fullPath: '/categories/add'
+      preLoaderRoute: typeof AppCategoriesAddRouteImport
+      parentRoute: typeof AppCategoriesRoute
+    }
+    '/_app/news/$newsId/': {
+      id: '/_app/news/$newsId/'
+      path: '/news/$newsId'
+      fullPath: '/news/$newsId/'
+      preLoaderRoute: typeof AppNewsNewsIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/feedback/$feedbackId/': {
+      id: '/_app/feedback/$feedbackId/'
+      path: '/$feedbackId'
+      fullPath: '/feedback/$feedbackId/'
+      preLoaderRoute: typeof AppFeedbackFeedbackIdIndexRouteImport
+      parentRoute: typeof AppFeedbackRoute
+    }
+    '/_app/channels/$channelId/': {
+      id: '/_app/channels/$channelId/'
+      path: '/$channelId'
+      fullPath: '/channels/$channelId/'
+      preLoaderRoute: typeof AppChannelsChannelIdIndexRouteImport
+      parentRoute: typeof AppChannelsRoute
+    }
+    '/_app/categories/$categoryId/': {
+      id: '/_app/categories/$categoryId/'
+      path: '/$categoryId'
+      fullPath: '/categories/$categoryId/'
+      preLoaderRoute: typeof AppCategoriesCategoryIdIndexRouteImport
+      parentRoute: typeof AppCategoriesRoute
+    }
+    '/_app/system/roles/add': {
+      id: '/_app/system/roles/add'
+      path: '/add'
+      fullPath: '/system/roles/add'
+      preLoaderRoute: typeof AppSystemRolesAddRouteImport
+      parentRoute: typeof AppSystemRolesRoute
     }
     '/_app/system/location/states': {
       id: '/_app/system/location/states'
@@ -615,6 +1059,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSystemLanguageAddRouteImport
       parentRoute: typeof AppSystemLanguageRoute
     }
+    '/_app/news/$newsId/edit': {
+      id: '/_app/news/$newsId/edit'
+      path: '/news/$newsId/edit'
+      fullPath: '/news/$newsId/edit'
+      preLoaderRoute: typeof AppNewsNewsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/feedback/$feedbackId/edit': {
+      id: '/_app/feedback/$feedbackId/edit'
+      path: '/$feedbackId/edit'
+      fullPath: '/feedback/$feedbackId/edit'
+      preLoaderRoute: typeof AppFeedbackFeedbackIdEditRouteImport
+      parentRoute: typeof AppFeedbackRoute
+    }
+    '/_app/channels/$channelId/edit': {
+      id: '/_app/channels/$channelId/edit'
+      path: '/$channelId/edit'
+      fullPath: '/channels/$channelId/edit'
+      preLoaderRoute: typeof AppChannelsChannelIdEditRouteImport
+      parentRoute: typeof AppChannelsRoute
+    }
+    '/_app/categories/$categoryId/edit': {
+      id: '/_app/categories/$categoryId/edit'
+      path: '/$categoryId/edit'
+      fullPath: '/categories/$categoryId/edit'
+      preLoaderRoute: typeof AppCategoriesCategoryIdEditRouteImport
+      parentRoute: typeof AppCategoriesRoute
+    }
+    '/_app/system/translations/$translationId/': {
+      id: '/_app/system/translations/$translationId/'
+      path: '/$translationId'
+      fullPath: '/system/translations/$translationId/'
+      preLoaderRoute: typeof AppSystemTranslationsTranslationIdIndexRouteImport
+      parentRoute: typeof AppSystemTranslationsRoute
+    }
+    '/_app/system/roles/$roleId/': {
+      id: '/_app/system/roles/$roleId/'
+      path: '/$roleId'
+      fullPath: '/system/roles/$roleId/'
+      preLoaderRoute: typeof AppSystemRolesRoleIdIndexRouteImport
+      parentRoute: typeof AppSystemRolesRoute
+    }
+    '/_app/system/language/$languageId/': {
+      id: '/_app/system/language/$languageId/'
+      path: '/$languageId'
+      fullPath: '/system/language/$languageId/'
+      preLoaderRoute: typeof AppSystemLanguageLanguageIdIndexRouteImport
+      parentRoute: typeof AppSystemLanguageRoute
+    }
+    '/_app/system/translations/$translationId/edit': {
+      id: '/_app/system/translations/$translationId/edit'
+      path: '/$translationId/edit'
+      fullPath: '/system/translations/$translationId/edit'
+      preLoaderRoute: typeof AppSystemTranslationsTranslationIdEditRouteImport
+      parentRoute: typeof AppSystemTranslationsRoute
+    }
+    '/_app/system/roles/$roleId/edit': {
+      id: '/_app/system/roles/$roleId/edit'
+      path: '/$roleId/edit'
+      fullPath: '/system/roles/$roleId/edit'
+      preLoaderRoute: typeof AppSystemRolesRoleIdEditRouteImport
+      parentRoute: typeof AppSystemRolesRoute
+    }
     '/_app/system/location/states/add': {
       id: '/_app/system/location/states/add'
       path: '/add'
@@ -622,15 +1129,77 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSystemLocationStatesAddRouteImport
       parentRoute: typeof AppSystemLocationStatesRoute
     }
+    '/_app/system/location/districts/add': {
+      id: '/_app/system/location/districts/add'
+      path: '/add'
+      fullPath: '/system/location/districts/add'
+      preLoaderRoute: typeof AppSystemLocationDistrictsAddRouteImport
+      parentRoute: typeof AppSystemLocationDistrictsRoute
+    }
+    '/_app/system/location/areas/add': {
+      id: '/_app/system/location/areas/add'
+      path: '/add'
+      fullPath: '/system/location/areas/add'
+      preLoaderRoute: typeof AppSystemLocationAreasAddRouteImport
+      parentRoute: typeof AppSystemLocationAreasRoute
+    }
+    '/_app/system/language/$languageId/edit': {
+      id: '/_app/system/language/$languageId/edit'
+      path: '/$languageId/edit'
+      fullPath: '/system/language/$languageId/edit'
+      preLoaderRoute: typeof AppSystemLanguageLanguageIdEditRouteImport
+      parentRoute: typeof AppSystemLanguageRoute
+    }
+    '/_app/system/location/states/$stateId/edit': {
+      id: '/_app/system/location/states/$stateId/edit'
+      path: '/$stateId/edit'
+      fullPath: '/system/location/states/$stateId/edit'
+      preLoaderRoute: typeof AppSystemLocationStatesStateIdEditRouteImport
+      parentRoute: typeof AppSystemLocationStatesRoute
+    }
+    '/_app/system/location/districts/$districtId/edit': {
+      id: '/_app/system/location/districts/$districtId/edit'
+      path: '/$districtId/edit'
+      fullPath: '/system/location/districts/$districtId/edit'
+      preLoaderRoute: typeof AppSystemLocationDistrictsDistrictIdEditRouteImport
+      parentRoute: typeof AppSystemLocationDistrictsRoute
+    }
+    '/_app/system/location/areas/$areaId/edit': {
+      id: '/_app/system/location/areas/$areaId/edit'
+      path: '/$areaId/edit'
+      fullPath: '/system/location/areas/$areaId/edit'
+      preLoaderRoute: typeof AppSystemLocationAreasAreaIdEditRouteImport
+      parentRoute: typeof AppSystemLocationAreasRoute
+    }
   }
 }
 
+interface AppCategoriesRouteChildren {
+  AppCategoriesAddRoute: typeof AppCategoriesAddRoute
+  AppCategoriesCategoryIdEditRoute: typeof AppCategoriesCategoryIdEditRoute
+  AppCategoriesCategoryIdIndexRoute: typeof AppCategoriesCategoryIdIndexRoute
+}
+
+const AppCategoriesRouteChildren: AppCategoriesRouteChildren = {
+  AppCategoriesAddRoute: AppCategoriesAddRoute,
+  AppCategoriesCategoryIdEditRoute: AppCategoriesCategoryIdEditRoute,
+  AppCategoriesCategoryIdIndexRoute: AppCategoriesCategoryIdIndexRoute,
+}
+
+const AppCategoriesRouteWithChildren = AppCategoriesRoute._addFileChildren(
+  AppCategoriesRouteChildren,
+)
+
 interface AppChannelsRouteChildren {
   AppChannelsAddRoute: typeof AppChannelsAddRoute
+  AppChannelsChannelIdEditRoute: typeof AppChannelsChannelIdEditRoute
+  AppChannelsChannelIdIndexRoute: typeof AppChannelsChannelIdIndexRoute
 }
 
 const AppChannelsRouteChildren: AppChannelsRouteChildren = {
   AppChannelsAddRoute: AppChannelsAddRoute,
+  AppChannelsChannelIdEditRoute: AppChannelsChannelIdEditRoute,
+  AppChannelsChannelIdIndexRoute: AppChannelsChannelIdIndexRoute,
 }
 
 const AppChannelsRouteWithChildren = AppChannelsRoute._addFileChildren(
@@ -649,24 +1218,126 @@ const AppComplaintsRouteWithChildren = AppComplaintsRoute._addFileChildren(
   AppComplaintsRouteChildren,
 )
 
+interface AppFeedbackRouteChildren {
+  AppFeedbackFeedbackIdEditRoute: typeof AppFeedbackFeedbackIdEditRoute
+  AppFeedbackFeedbackIdIndexRoute: typeof AppFeedbackFeedbackIdIndexRoute
+}
+
+const AppFeedbackRouteChildren: AppFeedbackRouteChildren = {
+  AppFeedbackFeedbackIdEditRoute: AppFeedbackFeedbackIdEditRoute,
+  AppFeedbackFeedbackIdIndexRoute: AppFeedbackFeedbackIdIndexRoute,
+}
+
+const AppFeedbackRouteWithChildren = AppFeedbackRoute._addFileChildren(
+  AppFeedbackRouteChildren,
+)
+
+interface AppListingsRouteChildren {
+  AppListingsAddRoute: typeof AppListingsAddRoute
+}
+
+const AppListingsRouteChildren: AppListingsRouteChildren = {
+  AppListingsAddRoute: AppListingsAddRoute,
+}
+
+const AppListingsRouteWithChildren = AppListingsRoute._addFileChildren(
+  AppListingsRouteChildren,
+)
+
+interface AppMonetizationRouteChildren {
+  AppMonetizationAddRoute: typeof AppMonetizationAddRoute
+}
+
+const AppMonetizationRouteChildren: AppMonetizationRouteChildren = {
+  AppMonetizationAddRoute: AppMonetizationAddRoute,
+}
+
+const AppMonetizationRouteWithChildren = AppMonetizationRoute._addFileChildren(
+  AppMonetizationRouteChildren,
+)
+
+interface AppNotificationsRouteChildren {
+  AppNotificationsAddRoute: typeof AppNotificationsAddRoute
+}
+
+const AppNotificationsRouteChildren: AppNotificationsRouteChildren = {
+  AppNotificationsAddRoute: AppNotificationsAddRoute,
+}
+
+const AppNotificationsRouteWithChildren =
+  AppNotificationsRoute._addFileChildren(AppNotificationsRouteChildren)
+
+interface AppOffersRouteChildren {
+  AppOffersAddRoute: typeof AppOffersAddRoute
+}
+
+const AppOffersRouteChildren: AppOffersRouteChildren = {
+  AppOffersAddRoute: AppOffersAddRoute,
+}
+
+const AppOffersRouteWithChildren = AppOffersRoute._addFileChildren(
+  AppOffersRouteChildren,
+)
+
 interface AppSystemLanguageRouteChildren {
   AppSystemLanguageAddRoute: typeof AppSystemLanguageAddRoute
+  AppSystemLanguageLanguageIdEditRoute: typeof AppSystemLanguageLanguageIdEditRoute
+  AppSystemLanguageLanguageIdIndexRoute: typeof AppSystemLanguageLanguageIdIndexRoute
 }
 
 const AppSystemLanguageRouteChildren: AppSystemLanguageRouteChildren = {
   AppSystemLanguageAddRoute: AppSystemLanguageAddRoute,
+  AppSystemLanguageLanguageIdEditRoute: AppSystemLanguageLanguageIdEditRoute,
+  AppSystemLanguageLanguageIdIndexRoute: AppSystemLanguageLanguageIdIndexRoute,
 }
 
 const AppSystemLanguageRouteWithChildren =
   AppSystemLanguageRoute._addFileChildren(AppSystemLanguageRouteChildren)
 
+interface AppSystemLocationAreasRouteChildren {
+  AppSystemLocationAreasAddRoute: typeof AppSystemLocationAreasAddRoute
+  AppSystemLocationAreasAreaIdEditRoute: typeof AppSystemLocationAreasAreaIdEditRoute
+}
+
+const AppSystemLocationAreasRouteChildren: AppSystemLocationAreasRouteChildren =
+  {
+    AppSystemLocationAreasAddRoute: AppSystemLocationAreasAddRoute,
+    AppSystemLocationAreasAreaIdEditRoute:
+      AppSystemLocationAreasAreaIdEditRoute,
+  }
+
+const AppSystemLocationAreasRouteWithChildren =
+  AppSystemLocationAreasRoute._addFileChildren(
+    AppSystemLocationAreasRouteChildren,
+  )
+
+interface AppSystemLocationDistrictsRouteChildren {
+  AppSystemLocationDistrictsAddRoute: typeof AppSystemLocationDistrictsAddRoute
+  AppSystemLocationDistrictsDistrictIdEditRoute: typeof AppSystemLocationDistrictsDistrictIdEditRoute
+}
+
+const AppSystemLocationDistrictsRouteChildren: AppSystemLocationDistrictsRouteChildren =
+  {
+    AppSystemLocationDistrictsAddRoute: AppSystemLocationDistrictsAddRoute,
+    AppSystemLocationDistrictsDistrictIdEditRoute:
+      AppSystemLocationDistrictsDistrictIdEditRoute,
+  }
+
+const AppSystemLocationDistrictsRouteWithChildren =
+  AppSystemLocationDistrictsRoute._addFileChildren(
+    AppSystemLocationDistrictsRouteChildren,
+  )
+
 interface AppSystemLocationStatesRouteChildren {
   AppSystemLocationStatesAddRoute: typeof AppSystemLocationStatesAddRoute
+  AppSystemLocationStatesStateIdEditRoute: typeof AppSystemLocationStatesStateIdEditRoute
 }
 
 const AppSystemLocationStatesRouteChildren: AppSystemLocationStatesRouteChildren =
   {
     AppSystemLocationStatesAddRoute: AppSystemLocationStatesAddRoute,
+    AppSystemLocationStatesStateIdEditRoute:
+      AppSystemLocationStatesStateIdEditRoute,
   }
 
 const AppSystemLocationStatesRouteWithChildren =
@@ -675,30 +1346,65 @@ const AppSystemLocationStatesRouteWithChildren =
   )
 
 interface AppSystemLocationRouteChildren {
-  AppSystemLocationAreasRoute: typeof AppSystemLocationAreasRoute
-  AppSystemLocationDistrictsRoute: typeof AppSystemLocationDistrictsRoute
+  AppSystemLocationAreasRoute: typeof AppSystemLocationAreasRouteWithChildren
+  AppSystemLocationDistrictsRoute: typeof AppSystemLocationDistrictsRouteWithChildren
   AppSystemLocationStatesRoute: typeof AppSystemLocationStatesRouteWithChildren
 }
 
 const AppSystemLocationRouteChildren: AppSystemLocationRouteChildren = {
-  AppSystemLocationAreasRoute: AppSystemLocationAreasRoute,
-  AppSystemLocationDistrictsRoute: AppSystemLocationDistrictsRoute,
+  AppSystemLocationAreasRoute: AppSystemLocationAreasRouteWithChildren,
+  AppSystemLocationDistrictsRoute: AppSystemLocationDistrictsRouteWithChildren,
   AppSystemLocationStatesRoute: AppSystemLocationStatesRouteWithChildren,
 }
 
 const AppSystemLocationRouteWithChildren =
   AppSystemLocationRoute._addFileChildren(AppSystemLocationRouteChildren)
 
+interface AppSystemRolesRouteChildren {
+  AppSystemRolesAddRoute: typeof AppSystemRolesAddRoute
+  AppSystemRolesRoleIdEditRoute: typeof AppSystemRolesRoleIdEditRoute
+  AppSystemRolesRoleIdIndexRoute: typeof AppSystemRolesRoleIdIndexRoute
+}
+
+const AppSystemRolesRouteChildren: AppSystemRolesRouteChildren = {
+  AppSystemRolesAddRoute: AppSystemRolesAddRoute,
+  AppSystemRolesRoleIdEditRoute: AppSystemRolesRoleIdEditRoute,
+  AppSystemRolesRoleIdIndexRoute: AppSystemRolesRoleIdIndexRoute,
+}
+
+const AppSystemRolesRouteWithChildren = AppSystemRolesRoute._addFileChildren(
+  AppSystemRolesRouteChildren,
+)
+
+interface AppSystemTranslationsRouteChildren {
+  AppSystemTranslationsTranslationIdEditRoute: typeof AppSystemTranslationsTranslationIdEditRoute
+  AppSystemTranslationsTranslationIdIndexRoute: typeof AppSystemTranslationsTranslationIdIndexRoute
+}
+
+const AppSystemTranslationsRouteChildren: AppSystemTranslationsRouteChildren = {
+  AppSystemTranslationsTranslationIdEditRoute:
+    AppSystemTranslationsTranslationIdEditRoute,
+  AppSystemTranslationsTranslationIdIndexRoute:
+    AppSystemTranslationsTranslationIdIndexRoute,
+}
+
+const AppSystemTranslationsRouteWithChildren =
+  AppSystemTranslationsRoute._addFileChildren(
+    AppSystemTranslationsRouteChildren,
+  )
+
 interface AppRouteChildren {
-  AppCategoriesRoute: typeof AppCategoriesRoute
+  AppCategoriesRoute: typeof AppCategoriesRouteWithChildren
   AppChannelsRoute: typeof AppChannelsRouteWithChildren
+  AppCmsRoute: typeof AppCmsRoute
   AppComplaintsRoute: typeof AppComplaintsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
-  AppListingsRoute: typeof AppListingsRoute
-  AppMonetizationRoute: typeof AppMonetizationRoute
+  AppFeedbackRoute: typeof AppFeedbackRouteWithChildren
+  AppListingsRoute: typeof AppListingsRouteWithChildren
+  AppMonetizationRoute: typeof AppMonetizationRouteWithChildren
   AppNewsTagsRoute: typeof AppNewsTagsRoute
-  AppNotificationsRoute: typeof AppNotificationsRoute
-  AppOffersRoute: typeof AppOffersRoute
+  AppNotificationsRoute: typeof AppNotificationsRouteWithChildren
+  AppOffersRoute: typeof AppOffersRouteWithChildren
   AppReferralsRoute: typeof AppReferralsRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -710,19 +1416,24 @@ interface AppRouteChildren {
   AppSystemBackupRoute: typeof AppSystemBackupRoute
   AppSystemLanguageRoute: typeof AppSystemLanguageRouteWithChildren
   AppSystemLocationRoute: typeof AppSystemLocationRouteWithChildren
-  AppSystemRolesRoute: typeof AppSystemRolesRoute
+  AppSystemRolesRoute: typeof AppSystemRolesRouteWithChildren
+  AppSystemTranslationsRoute: typeof AppSystemTranslationsRouteWithChildren
+  AppNewsNewsIdEditRoute: typeof AppNewsNewsIdEditRoute
+  AppNewsNewsIdIndexRoute: typeof AppNewsNewsIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCategoriesRoute: AppCategoriesRoute,
+  AppCategoriesRoute: AppCategoriesRouteWithChildren,
   AppChannelsRoute: AppChannelsRouteWithChildren,
+  AppCmsRoute: AppCmsRoute,
   AppComplaintsRoute: AppComplaintsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
-  AppListingsRoute: AppListingsRoute,
-  AppMonetizationRoute: AppMonetizationRoute,
+  AppFeedbackRoute: AppFeedbackRouteWithChildren,
+  AppListingsRoute: AppListingsRouteWithChildren,
+  AppMonetizationRoute: AppMonetizationRouteWithChildren,
   AppNewsTagsRoute: AppNewsTagsRoute,
-  AppNotificationsRoute: AppNotificationsRoute,
-  AppOffersRoute: AppOffersRoute,
+  AppNotificationsRoute: AppNotificationsRouteWithChildren,
+  AppOffersRoute: AppOffersRouteWithChildren,
   AppReferralsRoute: AppReferralsRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
@@ -734,7 +1445,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppSystemBackupRoute: AppSystemBackupRoute,
   AppSystemLanguageRoute: AppSystemLanguageRouteWithChildren,
   AppSystemLocationRoute: AppSystemLocationRouteWithChildren,
-  AppSystemRolesRoute: AppSystemRolesRoute,
+  AppSystemRolesRoute: AppSystemRolesRouteWithChildren,
+  AppSystemTranslationsRoute: AppSystemTranslationsRouteWithChildren,
+  AppNewsNewsIdEditRoute: AppNewsNewsIdEditRoute,
+  AppNewsNewsIdIndexRoute: AppNewsNewsIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

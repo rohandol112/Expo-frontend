@@ -7,8 +7,9 @@ export const Route = createFileRoute("/_app")({
   beforeLoad: () => {
     if (typeof window === "undefined") return;
 
+    const auth = useAuthStore.getState();
     const isAuthenticated =
-      useAuthStore.getState().isAuthenticated || hasPersistedAuthSession();
+      (auth.isAuthenticated && Boolean(auth.user) && Boolean(auth.token)) || hasPersistedAuthSession();
 
     if (!isAuthenticated) {
       throw redirect({ to: ROUTES.LOGIN });

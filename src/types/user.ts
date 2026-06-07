@@ -16,4 +16,5 @@ export interface AdminUser {
   posts: number;
   status: AdminStatus;
   type: "Registered" | "Guest";
+  deviceType: "Android" | "iOS";
 }

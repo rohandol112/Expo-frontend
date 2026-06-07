@@ -17,7 +17,8 @@ export const Route = createFileRoute("/login")({
   beforeLoad: () => {
     if (typeof window === "undefined") return;
 
-    if (useAuthStore.getState().isAuthenticated || hasPersistedAuthSession()) {
+    const auth = useAuthStore.getState();
+    if ((auth.isAuthenticated && auth.user && auth.token) || hasPersistedAuthSession()) {
       throw redirect({ to: ROUTES.DASHBOARD });
     }
   },
@@ -35,7 +36,7 @@ function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "admin@news.com", password: "admin123" },
+    defaultValues: { email: "admin@example.com", password: "AdminPass123!" },
   });
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -65,7 +66,7 @@ function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <div className="relative mt-1.5">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="email" type="email" placeholder="admin@news.com" className="pl-9" {...register("email")} />
+              <Input id="email" type="email" placeholder="admin@example.com" className="pl-9" {...register("email")} />
             </div>
             {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
           </div>
@@ -96,7 +97,7 @@ function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Demo credentials: admin@news.com / admin123
+          Backend admin credentials: admin@example.com / AdminPass123!
         </p>
       </div>
     </div>

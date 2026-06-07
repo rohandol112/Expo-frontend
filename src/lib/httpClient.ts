@@ -1,7 +1,8 @@
 import { API_BASE_URL } from "./apiEndpoints";
+import { ApiError } from "./apiError";
+import { isApiEnvelope } from "./apiResponse";
+import { ADMIN_TOKEN_STORAGE_KEY, AUTH_STORAGE_KEY, useAuthStore } from "@/store/useAuthStore";
 
-// Minimal fetch-based HTTP client. Returns parsed JSON or throws.
-// Frontend-only for now: all real calls are mocked via services.
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
@@ -19,22 +20,73 @@ function buildUrl(path: string, params?: RequestOptions["params"]) {
   return url.toString();
 }
 
+function getStoredToken() {
+  const storeToken = useAuthStore.getState().token;
+  if (storeToken) return storeToken;
+  if (typeof window === "undefined") return null;
+
+  try {
+    const manualToken = window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+    if (manualToken) return manualToken;
+
+    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { state?: { token?: string | null } };
+    return parsed.state?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function parseResponse(res: Response) {
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) return res.json();
+  const text = await res.text();
+  return text || null;
+}
+
 async function request<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
   const { params, headers, body, ...rest } = opts;
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const token = getStoredToken();
+  const requestHeaders = new Headers(headers);
+
+  if (!isFormData && body !== undefined && !requestHeaders.has("Content-Type")) {
+    requestHeaders.set("Content-Type", "application/json");
+  }
+  if (token && !requestHeaders.has("Authorization")) {
+    requestHeaders.set("Authorization", `Bearer ${token}`);
+  }
+
   const res = await fetch(buildUrl(path, params), {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(headers || {}),
-    },
-    body: body && typeof body !== "string" ? JSON.stringify(body) : body,
+    headers: requestHeaders,
+    body: body instanceof FormData || typeof body === "string" ? body : body !== undefined ? JSON.stringify(body) : undefined,
     ...rest,
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `Request failed: ${res.status}`);
+
+  const payload = await parseResponse(res);
+  if (isApiEnvelope(payload)) {
+    if (!payload.success) {
+      const error = new ApiError(payload.message || "Request failed", {
+        status: res.status,
+        code: payload.code,
+        data: payload.data,
+      });
+      throw error;
+    }
+    return payload.data as T;
   }
-  return (await res.json()) as T;
+
+  if (!res.ok) {
+    const error = new ApiError(typeof payload === "string" ? payload : `Request failed: ${res.status}`, {
+      status: res.status,
+      data: payload,
+    });
+    throw error;
+  }
+
+  return payload as T;
 }
 
 export const httpClient = {
