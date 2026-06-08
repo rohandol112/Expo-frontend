@@ -52,6 +52,7 @@ export function DataTable<T>({
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const from = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, totalCount);
+  const pageRows = data.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="rounded-lg border bg-card">
@@ -84,7 +85,7 @@ export function DataTable<T>({
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((row, idx) => (
+              pageRows.map((row, idx) => (
                 <TableRow key={rowKey(row)}>
                   {showIndex && (
                     <TableCell className="text-muted-foreground">

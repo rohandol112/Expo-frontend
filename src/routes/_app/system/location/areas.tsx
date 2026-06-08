@@ -68,7 +68,13 @@ function AreasPage() {
   ];
   return (
     <>
-      <AdminListPage title="Areas" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Areas" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_AREAS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Area</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={areasQuery.isLoading || districtsQuery.isLoading || statesQuery.isLoading} error={areasQuery.error ? "Unable to load areas from backend." : undefined} searchPlaceholder="Search area..." dropdowns={[{ key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }]} filter={(row, search) => [row.name, row.district, row.state].some((v) => v.toLowerCase().includes(search.toLowerCase()))} />
+      <AdminListPage title="Areas" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Areas" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_AREAS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Area</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={areasQuery.isLoading || districtsQuery.isLoading || statesQuery.isLoading} error={areasQuery.error ? "Unable to load areas from backend." : undefined} searchPlaceholder="Search area..." dropdowns={[{ key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }]} filter={(row, search, df) => {
+      const term = search.toLowerCase();
+      if (term && ![row.name, row.district, row.state].some((v) => v.toLowerCase().includes(term))) return false;
+      if (df.district && row.district !== df.district) return false;
+      if (df.state && row.state !== df.state) return false;
+      return true;
+    }} />
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

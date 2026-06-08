@@ -1,21 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText, Ban, UserCheck, UserPlus, Users as UsersIcon, UserX } from "lucide-react";
-import { useState } from "react";
+import { Ban, CheckCircle2, FileText, UserCheck, UserPlus, Users as UsersIcon, UserX } from "lucide-react";
+import { useMemo, useState } from "react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { users } from "@/mock/users.mock";
-import { languages } from "@/mock/system.mock";
-import { areas, districts, states } from "@/mock/location.mock";
+import { useUsers, useUserStats, useUpdateUserStatus, useDeleteUser } from "@/hooks/api/useUsers";
+import { useLanguages } from "@/hooks/api/useLanguages";
+import { useRegions } from "@/hooks/api/useRegions";
 import type { AdminUser } from "@/types/user";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
+import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/users")({ component: UsersPage });
 
 function UsersPage() {
-  const [rows, setRows] = useState(users);
+  const [statusTarget, setStatusTarget] = useState<AdminUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+
+  const usersQuery = useUsers();
+  const statsQuery = useUserStats();
+  const languagesQuery = useLanguages();
+  const regionsQuery = useRegions();
+  const updateStatus = useUpdateUserStatus();
+  const deleteUser = useDeleteUser();
+
+  const states = regionsQuery.data ?? [];
+  const districts = useMemo(() => states.flatMap((state) => state.districts), [states]);
+  const areas = useMemo(() => districts.flatMap((district) => district.areas), [districts]);
+
+  const rows = usersQuery.data?.items ?? [];
+  const stats = statsQuery.data;
+  const error = usersQuery.error ? "Unable to load users from backend." : undefined;
+
   const columns: Column<AdminUser>[] = [
     { key: "user", header: "User", cell: (r) => <div><p className="font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.type}</p></div> },
     { key: "contact", header: "Contact/Phone/Email", cell: (r) => <div><p>{r.phone}</p><p className="text-xs text-muted-foreground">{r.email}</p></div> },
@@ -27,7 +46,6 @@ function UsersPage() {
     { key: "ref", header: "Referred By", cell: (r) => r.referredBy },
     { key: "registered", header: "Registered On", cell: (r) => r.registeredOn },
     { key: "active", header: "Last Active", cell: (r) => r.lastActive },
-    { key: "deviceType", header: "Device Type", cell: (r) => <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">{r.deviceType}</span> },
     { key: "posts", header: "Posts", cell: (r) => r.posts },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
     {
@@ -35,19 +53,96 @@ function UsersPage() {
       header: "Actions",
       cell: (row) => (
         <ActionMenu
+          onDelete={() => setDeleteTarget(row)}
           extraItems={[
             {
-              label: "Suspend User",
-              icon: Ban,
-              onClick: () => {
-                setRows((current) => current.map((user) => (user.id === row.id ? { ...user, status: "Inactive" } : user)));
-                toast.info("Suspend user API not available yet. Local mock status updated.");
-              },
+              label: row.status === "Active" ? "Suspend User" : "Activate User",
+              icon: row.status === "Active" ? Ban : UserCheck,
+              onClick: () => setStatusTarget(row),
             },
           ]}
         />
       ),
     },
   ];
-  return <AdminListPage title="Users" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Users" }]} stats={[{ title: "All Users", value: rows.length, icon: UsersIcon, variant: "blue" }, { title: "Registered Users", value: rows.filter((u) => u.type === "Registered").length, icon: UserCheck, variant: "green" }, { title: "Guest Users", value: rows.filter((u) => u.type === "Guest").length, icon: UsersIcon, variant: "amber" }, { title: "Total Users", value: "18,420", icon: UsersIcon, variant: "violet" }, { title: "Active Users", value: rows.filter((u) => u.status === "Active").length, icon: UserCheck, variant: "green" }, { title: "Inactive Users", value: rows.filter((u) => u.status === "Inactive").length, icon: UserX, variant: "rose" }, { title: "New This Month", value: "1,280", icon: UserPlus, variant: "pink" }, { title: "Total Posts", value: rows.reduce((a, u) => a + u.posts, 0), icon: FileText, variant: "blue" }]} data={rows} columns={columns} rowKey={(r) => r.id} searchPlaceholder="Search users..." showDateRange dropdowns={[{ key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }, { key: "language", placeholder: "Language", options: languages.map((l) => ({ label: l.name, value: l.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "area", placeholder: "Area", options: areas.map((a) => ({ label: a.name, value: a.name })) }, { key: "deviceType", placeholder: "Device Type", options: [{ label: "All Devices", value: "all" }, { label: "Android", value: "Android" }, { label: "iOS", value: "iOS" }] }]} filter={(row, search) => [row.name, row.email, row.phone].some((v) => v.toLowerCase().includes(search.toLowerCase()))} />;
+
+  return (
+    <>
+      <AdminListPage
+        title="Users"
+        breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Users" }]}
+        loading={usersQuery.isLoading}
+        error={error}
+        stats={[
+          { title: "All Users", value: stats?.total ?? rows.length, icon: UsersIcon, variant: "blue" },
+          { title: "Registered Users", value: stats?.registered ?? rows.filter((u) => u.type === "Registered").length, icon: UserCheck, variant: "green" },
+          { title: "Guest Users", value: stats?.guests ?? rows.filter((u) => u.type === "Guest").length, icon: UsersIcon, variant: "amber" },
+          { title: "Active Users", value: stats?.active ?? rows.filter((u) => u.status === "Active").length, icon: CheckCircle2, variant: "violet" },
+          { title: "Inactive Users", value: stats?.inactive ?? rows.filter((u) => u.status === "Inactive").length, icon: UserX, variant: "rose" },
+          { title: "New This Month", value: stats?.new_this_month ?? 0, icon: UserPlus, variant: "pink" },
+          { title: "Total Posts", value: stats?.total_posts ?? rows.reduce((a, u) => a + u.posts, 0), icon: FileText, variant: "blue" },
+        ]}
+        data={rows}
+        columns={columns}
+        rowKey={(r) => r.id}
+        searchPlaceholder="Search users..."
+        showDateRange
+        dropdowns={[
+          { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) },
+          { key: "type", placeholder: "User Type", options: ["Registered", "Guest"].map((s) => ({ label: s, value: s })) },
+          { key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.name })) },
+          { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) },
+          { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) },
+          { key: "area", placeholder: "Area", options: areas.map((a) => ({ label: a.name, value: a.name })) },
+        ]}
+        filter={(row, search, df) => {
+          const term = search.toLowerCase();
+          if (term && ![row.name, row.email, row.phone].some((v) => v.toLowerCase().includes(term))) return false;
+          if (df.status && row.status !== df.status) return false;
+          if (df.type && row.type !== df.type) return false;
+          if (df.language && row.language !== df.language) return false;
+          if (df.state && row.state !== df.state) return false;
+          if (df.district && row.district !== df.district) return false;
+          if (df.area && row.area !== df.area) return false;
+          return true;
+        }}
+      />
+      <ConfirmDialog
+        open={Boolean(statusTarget)}
+        onOpenChange={(open) => !open && setStatusTarget(null)}
+        title={statusTarget?.status === "Active" ? "Suspend user?" : "Activate user?"}
+        description={`This will ${statusTarget?.status === "Active" ? "suspend" : "activate"} ${statusTarget?.name ?? "this user"}.`}
+        confirmLabel={updateStatus.isPending ? "Updating..." : "Confirm"}
+        destructive={statusTarget?.status === "Active"}
+        onConfirm={async () => {
+          if (!statusTarget) return;
+          try {
+            await updateStatus.mutateAsync({ id: statusTarget.id, isActive: statusTarget.status !== "Active" });
+            toast.success(statusTarget.status === "Active" ? "User suspended" : "User activated");
+            setStatusTarget(null);
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend admin auth is required to update user status." : "Unable to update user status");
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete user?"
+        description={`This will permanently remove ${deleteTarget?.name ?? "this user"} if the backend allows it.`}
+        confirmLabel={deleteUser.isPending ? "Deleting..." : "Delete"}
+        destructive
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            await deleteUser.mutateAsync(deleteTarget.id);
+            toast.success("User deleted");
+            setDeleteTarget(null);
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend admin auth is required to delete user." : "Unable to delete user");
+          }
+        }}
+      />
+    </>
+  );
 }

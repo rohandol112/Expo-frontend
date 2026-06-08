@@ -27,11 +27,12 @@
 - Languages: `/api/languages`, `/api/admin/languages/*`
 - Categories: `/api/categories`, `/api/admin/categories/*`
 - Preferences: `/api/preferences`
+- Users admin management: `/api/admin/users/*`
+- Complaints: `/api/admin/complaints/*`
+- Complaint categories/sub-categories/assign-rules: `/api/admin/complaint-categories/*`
 
 ## Missing Or Not Stable For This Admin Panel Yet
 
-- Users admin management
-- Complaints
 - Reports/analytics for dashboard charts
 - Monetization/ads
 - Offers
@@ -73,6 +74,27 @@
   - `POST /api/admin/news/:id/approve`
   - `POST /api/admin/news/:id/reject`
   - `POST /api/admin/news/:id/schedule`
+- Users:
+  - `GET /api/admin/users`
+  - `GET /api/admin/users/stats`
+  - `POST /api/admin/users`
+  - `GET /api/admin/users/:id`
+  - `PUT /api/admin/users/:id`
+  - `PUT /api/admin/users/:id/status`
+  - `DELETE /api/admin/users/:id`
+- Complaints:
+  - `GET /api/admin/complaints`
+  - `GET /api/admin/complaints/stats`
+  - `POST /api/admin/complaints`
+  - `GET /api/admin/complaints/:id`
+  - `PUT /api/admin/complaints/:id`
+  - `PUT /api/admin/complaints/:id/status`
+  - `DELETE /api/admin/complaints/:id`
+  - `POST /api/admin/complaints/image/upload-url`
+  - `GET/POST /api/admin/complaints/:id/messages`
+  - `GET /api/admin/complaints/:id/timeline`
+- Complaint Categories (service layer only, no dedicated management UI yet):
+  - Full CRUD + status (`PATCH .../status`) for categories, sub-categories, and assign-rules under `/api/admin/complaint-categories/*`
 
 ## Frontend Pages Integrated Now
 
@@ -80,6 +102,8 @@
 - `/categories`
 - `/channels`
 - `/news/admin`
+- `/users`
+- `/complaints` and `/complaints/:complaintId` (detail page with conversation thread and status timeline)
 
 These pages now use TanStack Query hooks and keep mock data fallback when admin auth is unavailable.
 
@@ -87,8 +111,6 @@ These pages now use TanStack Query hooks and keep mock data fallback when admin 
 
 - Dashboard analytics
 - Add forms until backend media upload flow is connected end to end
-- Users
-- Complaints
 - Reports
 - Monetization
 - Offers
@@ -104,6 +126,8 @@ These pages now use TanStack Query hooks and keep mock data fallback when admin 
 - Backend category fields use `icon_url`, `sort_order`, `is_active`, and `translations`.
 - Backend channels are currently named `NewsSourceData` in Swagger: `title`, `company_name`, `source_url`, `image_url`, `is_active`.
 - Backend admin news fields use video/news naming: `language_code`, `news_source_id`, `thumbnail_url`, `view_count`, `visibility.scope`.
+- Backend admin user fields nest location refs as `state`/`district`/`area: { id, name }`; `is_active` and `is_guest` map to frontend `status`/`type`. Backend has no device/platform info, so the old `deviceType` field was removed from `AdminUser`.
+- Backend complaint fields nest `user`, `category`, `sub_category`, `assigned_to`, and `images: { id, url }[]`. Status codes are snake_case (`in_review`, `awaiting_action`, ...) and are mapped to display labels via `STATUS_LABELS`/`STATUS_VALUES` in `complaint.adapter.ts`. Backend has no video-attachment support, so the old `videos` field was removed from `Complaint`.
 - Frontend page components should receive existing UI types; backend-specific fields are mapped in service adapters.
 
 ## Auth Notes

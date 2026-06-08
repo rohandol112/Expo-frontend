@@ -57,7 +57,12 @@ function StatesPage() {
   ];
   return (
     <>
-      <AdminListPage title="States" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "States" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_STATES_ADD })}><Plus className="mr-2 h-4 w-4" />Add State</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={statesQuery.isLoading} error={statesQuery.error ? "Unable to load states from backend." : undefined} searchPlaceholder="Search state..." dropdowns={[{ key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]} filter={(row, search) => row.name.toLowerCase().includes(search.toLowerCase()) || row.code.toLowerCase().includes(search.toLowerCase())} />
+      <AdminListPage title="States" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "States" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_STATES_ADD })}><Plus className="mr-2 h-4 w-4" />Add State</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={statesQuery.isLoading} error={statesQuery.error ? "Unable to load states from backend." : undefined} searchPlaceholder="Search state..." dropdowns={[{ key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]} filter={(row, search, df) => {
+      const term = search.toLowerCase();
+      if (term && !(row.name.toLowerCase().includes(term) || row.code.toLowerCase().includes(term))) return false;
+      if (df.status && row.status !== df.status) return false;
+      return true;
+    }} />
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

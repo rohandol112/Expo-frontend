@@ -12,6 +12,9 @@ const STYLES: Record<string, string> = {
   Failed: "bg-rose-50 text-rose-700 border-rose-200",
   Paused: "bg-amber-50 text-amber-700 border-amber-200",
   Resolved: "bg-blue-50 text-blue-700 border-blue-200",
+  "In Review": "bg-violet-50 text-violet-700 border-violet-200",
+  "In Progress": "bg-amber-50 text-amber-700 border-amber-200",
+  "Awaiting Action": "bg-orange-50 text-orange-700 border-orange-200",
 };
 
 export function StatusBadge({ status }: { status: NewsStatus | string }) {

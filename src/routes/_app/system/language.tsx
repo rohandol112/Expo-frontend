@@ -77,7 +77,12 @@ function LanguagesPage() {
       error={error}
       searchPlaceholder="Search language..."
       dropdowns={[{ key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]}
-      filter={(row, search) => row.name.toLowerCase().includes(search.toLowerCase()) || row.code.includes(search.toLowerCase())}
+      filter={(row, search, df) => {
+        const term = search.toLowerCase();
+        if (term && !(row.name.toLowerCase().includes(term) || row.code.includes(term))) return false;
+        if (df.status && row.status !== df.status) return false;
+        return true;
+      }}
     />
     <ConfirmDialog
       open={Boolean(deleteTarget)}

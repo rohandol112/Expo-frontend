@@ -53,7 +53,15 @@ function ChannelsPage() {
     },
   ];
   return <>
-    <AdminListPage title="Channels" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Channels" }]} actions={<Button onClick={() => navigate({ to: ROUTES.CHANNELS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Channel</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={channelsQuery.isLoading} error={error} searchPlaceholder="Search channel..." dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "area", placeholder: "Area/City", options: areas.map((a) => ({ label: a.name, value: a.name })) }]} filter={(row, search) => row.name.toLowerCase().includes(search.toLowerCase()) || row.language.toLowerCase().includes(search.toLowerCase())} />
+    <AdminListPage title="Channels" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Channels" }]} actions={<Button onClick={() => navigate({ to: ROUTES.CHANNELS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Channel</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={channelsQuery.isLoading} error={error} searchPlaceholder="Search channel..." dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "area", placeholder: "Area/City", options: areas.map((a) => ({ label: a.name, value: a.name })) }]} filter={(row, search, df) => {
+      const term = search.toLowerCase();
+      if (term && !(row.name.toLowerCase().includes(term) || row.language.toLowerCase().includes(term))) return false;
+      if (df.language && row.language !== df.language) return false;
+      if (df.state && row.state !== df.state) return false;
+      if (df.district && row.district !== df.district) return false;
+      if (df.area && !row.areas.includes(df.area)) return false;
+      return true;
+    }} />
     <ConfirmDialog
       open={Boolean(deleteTarget)}
       onOpenChange={(open) => !open && setDeleteTarget(null)}
