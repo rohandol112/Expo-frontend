@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { languageService, type CreateLanguagePayload, type LanguageListParams, type UpdateLanguagePayload } from "@/services/language.service";
+import type { Language } from "@/types/system";
 
 export const languageKeys = {
   all: ["languages"] as const,
@@ -42,7 +43,21 @@ export function useUpdateLanguageStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => languageService.updateStatus(id, isActive),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: languageKeys.all }),
+    onSuccess: (updatedLanguage, variables) => {
+      queryClient.setQueriesData<{ items: Language[]; total: number }>(
+        { queryKey: languageKeys.all },
+        (current) => {
+          if (!current?.items) return current;
+          return {
+            ...current,
+            items: current.items.map((language) =>
+              language.id === variables.id ? updatedLanguage : language,
+            ),
+          };
+        },
+      );
+      queryClient.setQueryData(languageKeys.detail(variables.id), updatedLanguage);
+    },
   });
 }
 

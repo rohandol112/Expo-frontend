@@ -16,6 +16,8 @@ export const ROUTES = {
   REPORTS: "/reports",
   NOTIFICATIONS: "/notifications",
   NOTIFICATIONS_ADD: "/notifications/add",
+  NOTIFICATIONS_VIEW: (id: string) => `/notifications/${id}`,
+  NOTIFICATIONS_EDIT: (id: string) => `/notifications/${id}/edit`,
   REFERRALS: "/referrals",
   OFFERS: "/offers",
   OFFERS_ADD: "/offers/add",

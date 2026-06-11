@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Ban, CheckCircle2, FileText, UserCheck, UserPlus, Users as UsersIcon, UserX } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -13,14 +13,16 @@ import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
 import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
+import type { UserListParams } from "@/services/user.service";
 
 export const Route = createFileRoute("/_app/users")({ component: UsersPage });
 
 function UsersPage() {
   const [statusTarget, setStatusTarget] = useState<AdminUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<{ search: string; dropdownValues: Record<string, string> }>({ search: "", dropdownValues: {} });
 
-  const usersQuery = useUsers();
   const statsQuery = useUserStats();
   const languagesQuery = useLanguages();
   const regionsQuery = useRegions();
@@ -30,10 +32,30 @@ function UsersPage() {
   const states = regionsQuery.data ?? [];
   const districts = useMemo(() => states.flatMap((state) => state.districts), [states]);
   const areas = useMemo(() => districts.flatMap((district) => district.areas), [districts]);
+  const userParams = useMemo<UserListParams>(() => {
+    const dropdowns = filters.dropdownValues;
+    return {
+      page,
+      per_page: 10,
+      search: filters.search || undefined,
+      status: dropdowns.status === "Active" ? "active" : dropdowns.status === "Inactive" ? "inactive" : undefined,
+      is_guest: dropdowns.type === "Guest" ? true : dropdowns.type === "Registered" ? false : undefined,
+      language_code: dropdowns.language || undefined,
+      state_id: dropdowns.state ? Number(dropdowns.state) : undefined,
+      district_id: dropdowns.district ? Number(dropdowns.district) : undefined,
+      area_id: dropdowns.area ? Number(dropdowns.area) : undefined,
+    };
+  }, [filters, page]);
+
+  const usersQuery = useUsers(userParams);
 
   const rows = usersQuery.data?.items ?? [];
   const stats = statsQuery.data;
   const error = usersQuery.error ? "Unable to load users from backend." : undefined;
+  const handleFiltersChange = useCallback((next: { search: string; dropdownValues: Record<string, string> }) => {
+    setFilters(next);
+    setPage(1);
+  }, []);
 
   const columns: Column<AdminUser>[] = [
     { key: "user", header: "User", cell: (r) => <div><p className="font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.type}</p></div> },
@@ -85,27 +107,22 @@ function UsersPage() {
         data={rows}
         columns={columns}
         rowKey={(r) => r.id}
+        page={usersQuery.data?.page ?? page}
+        pageSize={usersQuery.data?.perPage ?? 10}
+        total={usersQuery.data?.total ?? 0}
+        onPageChange={setPage}
+        manualPagination
+        onFiltersChange={handleFiltersChange}
         searchPlaceholder="Search users..."
         showDateRange
         dropdowns={[
           { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) },
           { key: "type", placeholder: "User Type", options: ["Registered", "Guest"].map((s) => ({ label: s, value: s })) },
-          { key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.name })) },
-          { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) },
-          { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) },
-          { key: "area", placeholder: "Area", options: areas.map((a) => ({ label: a.name, value: a.name })) },
+          { key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) },
+          { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: String(s.id) })) },
+          { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: String(d.id) })) },
+          { key: "area", placeholder: "Area", options: areas.map((a) => ({ label: a.name, value: String(a.id) })) },
         ]}
-        filter={(row, search, df) => {
-          const term = search.toLowerCase();
-          if (term && ![row.name, row.email, row.phone].some((v) => v.toLowerCase().includes(term))) return false;
-          if (df.status && row.status !== df.status) return false;
-          if (df.type && row.type !== df.type) return false;
-          if (df.language && row.language !== df.language) return false;
-          if (df.state && row.state !== df.state) return false;
-          if (df.district && row.district !== df.district) return false;
-          if (df.area && row.area !== df.area) return false;
-          return true;
-        }}
       />
       <ConfirmDialog
         open={Boolean(statusTarget)}

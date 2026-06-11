@@ -43,6 +43,7 @@ import { Route as AppListingsAddRouteImport } from './routes/_app/listings/add'
 import { Route as AppComplaintsComplaintIdRouteImport } from './routes/_app/complaints/$complaintId'
 import { Route as AppChannelsAddRouteImport } from './routes/_app/channels/add'
 import { Route as AppCategoriesAddRouteImport } from './routes/_app/categories/add'
+import { Route as AppNotificationsNotificationIdIndexRouteImport } from './routes/_app/notifications/$notificationId/index'
 import { Route as AppNewsNewsIdIndexRouteImport } from './routes/_app/news/$newsId/index'
 import { Route as AppFeedbackFeedbackIdIndexRouteImport } from './routes/_app/feedback/$feedbackId/index'
 import { Route as AppChannelsChannelIdIndexRouteImport } from './routes/_app/channels/$channelId/index'
@@ -52,6 +53,7 @@ import { Route as AppSystemLocationStatesRouteImport } from './routes/_app/syste
 import { Route as AppSystemLocationDistrictsRouteImport } from './routes/_app/system/location/districts'
 import { Route as AppSystemLocationAreasRouteImport } from './routes/_app/system/location/areas'
 import { Route as AppSystemLanguageAddRouteImport } from './routes/_app/system/language/add'
+import { Route as AppNotificationsNotificationIdEditRouteImport } from './routes/_app/notifications/$notificationId/edit'
 import { Route as AppNewsNewsIdEditRouteImport } from './routes/_app/news/$newsId/edit'
 import { Route as AppFeedbackFeedbackIdEditRouteImport } from './routes/_app/feedback/$feedbackId/edit'
 import { Route as AppChannelsChannelIdEditRouteImport } from './routes/_app/channels/$channelId/edit'
@@ -239,6 +241,12 @@ const AppCategoriesAddRoute = AppCategoriesAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppCategoriesRoute,
 } as any)
+const AppNotificationsNotificationIdIndexRoute =
+  AppNotificationsNotificationIdIndexRouteImport.update({
+    id: '/$notificationId/',
+    path: '/$notificationId/',
+    getParentRoute: () => AppNotificationsRoute,
+  } as any)
 const AppNewsNewsIdIndexRoute = AppNewsNewsIdIndexRouteImport.update({
   id: '/news/$newsId/',
   path: '/news/$newsId/',
@@ -288,6 +296,12 @@ const AppSystemLanguageAddRoute = AppSystemLanguageAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppSystemLanguageRoute,
 } as any)
+const AppNotificationsNotificationIdEditRoute =
+  AppNotificationsNotificationIdEditRouteImport.update({
+    id: '/$notificationId/edit',
+    path: '/$notificationId/edit',
+    getParentRoute: () => AppNotificationsRoute,
+  } as any)
 const AppNewsNewsIdEditRoute = AppNewsNewsIdEditRouteImport.update({
   id: '/news/$newsId/edit',
   path: '/news/$newsId/edit',
@@ -422,6 +436,7 @@ export interface FileRoutesByFullPath {
   '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
   '/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
   '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
+  '/notifications/$notificationId/edit': typeof AppNotificationsNotificationIdEditRoute
   '/system/language/add': typeof AppSystemLanguageAddRoute
   '/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
   '/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
@@ -431,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/channels/$channelId/': typeof AppChannelsChannelIdIndexRoute
   '/feedback/$feedbackId/': typeof AppFeedbackFeedbackIdIndexRoute
   '/news/$newsId/': typeof AppNewsNewsIdIndexRoute
+  '/notifications/$notificationId/': typeof AppNotificationsNotificationIdIndexRoute
   '/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
   '/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
   '/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
@@ -482,6 +498,7 @@ export interface FileRoutesByTo {
   '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
   '/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
   '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
+  '/notifications/$notificationId/edit': typeof AppNotificationsNotificationIdEditRoute
   '/system/language/add': typeof AppSystemLanguageAddRoute
   '/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
   '/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
@@ -491,6 +508,7 @@ export interface FileRoutesByTo {
   '/channels/$channelId': typeof AppChannelsChannelIdIndexRoute
   '/feedback/$feedbackId': typeof AppFeedbackFeedbackIdIndexRoute
   '/news/$newsId': typeof AppNewsNewsIdIndexRoute
+  '/notifications/$notificationId': typeof AppNotificationsNotificationIdIndexRoute
   '/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
   '/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
   '/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
@@ -544,6 +562,7 @@ export interface FileRoutesById {
   '/_app/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
   '/_app/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
   '/_app/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
+  '/_app/notifications/$notificationId/edit': typeof AppNotificationsNotificationIdEditRoute
   '/_app/system/language/add': typeof AppSystemLanguageAddRoute
   '/_app/system/location/areas': typeof AppSystemLocationAreasRouteWithChildren
   '/_app/system/location/districts': typeof AppSystemLocationDistrictsRouteWithChildren
@@ -553,6 +572,7 @@ export interface FileRoutesById {
   '/_app/channels/$channelId/': typeof AppChannelsChannelIdIndexRoute
   '/_app/feedback/$feedbackId/': typeof AppFeedbackFeedbackIdIndexRoute
   '/_app/news/$newsId/': typeof AppNewsNewsIdIndexRoute
+  '/_app/notifications/$notificationId/': typeof AppNotificationsNotificationIdIndexRoute
   '/_app/system/language/$languageId/edit': typeof AppSystemLanguageLanguageIdEditRoute
   '/_app/system/location/areas/add': typeof AppSystemLocationAreasAddRoute
   '/_app/system/location/districts/add': typeof AppSystemLocationDistrictsAddRoute
@@ -606,6 +626,7 @@ export interface FileRouteTypes {
     | '/channels/$channelId/edit'
     | '/feedback/$feedbackId/edit'
     | '/news/$newsId/edit'
+    | '/notifications/$notificationId/edit'
     | '/system/language/add'
     | '/system/location/areas'
     | '/system/location/districts'
@@ -615,6 +636,7 @@ export interface FileRouteTypes {
     | '/channels/$channelId/'
     | '/feedback/$feedbackId/'
     | '/news/$newsId/'
+    | '/notifications/$notificationId/'
     | '/system/language/$languageId/edit'
     | '/system/location/areas/add'
     | '/system/location/districts/add'
@@ -666,6 +688,7 @@ export interface FileRouteTypes {
     | '/channels/$channelId/edit'
     | '/feedback/$feedbackId/edit'
     | '/news/$newsId/edit'
+    | '/notifications/$notificationId/edit'
     | '/system/language/add'
     | '/system/location/areas'
     | '/system/location/districts'
@@ -675,6 +698,7 @@ export interface FileRouteTypes {
     | '/channels/$channelId'
     | '/feedback/$feedbackId'
     | '/news/$newsId'
+    | '/notifications/$notificationId'
     | '/system/language/$languageId/edit'
     | '/system/location/areas/add'
     | '/system/location/districts/add'
@@ -727,6 +751,7 @@ export interface FileRouteTypes {
     | '/_app/channels/$channelId/edit'
     | '/_app/feedback/$feedbackId/edit'
     | '/_app/news/$newsId/edit'
+    | '/_app/notifications/$notificationId/edit'
     | '/_app/system/language/add'
     | '/_app/system/location/areas'
     | '/_app/system/location/districts'
@@ -736,6 +761,7 @@ export interface FileRouteTypes {
     | '/_app/channels/$channelId/'
     | '/_app/feedback/$feedbackId/'
     | '/_app/news/$newsId/'
+    | '/_app/notifications/$notificationId/'
     | '/_app/system/language/$languageId/edit'
     | '/_app/system/location/areas/add'
     | '/_app/system/location/districts/add'
@@ -996,6 +1022,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCategoriesAddRouteImport
       parentRoute: typeof AppCategoriesRoute
     }
+    '/_app/notifications/$notificationId/': {
+      id: '/_app/notifications/$notificationId/'
+      path: '/$notificationId'
+      fullPath: '/notifications/$notificationId/'
+      preLoaderRoute: typeof AppNotificationsNotificationIdIndexRouteImport
+      parentRoute: typeof AppNotificationsRoute
+    }
     '/_app/news/$newsId/': {
       id: '/_app/news/$newsId/'
       path: '/news/$newsId'
@@ -1058,6 +1091,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/system/language/add'
       preLoaderRoute: typeof AppSystemLanguageAddRouteImport
       parentRoute: typeof AppSystemLanguageRoute
+    }
+    '/_app/notifications/$notificationId/edit': {
+      id: '/_app/notifications/$notificationId/edit'
+      path: '/$notificationId/edit'
+      fullPath: '/notifications/$notificationId/edit'
+      preLoaderRoute: typeof AppNotificationsNotificationIdEditRouteImport
+      parentRoute: typeof AppNotificationsRoute
     }
     '/_app/news/$newsId/edit': {
       id: '/_app/news/$newsId/edit'
@@ -1258,10 +1298,16 @@ const AppMonetizationRouteWithChildren = AppMonetizationRoute._addFileChildren(
 
 interface AppNotificationsRouteChildren {
   AppNotificationsAddRoute: typeof AppNotificationsAddRoute
+  AppNotificationsNotificationIdEditRoute: typeof AppNotificationsNotificationIdEditRoute
+  AppNotificationsNotificationIdIndexRoute: typeof AppNotificationsNotificationIdIndexRoute
 }
 
 const AppNotificationsRouteChildren: AppNotificationsRouteChildren = {
   AppNotificationsAddRoute: AppNotificationsAddRoute,
+  AppNotificationsNotificationIdEditRoute:
+    AppNotificationsNotificationIdEditRoute,
+  AppNotificationsNotificationIdIndexRoute:
+    AppNotificationsNotificationIdIndexRoute,
 }
 
 const AppNotificationsRouteWithChildren =

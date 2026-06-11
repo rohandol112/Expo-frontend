@@ -31,6 +31,7 @@ export interface DataTableProps<T> {
   pageSize?: number;
   total?: number;
   onPageChange?: (page: number) => void;
+  manualPagination?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
 }
@@ -45,6 +46,7 @@ export function DataTable<T>({
   pageSize = 10,
   total,
   onPageChange,
+  manualPagination = false,
   emptyTitle,
   emptyDescription,
 }: DataTableProps<T>) {
@@ -52,7 +54,7 @@ export function DataTable<T>({
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const from = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, totalCount);
-  const pageRows = data.slice((page - 1) * pageSize, page * pageSize);
+  const pageRows = manualPagination ? data : data.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="rounded-lg border bg-card">
@@ -78,7 +80,7 @@ export function DataTable<T>({
                   ))}
                 </TableRow>
               ))
-            ) : data.length === 0 ? (
+            ) : pageRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length + (showIndex ? 1 : 0)}>
                   <EmptyState title={emptyTitle} description={emptyDescription} />

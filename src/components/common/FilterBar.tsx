@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search, Filter, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   Select,
   SelectContent,
@@ -35,10 +36,25 @@ export function FilterBar({
   onReset?: () => void;
   onFilter?: () => void;
 }) {
+  const [searchValue, setSearchValue] = useState(search ?? "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const debouncedSearch = useDebouncedValue(searchValue);
+  const lastEmittedSearch = useRef(search ?? "");
+
+  useEffect(() => {
+    setSearchValue(search ?? "");
+  }, [search]);
+
+  useEffect(() => {
+    if (debouncedSearch !== lastEmittedSearch.current) {
+      lastEmittedSearch.current = debouncedSearch;
+      onSearchChange?.(debouncedSearch);
+    }
+  }, [debouncedSearch, onSearchChange]);
 
   const handleReset = () => {
+    setSearchValue("");
     setStartDate("");
     setEndDate("");
     onReset?.();
@@ -49,8 +65,8 @@ export function FilterBar({
       <div className="relative flex-1 min-w-[220px] max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          value={search ?? ""}
-          onChange={(e) => onSearchChange?.(e.target.value)}
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
           placeholder={searchPlaceholder}
           className="pl-9"
         />

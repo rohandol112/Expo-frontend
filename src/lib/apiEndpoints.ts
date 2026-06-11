@@ -71,6 +71,15 @@ export const API = {
     messages: (id: string | number) => `/admin/complaints/${id}/messages`,
     timeline: (id: string | number) => `/admin/complaints/${id}/timeline`,
   },
+  notifications: {
+    adminList: "/admin/notifications",
+    adminStats: "/admin/notifications/stats",
+    detail: (id: string | number) => `/admin/notifications/${id}`,
+    publish: (id: string | number) => `/admin/notifications/${id}/publish`,
+    send: (id: string | number) => `/admin/notifications/${id}/send`,
+    thumbnailUploadUrl: "/admin/notifications/thumbnail/upload-url",
+    open: (id: string | number) => `/notifications/${id}/open`,
+  },
   complaintCategories: {
     list: "/admin/complaint-categories",
     stats: "/admin/complaint-categories/stats",

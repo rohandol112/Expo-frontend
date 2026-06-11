@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader, type Crumb } from "@/components/common/PageHeader";
 import { FilterBar, type FilterDropdown } from "@/components/common/FilterBar";
 import { DataTable, type Column } from "@/components/tables/DataTable";
 import { StatsGrid, type StatItem } from "@/components/admin/StatsGrid";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const ALL_VALUE = "__all__";
 
@@ -20,6 +21,12 @@ export function AdminListPage<T>({
   filter,
   loading = false,
   error,
+  page: controlledPage,
+  pageSize = 10,
+  total,
+  onPageChange,
+  manualPagination = false,
+  onFiltersChange,
 }: {
   title: string;
   breadcrumbs: Crumb[];
@@ -34,10 +41,19 @@ export function AdminListPage<T>({
   filter?: (row: T, search: string, dropdownValues: Record<string, string>) => boolean;
   loading?: boolean;
   error?: React.ReactNode;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (page: number) => void;
+  manualPagination?: boolean;
+  onFiltersChange?: (filters: { search: string; dropdownValues: Record<string, string> }) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [internalPage, setInternalPage] = useState(1);
   const [dropdownValues, setDropdownValues] = useState<Record<string, string>>({});
+  const debouncedSearch = useDebouncedValue(search);
+  const page = controlledPage ?? internalPage;
+  const updatePage = onPageChange ?? setInternalPage;
 
   const activeDropdownValues = useMemo(() => {
     const out: Record<string, string> = {};
@@ -55,15 +71,19 @@ export function AdminListPage<T>({
         value: dropdownValues[d.key] ?? ALL_VALUE,
         onChange: (value: string) => {
           setDropdownValues((prev) => ({ ...prev, [d.key]: value }));
-          setPage(1);
+          updatePage(1);
         },
       })),
-    [dropdowns, dropdownValues],
+    [dropdowns, dropdownValues, updatePage],
   );
 
+  useEffect(() => {
+    onFiltersChange?.({ search: debouncedSearch, dropdownValues: activeDropdownValues });
+  }, [activeDropdownValues, debouncedSearch, onFiltersChange]);
+
   const filtered = useMemo(
-    () => data.filter((row) => (filter ? filter(row, search, activeDropdownValues) : true)),
-    [data, filter, search, activeDropdownValues],
+    () => (manualPagination ? data : data.filter((row) => (filter ? filter(row, debouncedSearch, activeDropdownValues) : true))),
+    [data, filter, debouncedSearch, activeDropdownValues, manualPagination],
   );
 
   return (
@@ -74,7 +94,7 @@ export function AdminListPage<T>({
         search={search}
         onSearchChange={(value) => {
           setSearch(value);
-          setPage(1);
+          updatePage(1);
         }}
         searchPlaceholder={searchPlaceholder}
         dropdowns={wiredDropdowns}
@@ -82,7 +102,7 @@ export function AdminListPage<T>({
         onReset={() => {
           setSearch("");
           setDropdownValues({});
-          setPage(1);
+          updatePage(1);
         }}
       />
       {error && <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>}
@@ -92,9 +112,10 @@ export function AdminListPage<T>({
         rowKey={rowKey}
         loading={loading}
         page={page}
-        pageSize={10}
-        total={filtered.length}
-        onPageChange={setPage}
+        pageSize={pageSize}
+        total={manualPagination ? total : filtered.length}
+        onPageChange={updatePage}
+        manualPagination={manualPagination}
       />
     </div>
   );
