@@ -16,7 +16,7 @@ import { ROUTES } from "@/constants/routes.constants";
 import { cn } from "@/lib/utils";
 import { useCategories } from "@/hooks/api/useCategories";
 import { useLanguages } from "@/hooks/api/useLanguages";
-import { useDeleteNews, useNews, useNewsStats } from "@/hooks/api/useNews";
+import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews } from "@/hooks/api/useNews";
 import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 
@@ -47,6 +47,9 @@ function AllNewsPage() {
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<NewsItem | null>(null);
+  const [approveTarget, setApproveTarget] = useState<NewsItem | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<NewsItem | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const activeTab = TABS.find((item) => item.key === tab);
   const queryParams = useMemo(
@@ -68,6 +71,8 @@ function AllNewsPage() {
   const categoriesQuery = useCategories();
   const languagesQuery = useLanguages();
   const deleteNews = useDeleteNews();
+  const approveNews = useApproveNews();
+  const rejectNews = useRejectNews();
   const rows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load news from backend." : undefined;
   const stats = statsQuery.data;
@@ -145,6 +150,14 @@ function AllNewsPage() {
         <ActionMenu
           onView={() => navigate({ to: "/news/$newsId", params: { newsId: r.id } })}
           onEdit={() => navigate({ to: "/news/$newsId/edit", params: { newsId: r.id } })}
+          extraItems={[
+            ...(["Pending", "Draft", "Scheduled", "Rejected"].includes(r.status)
+              ? [{ label: "Approve", icon: CheckCircle2, onClick: () => setApproveTarget(r) }]
+              : []),
+            ...(["Pending", "Scheduled"].includes(r.status)
+              ? [{ label: "Reject", icon: XCircle, onClick: () => { setRejectTarget(r); setRejectReason(""); } }]
+              : []),
+          ]}
           onDelete={() => setDeleteTarget(r)}
         />
       ),
@@ -253,6 +266,47 @@ function AllNewsPage() {
         />
       </div>
       <ConfirmDialog
+        open={Boolean(approveTarget)}
+        onOpenChange={(open) => !open && setApproveTarget(null)}
+        title="Approve news?"
+        description={`This will publish "${approveTarget?.title ?? "this news"}".`}
+        confirmLabel={approveNews.isPending ? "Approving..." : "Approve"}
+        onConfirm={async () => {
+          if (!approveTarget) return;
+          try {
+            await approveNews.mutateAsync(approveTarget.id);
+            toast.success("News approved");
+            setApproveTarget(null);
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend auth is required to approve news." : "Unable to approve news");
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={Boolean(rejectTarget)}
+        onOpenChange={(open) => !open && setRejectTarget(null)}
+        title="Reject news?"
+        description={`Add a reason before rejecting "${rejectTarget?.title ?? "this news"}".`}
+        confirmLabel={rejectNews.isPending ? "Rejecting..." : "Reject"}
+        destructive
+        onConfirm={async () => {
+          if (!rejectTarget) return;
+          if (!rejectReason.trim()) {
+            toast.error("Rejection reason is required");
+            return;
+          }
+          try {
+            await rejectNews.mutateAsync({ id: rejectTarget.id, reason: rejectReason.trim() });
+            toast.success("News rejected");
+            setRejectTarget(null);
+            setRejectReason("");
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend auth is required to reject news." : "Unable to reject news");
+          }
+        }}
+      >
+        <Input value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="Reason for rejection" />
+      </ConfirmDialog>      <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Delete news?"
@@ -273,3 +327,4 @@ function AllNewsPage() {
     </>
   );
 }
+
