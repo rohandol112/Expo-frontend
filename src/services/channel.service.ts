@@ -18,8 +18,14 @@ export interface ChannelListParams {
 export interface CreateChannelPayload {
   title: string;
   company_name?: string;
-  source_url: string;
-  image_url?: string;
+  language_code: string;
+  description?: string;
+  website?: string;
+  logo_key?: string;
+  state_id?: number | null;
+  district_id?: number | null;
+  area_ids?: number[];
+  allow_user_posts?: boolean;
   is_active?: boolean;
 }
 

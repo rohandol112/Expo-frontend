@@ -32,7 +32,18 @@ function ChannelsPage() {
   const areas = useMemo(() => districts.flatMap((district) => district.areas), [districts]);
   const error = channelsQuery.error ? "Unable to load channels from backend." : undefined;
   const columns: Column<Channel>[] = [
-    { key: "name", header: "Channel Name", cell: (r) => <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded bg-primary/10 text-xs font-semibold text-primary">{r.logo}</div><span className="font-medium">{r.name}</span></div> },
+    {
+      key: "name",
+      header: "Channel Name",
+      cell: (r) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded bg-primary/10 text-xs font-semibold text-primary">
+            {r.logoUrl ? <img src={r.logoUrl} alt="" className="h-full w-full object-cover" /> : r.logo}
+          </div>
+          <span className="truncate font-medium">{r.name}</span>
+        </div>
+      ),
+    },
     { key: "language", header: "Language", cell: (r) => r.language },
     { key: "state", header: "State", cell: (r) => r.state },
     { key: "district", header: "District", cell: (r) => r.district },

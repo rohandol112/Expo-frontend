@@ -13,16 +13,33 @@ import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import type { NewsItem } from "@/types/news";
 import { ROUTES } from "@/constants/routes.constants";
-import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews, useScheduleNews, useShareNews } from "@/hooks/api/useNews";
-import { isAuthApiError } from "@/lib/apiError";
+import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews, useScheduleNews, useSendNewsNotification, useShareNews } from "@/hooks/api/useNews";
+import { ApiError, isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/api/useCategories";
 import { useChannels } from "@/hooks/api/useChannels";
 import { useLanguages } from "@/hooks/api/useLanguages";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export const Route = createFileRoute("/_app/news/admin")({
   component: AdminNewsPage,
 });
+
+function getVisibilityLabel(row: NewsItem) {
+  const visibility = row.visibility;
+  const detail = [visibility?.state, visibility?.district, visibility?.area, visibility?.users].filter(Boolean).join(", ");
+  const labelMap: Record<string, string> = {
+    "All India": "National",
+    "By State": "State",
+    "By District": "District",
+    "By Area": "Area",
+    Private: "Private",
+  };
+  return {
+    label: labelMap[visibility?.type ?? "All India"] ?? "National",
+    detail,
+  };
+}
 
 function AdminNewsPage() {
   const navigate = useNavigate();
@@ -40,11 +57,12 @@ function AdminNewsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [scheduleTarget, setScheduleTarget] = useState<NewsItem | null>(null);
   const [scheduleDateTime, setScheduleDateTime] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const queryParams = useMemo(
     () => ({
       page,
       per_page: 10,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       is_admin_news: true,
       category_id: categoryId === "all" ? undefined : Number(categoryId),
       status: status === "all" ? undefined : status,
@@ -54,7 +72,7 @@ function AdminNewsPage() {
       from_date: fromDate ? new Date(`${fromDate}T00:00:00.000`).toISOString() : undefined,
       to_date: toDate ? new Date(`${toDate}T23:59:59.999`).toISOString() : undefined,
     }),
-    [categoryId, channelId, contentType, fromDate, languageCode, page, search, status, toDate],
+    [categoryId, channelId, contentType, debouncedSearch, fromDate, languageCode, page, status, toDate],
   );
   const newsQuery = useNews(queryParams);
   const statsQuery = useNewsStats({ is_admin_news: true });
@@ -66,31 +84,50 @@ function AdminNewsPage() {
   const scheduleNews = useScheduleNews();
   const deleteNews = useDeleteNews();
   const shareNews = useShareNews();
+  const sendNewsNotification = useSendNewsNotification();
   const sourceRows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load admin news from backend." : undefined;
   const deeplinkBase = import.meta.env.VITE_PUBLIC_APP_DEEPLINK_BASE || "pehlibaat://news";
 
-  const filtered = useMemo(
-    () => sourceRows.filter((n) => !search || n.title.toLowerCase().includes(search.toLowerCase())),
-    [search, sourceRows],
-  );
-
   const handleShare = async (row: NewsItem) => {
     const link = `${deeplinkBase.replace(/\/$/, "")}/${row.id}`;
     try {
-      await shareNews.mutateAsync({ id: row.id, channel: "admin_panel" });
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(link);
         toast.success(`Share link copied: ${link}`);
-        return;
+      } else {
+        toast.info(link);
       }
-      toast.info(link);
+    } catch {
+      toast.info(`Share link: ${link}`);
+    }
+
+    try {
+      await shareNews.mutateAsync({ id: row.id, channel: "admin_panel" });
+    } catch (err) {
+      if (isAuthApiError(err)) return;
+    }
+  };
+
+  const handleSendNotification = async (row: NewsItem) => {
+    try {
+      const result = await sendNewsNotification.mutateAsync(row.id);
+      const recipientText = typeof result?.recipients === "number" ? ` to ${result.recipients.toLocaleString()} users` : "";
+      toast.success(`Notification sent${recipientText}`);
     } catch (err) {
       if (isAuthApiError(err)) {
-        toast.error("Backend auth is required to record this share.");
+        toast.error("Backend admin auth is required to send notification.");
         return;
       }
-      toast.info(`Share link: ${link}`);
+      if (err instanceof ApiError && (err.status === 501 || err.code === "notificationTargetingUnsupported")) {
+        toast.error("Private user notification targeting is not supported yet.");
+        return;
+      }
+      if (err instanceof Error) {
+        toast.error(err.message || "Unable to send notification");
+        return;
+      }
+      toast.error("Unable to send notification");
     }
   };
 
@@ -123,32 +160,33 @@ function AdminNewsPage() {
     },
     { key: "language", header: "Language", cell: (r) => <span className="text-sm">{r.language}</span> },
     {
+      key: "contentType",
+      header: "Content Type",
+      cell: (r) => <span className="text-sm">{r.contentType ?? "—"}</span>,
+    },
+    {
       key: "visibility",
-      header: "Location Visibility",
+      header: "Visibility",
       cell: (r) => {
-        const visibility = r.visibility;
-        const detail = [visibility?.state, visibility?.district, visibility?.area].filter(Boolean).join(", ");
-        const labelMap: Record<string, string> = {
-          "All India": "National",
-          "By State": "State",
-          "By District": "District",
-          "By Area": "Area",
-        };
+        const visibility = getVisibilityLabel(r);
         return (
           <div>
-            <p className="text-sm font-medium">{labelMap[visibility?.type ?? "All India"] ?? "National"}</p>
-            {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
+            <p className="text-sm font-medium">{visibility.label}</p>
+            {visibility.detail && <p className="text-xs text-muted-foreground">{visibility.detail}</p>}
           </div>
         );
       },
     },
     {
       key: "views",
-      header: "Views",
+      header: "Analytics",
       cell: (r) => (
-        <span className="text-sm inline-flex items-center gap-1">
-          {(r.views / 1000).toFixed(1)}K <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-        </span>
+        <div className="space-y-1 text-sm">
+          <span className="inline-flex items-center gap-1">
+            {(r.views / 1000).toFixed(1)}K <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+          </span>
+          {r.hasPoll && <p className="text-xs text-muted-foreground">Poll enabled</p>}
+        </div>
       ),
     },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
@@ -160,7 +198,12 @@ function AdminNewsPage() {
     {
       key: "createdBy",
       header: "Created By",
-      cell: (r) => <span className="text-sm">{r.createdBy ?? "—"}</span>,
+      cell: (r) => (
+        <div>
+          <p className="text-sm font-medium">{r.uploadedBy?.name ?? r.createdBy ?? "—"}</p>
+          <p className="text-xs text-muted-foreground">{r.createdByRole ?? r.uploadedBy?.role ?? "Admin"}</p>
+        </div>
+      ),
     },
     {
       key: "actions",
@@ -171,6 +214,12 @@ function AdminNewsPage() {
           onEdit={() => navigate({ to: "/news/$newsId/edit", params: { newsId: r.id } })}
           onDelete={() => setDeleteTarget(r)}
           extraItems={[
+            {
+              label: sendNewsNotification.isPending ? "Sending Notification..." : "Send Notification",
+              icon: Bell,
+              onClick: () => handleSendNotification(r),
+            },
+            { label: "Share", icon: Share2, onClick: () => handleShare(r) },
             {
               label: "Approve",
               icon: CheckCircle2,
@@ -197,15 +246,6 @@ function AdminNewsPage() {
               onClick: () => {
                 setScheduleTarget(r);
                 setScheduleDateTime("");
-              },
-            },
-            { label: "Share", icon: Share2, onClick: () => handleShare(r) },
-            {
-              label: "Send Notification",
-              icon: Bell,
-              onClick: () => {
-                // TODO: integrate notification API using news visibility and user language targeting.
-                toast.info("Notification API not available yet.");
               },
             },
           ]}
@@ -292,13 +332,14 @@ function AdminNewsPage() {
 
       <DataTable
         columns={columns}
-        data={filtered}
+        data={sourceRows}
         rowKey={(r) => r.id}
         loading={newsQuery.isLoading}
         page={page}
         pageSize={10}
-        total={newsQuery.data?.total ?? filtered.length}
+        total={newsQuery.data?.total ?? sourceRows.length}
         onPageChange={setPage}
+        manualPagination
         emptyTitle="No admin news found"
         emptyDescription="Backend returned no admin news for the selected filters."
       />

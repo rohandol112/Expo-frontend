@@ -15,7 +15,7 @@ function NewsDetailPage() {
   const newsQuery = useNewsItem(newsId);
   const news = newsQuery.data;
   const visibility = news?.visibility;
-  const visibilityLocation = [visibility?.state, visibility?.district, visibility?.area].filter(Boolean).join(", ");
+  const visibilityLocation = [visibility?.state, visibility?.district, visibility?.area, visibility?.users].filter(Boolean).join(", ");
   const newsLocation = [news?.location?.state, news?.location?.district, news?.location?.area].filter(Boolean).join(", ");
 
   return (
@@ -64,6 +64,7 @@ function NewsDetailPage() {
             <Detail label="Visibility" value={visibility?.type} />
             <Detail label="Location Visibility" value={visibilityLocation || "All India"} />
             <Detail label="News Location" value={newsLocation || undefined} />
+            <Detail label="Poll" value={news?.hasPoll ? "Enabled" : "Disabled"} />
             <Detail label="Duration" value={news?.durationSeconds ? `${news.durationSeconds}s` : undefined} />
           </dl>
           {news?.sourceLink && (
@@ -77,6 +78,20 @@ function NewsDetailPage() {
         <TextPanel title="Description" value={news?.description} />
         <TextPanel title="Bottom Description" value={news?.bottomDescription} />
       </div>
+      {news?.poll && (
+        <div className="mt-6 rounded-lg border bg-card p-6">
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Radio className="h-4 w-4" /> Voting Poll</p>
+          <p className="text-sm font-medium">{news.poll.question}</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {news.poll.options.map((option, index) => (
+              <div key={option.id ?? index} className="rounded-md border px-3 py-2 text-sm">
+                {option.text}
+                {option.vote_count !== undefined && <span className="ml-2 text-xs text-muted-foreground">({option.vote_count} votes)</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border bg-card p-6">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><MapPin className="h-4 w-4" /> Tags</p>

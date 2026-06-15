@@ -27,11 +27,11 @@ export interface BackendAdminUser {
   last_active_at?: string | null;
 }
 
-function formatDate(value?: string | null) {
+function formatDateTime(value?: string | null) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 export function toAdminUser(row: BackendAdminUser): AdminUser {
@@ -40,14 +40,15 @@ export function toAdminUser(row: BackendAdminUser): AdminUser {
     name: row.name || (row.is_guest ? `Guest ${row.id}` : "—"),
     email: row.email || "—",
     phone: row.phone || "—",
-    dob: formatDate(row.dob),
-    language: row.language_name || "—",
+    avatar: row.avatar_url || undefined,
+    dob: formatDateTime(row.dob),
+    language: row.language_name || row.language_code || "—",
     state: row.state?.name || "—",
     district: row.district?.name || "—",
     area: row.area?.name || "—",
     referredBy: row.referred_by?.name || "—",
-    registeredOn: formatDate(row.registered_on),
-    lastActive: formatDate(row.last_active_at),
+    registeredOn: formatDateTime(row.registered_on),
+    lastActive: formatDateTime(row.last_active_at),
     posts: row.posts ?? 0,
     status: row.is_active === false ? "Inactive" : "Active",
     type: row.is_guest ? "Guest" : "Registered",

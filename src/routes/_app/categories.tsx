@@ -48,7 +48,7 @@ function CategoriesPage() {
     { key: "slug", header: "Slug", cell: (r) => <span className="text-muted-foreground">{r.slug}</span> },
     { key: "language", header: "Language", cell: (r) => r.language },
     { key: "posts", header: "Posts", cell: (r) => r.posts.toLocaleString() },
-    { key: "featured", header: "Featured", cell: (r) => <Switch defaultChecked={r.featured} /> },
+    { key: "featured", header: "Featured", cell: (r) => <Switch checked={r.featured} disabled aria-label={`${r.name} featured`} /> },
     {
       key: "status",
       header: "Status",
@@ -71,9 +71,9 @@ function CategoriesPage() {
       ),
     },
     { key: "preferred", header: "Preferred User", cell: (r) => <span className="font-medium">{Number(r.preferredUser || 0).toLocaleString()}</span> },
-    { key: "order", header: "Display Order", cell: (r) => r.displayOrder },
-    { key: "created", header: "Created On", cell: (r) => r.createdOn },
-    { key: "updated", header: "Updated On", cell: (r) => r.updatedOn },
+    { key: "order", header: "Display Order", cell: (r) => <span className="font-medium">{r.displayOrder}</span> },
+    { key: "created", header: "Created On", cell: (r) => <span className="whitespace-nowrap">{r.createdOn}</span> },
+    { key: "updated", header: "Updated On", cell: (r) => <span className="whitespace-nowrap">{r.updatedOn}</span> },
     {
       key: "actions",
       header: "Actions",

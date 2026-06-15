@@ -10,27 +10,35 @@ import type { DistrictItem } from "@/types/location";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
 import { useDeleteDistrict, useDistricts, useStates, useUpdateDistrictStatus } from "@/hooks/api/useLocations";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/districts")({ component: DistrictsPage });
+
+function formatDateTime(value?: string) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
 
 function DistrictsPage() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   if (pathname !== ROUTES.SYS_DISTRICTS) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<DistrictItem | null>(null);
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ per_page: 100 });
+  const districtsQuery = useDistricts({ per_page: 100 });
+  const languagesQuery = useLanguages();
   const updateStatus = useUpdateDistrictStatus();
   const deleteDistrict = useDeleteDistrict();
   const states = statesQuery.data?.items ?? [];
   const stateNameById = new Map(states.map((state) => [state.id, state.name]));
   const rows: DistrictItem[] = (districtsQuery.data?.items ?? []).map((district) => ({
     id: String(district.id),
+    language: district.language_code,
     name: district.name,
     state: stateNameById.get(district.state_id) ?? `State #${district.state_id}`,
     status: district.is_active ? "Active" : "Inactive",
-    addedOn: "—",
+    addedOn: formatDateTime(district.created_at),
   }));
   const handleStatusToggle = (row: DistrictItem) => {
     updateStatus.mutate(
@@ -42,6 +50,7 @@ function DistrictsPage() {
     );
   };
   const columns: Column<DistrictItem>[] = [
+    { key: "language", header: "Language", cell: (r) => r.language.toUpperCase() },
     { key: "name", header: "District Name", cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: "state", header: "State", cell: (r) => r.state },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
@@ -60,9 +69,10 @@ function DistrictsPage() {
   ];
   return (
     <>
-      <AdminListPage title="Districts" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Districts" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_DISTRICTS_ADD })}><Plus className="mr-2 h-4 w-4" />Add District</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={districtsQuery.isLoading || statesQuery.isLoading} error={districtsQuery.error ? "Unable to load districts from backend." : undefined} searchPlaceholder="Search district..." dropdowns={[{ key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]} filter={(row, search, df) => {
+      <AdminListPage title="Districts" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Districts" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_DISTRICTS_ADD })}><Plus className="mr-2 h-4 w-4" />Add District</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={districtsQuery.isLoading || statesQuery.isLoading} error={districtsQuery.error ? "Unable to load districts from backend." : undefined} searchPlaceholder="Search district..." dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]} filter={(row, search, df) => {
       const term = search.toLowerCase();
       if (term && !(row.name.toLowerCase().includes(term) || row.state.toLowerCase().includes(term))) return false;
+      if (df.language && row.language !== df.language) return false;
       if (df.state && row.state !== df.state) return false;
       if (df.status && row.status !== df.status) return false;
       return true;

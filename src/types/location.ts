@@ -11,6 +11,7 @@ export interface LocationOverview {
 
 export interface StateItem {
   id: string;
+  language: string;
   name: string;
   code: string;
   status: AdminStatus;
@@ -19,6 +20,7 @@ export interface StateItem {
 
 export interface DistrictItem {
   id: string;
+  language: string;
   name: string;
   state: string;
   status: AdminStatus;
@@ -27,6 +29,7 @@ export interface DistrictItem {
 
 export interface AreaItem {
   id: string;
+  language: string;
   name: string;
   district: string;
   state: string;
@@ -49,6 +52,8 @@ export interface BackendState {
   name: string;
   is_active: boolean;
   sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BackendDistrict {
@@ -59,6 +64,8 @@ export interface BackendDistrict {
   name: string;
   is_active: boolean;
   sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BackendArea {
@@ -68,6 +75,8 @@ export interface BackendArea {
   name: string;
   is_active: boolean;
   sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface LocationSummaryItem {

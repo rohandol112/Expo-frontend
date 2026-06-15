@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
 import { useCreateArea, useDistricts, useStates } from "@/hooks/api/useLocations";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/areas/add")({ component: AddAreaPage });
@@ -29,14 +30,16 @@ type FormValues = z.infer<typeof schema>;
 
 function AddAreaPage() {
   const navigate = useNavigate();
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: "en", per_page: 100 });
+  const languagesQuery = useLanguages({ is_active: true });
   const createArea = useCreateArea();
   const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { languageCode: "en", sortOrder: 0, status: "Active" },
   });
+  const selectedLanguage = watch("languageCode");
   const selectedState = watch("state");
+  const statesQuery = useStates({ language_code: selectedLanguage || "en", per_page: 100 });
+  const districtsQuery = useDistricts({ language_code: selectedLanguage || "en", per_page: 100 });
   const states = statesQuery.data?.items ?? [];
   const districts = districtsQuery.data?.items ?? [];
   const filteredDistricts = useMemo(
@@ -92,7 +95,12 @@ function AddAreaPage() {
               <SelectContent>{filteredDistricts.map((district) => <SelectItem key={district.id} value={String(district.id)}>{district.name}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
-          <Field label="Language Code" error={errors.languageCode?.message}><Input {...register("languageCode")} placeholder="en" /></Field>
+          <Field label="Language" error={errors.languageCode?.message}>
+            <Select value={selectedLanguage} onValueChange={(value) => { setValue("languageCode", value, { shouldValidate: true }); setValue("state", ""); setValue("district", ""); }}>
+              <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+              <SelectContent>{(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
           <Field label="Sort Order" error={errors.sortOrder?.message}><Input type="number" min={0} {...register("sortOrder")} /></Field>
           <Field label="Status">
             <Select defaultValue="Active" onValueChange={(value) => setValue("status", value as FormValues["status"])}>

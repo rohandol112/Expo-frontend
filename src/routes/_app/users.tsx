@@ -5,6 +5,7 @@ import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsers, useUserStats, useUpdateUserStatus, useDeleteUser } from "@/hooks/api/useUsers";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { useRegions } from "@/hooks/api/useRegions";
@@ -58,13 +59,19 @@ function UsersPage() {
   }, []);
 
   const columns: Column<AdminUser>[] = [
-    { key: "user", header: "User", cell: (r) => <div><p className="font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.type}</p></div> },
+    { key: "user", header: "User", cell: (r) => (
+      <div className="flex items-center gap-2">
+        <Avatar className="h-9 w-9">
+          <AvatarImage src={r.avatar} />
+          <AvatarFallback>{r.name?.[0] ?? "U"}</AvatarFallback>
+        </Avatar>
+        <div><p className="font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.type}</p></div>
+      </div>
+    ) },
     { key: "contact", header: "Contact/Phone/Email", cell: (r) => <div><p>{r.phone}</p><p className="text-xs text-muted-foreground">{r.email}</p></div> },
     { key: "dob", header: "Date of Birth", cell: (r) => r.dob },
     { key: "language", header: "Language", cell: (r) => r.language },
-    { key: "state", header: "State", cell: (r) => r.state },
-    { key: "district", header: "District", cell: (r) => r.district },
-    { key: "area", header: "Area", cell: (r) => r.area },
+    { key: "location", header: "Location", cell: (r) => <div><p>{r.area}</p><p className="text-xs text-muted-foreground">{[r.district, r.state].filter((v) => v && v !== "—").join(", ") || "—"}</p></div> },
     { key: "ref", header: "Referred By", cell: (r) => r.referredBy },
     { key: "registered", header: "Registered On", cell: (r) => r.registeredOn },
     { key: "active", header: "Last Active", cell: (r) => r.lastActive },

@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowLeft, Save } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowLeft, ImageIcon, Save, Video } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FormSection } from "@/components/forms/FormSection";
 import { Button } from "@/components/ui/button";
@@ -16,53 +16,90 @@ import { ROUTES } from "@/constants/routes.constants";
 import { useCreateChannel } from "@/hooks/api/useChannels";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { useRegions } from "@/hooks/api/useRegions";
-import { isAuthApiError } from "@/lib/apiError";
+import { ApiError, isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/channels/add")({ component: AddChannelPage });
 
 const schema = z.object({
-  title: z.string().min(2),
+  title: z.string().min(3, "Channel title must be at least 3 characters"),
   website: z.string().url().or(z.literal("")),
   companyName: z.string().optional(),
-  language: z.string().optional(),
+  description: z.string().max(250, "Description must be 250 characters or less").optional(),
+  language: z.string().min(1, "Language is required"),
+  nationalVisibility: z.boolean(),
   state: z.string().optional(),
   district: z.string().optional(),
   area: z.string().optional(),
   status: z.enum(["Active", "Inactive"]),
   allowUserPosts: z.boolean(),
-  imageUrl: z.string().url().or(z.literal("")),
+}).superRefine((value, ctx) => {
+  if (value.nationalVisibility) return;
+  if (!value.state) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "State is required", path: ["state"] });
+  if (!value.district) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "District is required", path: ["district"] });
+  if (!value.area) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Area is required", path: ["area"] });
 });
 type FormValues = z.infer<typeof schema>;
 
 function AddChannelPage() {
   const navigate = useNavigate();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const createChannel = useCreateChannel();
-  const languagesQuery = useLanguages();
-  const regionsQuery = useRegions();
-  const { register, setValue, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const languagesQuery = useLanguages({ is_active: true });
+  const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { status: "Active", allowUserPosts: true, website: "", imageUrl: "" },
+    defaultValues: { status: "Active", allowUserPosts: true, nationalVisibility: true, website: "", language: "", state: "", district: "", area: "" },
   });
+  const selectedLanguage = watch("language");
+  const nationalVisibility = watch("nationalVisibility");
+  const selectedState = watch("state");
+  const selectedDistrict = watch("district");
+  const regionsQuery = useRegions({ language_code: selectedLanguage || "en" });
   const states = regionsQuery.data ?? [];
-  const districts = useMemo(() => states.flatMap((state) => state.districts), [states]);
-  const areas = useMemo(() => districts.flatMap((district) => district.areas), [districts]);
+  const districts = useMemo(
+    () => states.find((state) => String(state.id) === selectedState)?.districts ?? [],
+    [selectedState, states],
+  );
+  const areas = useMemo(
+    () => districts.find((district) => String(district.id) === selectedDistrict)?.areas ?? [],
+    [selectedDistrict, districts],
+  );
+
+  useEffect(() => {
+    setValue("state", "", { shouldValidate: false });
+    setValue("district", "", { shouldValidate: false });
+    setValue("area", "", { shouldValidate: false });
+  }, [selectedLanguage, setValue]);
+
+  useEffect(() => {
+    setValue("district", "", { shouldValidate: false });
+    setValue("area", "", { shouldValidate: false });
+  }, [selectedState, setValue]);
+
+  useEffect(() => {
+    setValue("area", "", { shouldValidate: false });
+  }, [selectedDistrict, setValue]);
 
   const onSubmit = async (data: FormValues) => {
     try {
       await createChannel.mutateAsync({
         title: data.title,
         company_name: data.companyName || undefined,
-        source_url: data.website || "https://example.com",
-        image_url: data.imageUrl || undefined,
+        language_code: data.language,
+        description: data.description || undefined,
+        website: data.website || undefined,
+        ...(data.nationalVisibility
+          ? { state_id: null, district_id: null, area_ids: [] }
+          : { state_id: Number(data.state), district_id: Number(data.district), area_ids: [Number(data.area)] }),
+        allow_user_posts: data.allowUserPosts,
         is_active: data.status === "Active",
       });
       toast.success("Channel saved");
-      if (videoFile) toast.info("Channel video upload is pending backend upload support.");
+      if (imageFile || videoFile) toast.info("Selected media will be uploaded after channel upload endpoints are available.");
       navigate({ to: ROUTES.CHANNELS });
     } catch (err) {
-      toast.error(isAuthApiError(err) ? "Backend admin auth is required to save channel." : "Unable to save channel");
+      toast.error(isAuthApiError(err) ? "Backend admin auth is required to save channel." : err instanceof ApiError ? err.message : "Unable to save channel");
     }
   };
   return (
@@ -83,18 +120,36 @@ function AddChannelPage() {
         <FormSection title="Channel Details">
           <Field label="Channel Title" error={errors.title?.message}><Input {...register("title")} placeholder="Pune Local Desk" /></Field>
           <Field label="Company Name"><Input {...register("companyName")} placeholder="Pehli Baat Media" /></Field>
-          <Field label="Image URL" error={errors.imageUrl?.message}><Input {...register("imageUrl")} placeholder="https://example.com/logo.png" /></Field>
-          <Field label="Channel Video"><Input type="file" accept="video/*" onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)} /></Field>
-          <p className="text-xs text-muted-foreground">TODO: Backend channel media supports `image_url` only. Location and video upload remain frontend-only until backend fields are available.</p>
-          <Field label="Language"><Select onValueChange={(v) => setValue("language", v)}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((l) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label="Channel Image"><MediaInput icon={<ImageIcon className="h-5 w-5" />} label={imageFile?.name || "Choose image file"} accept="image/*" onChange={setImageFile} /></Field>
+          <Field label="Channel Video"><MediaInput icon={<Video className="h-5 w-5" />} label={videoFile?.name || "Choose video file"} accept="video/*" onChange={setVideoFile} /></Field>
+          <p className="text-xs text-muted-foreground">Channel logo upload endpoint is available separately; selected files are kept local until media upload is wired into this form.</p>
+          <Field label="Language" error={errors.language?.message}><Select value={selectedLanguage} onValueChange={(v) => setValue("language", v, { shouldValidate: true })}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((l) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}</SelectContent></Select></Field>
           <Field label="Source URL" error={errors.website?.message}><Input {...register("website")} placeholder="https://example.com" /></Field>
-          <Field label="Description"><Textarea placeholder="Location fields below are UI-only until backend supports them." /></Field>
+          <Field label="Description" error={errors.description?.message}><Textarea {...register("description")} placeholder="Short channel description" /></Field>
         </FormSection>
         <div className="space-y-6">
           <FormSection title="Location Assignment">
-            <Field label="State"><Select onValueChange={(v) => setValue("state", v)}><SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger><SelectContent>{states.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent></Select></Field>
-            <Field label="District"><Select onValueChange={(v) => setValue("district", v)}><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger><SelectContent>{districts.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}</SelectContent></Select></Field>
-            <Field label="Area/City"><Select onValueChange={(v) => setValue("area", v)}><SelectTrigger><SelectValue placeholder="Select area" /></SelectTrigger><SelectContent>{areas.map((a) => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent></Select></Field>
+            <label className="flex items-center justify-between rounded-lg border p-3 text-sm">
+              <span>National Visibility</span>
+              <Switch
+                checked={nationalVisibility}
+                onCheckedChange={(checked) => {
+                  setValue("nationalVisibility", checked, { shouldValidate: true });
+                  if (checked) {
+                    setValue("state", "", { shouldValidate: false });
+                    setValue("district", "", { shouldValidate: false });
+                    setValue("area", "", { shouldValidate: false });
+                  }
+                }}
+              />
+            </label>
+            {!nationalVisibility && (
+              <>
+                <Field label="State" error={errors.state?.message}><Select value={selectedState} onValueChange={(v) => setValue("state", v, { shouldValidate: true })} disabled={!selectedLanguage || regionsQuery.isLoading}><SelectTrigger><SelectValue placeholder={regionsQuery.isLoading ? "Loading states..." : "Select state"} /></SelectTrigger><SelectContent>{states.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent></Select></Field>
+                <Field label="District" error={errors.district?.message}><Select value={selectedDistrict} onValueChange={(v) => setValue("district", v, { shouldValidate: true })} disabled={!selectedState}><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger><SelectContent>{districts.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}</SelectContent></Select></Field>
+                <Field label="Area/City" error={errors.area?.message}><Select value={watch("area")} onValueChange={(v) => setValue("area", v, { shouldValidate: true })} disabled={!selectedDistrict}><SelectTrigger><SelectValue placeholder="Select area" /></SelectTrigger><SelectContent>{areas.map((a) => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent></Select></Field>
+              </>
+            )}
           </FormSection>
           <FormSection title="Additional Settings">
             <Field label="Status"><Select defaultValue="Active" onValueChange={(v) => setValue("status", v as FormValues["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
@@ -108,4 +163,14 @@ function AddChannelPage() {
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return <div className="space-y-2"><Label>{label}</Label>{children}{error && <p className="text-xs text-destructive">{error}</p>}</div>;
+}
+
+function MediaInput({ icon, label, accept, onChange }: { icon: React.ReactNode; label: string; accept: string; onChange: (file: File | null) => void }) {
+  return (
+    <label className="flex h-24 cursor-pointer items-center justify-center gap-3 rounded-md border border-dashed bg-background text-sm transition hover:border-primary/70 hover:bg-primary/5">
+      <Input type="file" accept={accept} className="sr-only" onChange={(event) => onChange(event.target.files?.[0] ?? null)} />
+      {icon}
+      <span className="max-w-[220px] truncate">{label}</span>
+    </label>
+  );
 }

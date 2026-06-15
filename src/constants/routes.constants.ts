@@ -9,6 +9,8 @@ export const ROUTES = {
   CATEGORIES_EDIT: (id: string) => `/categories/${id}/edit`,
   NEWS_TAGS: "/news-tags",
   COMPLAINTS: "/complaints",
+  COMPLAINT_CATEGORIES: "/complaints/categories",
+  COMPLAINT_ASSIGN_RULES: "/complaints/assign-rules",
   USERS: "/users",
   CHANNELS: "/channels",
   CHANNELS_ADD: "/channels/add",

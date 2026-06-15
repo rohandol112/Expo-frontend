@@ -3,6 +3,7 @@ import type { AdminStatus } from "@/types/system";
 export interface AdminUser {
   id: string;
   name: string;
+  avatar?: string;
   email: string;
   phone: string;
   dob: string;

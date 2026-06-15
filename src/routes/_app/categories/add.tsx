@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, ImageIcon, Save, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FormSection } from "@/components/forms/FormSection";
@@ -34,9 +34,10 @@ type FormValues = z.infer<typeof schema>;
 
 function AddCategoryPage() {
   const navigate = useNavigate();
+  const [iconFile, setIconFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const createCategory = useCreateCategory();
-  const languagesQuery = useLanguages();
+  const languagesQuery = useLanguages({ is_active: true });
   const categoriesQuery = useCategories();
   const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -57,10 +58,11 @@ function AddCategoryPage() {
         icon_url: data.iconUrl || null,
         sort_order: data.displayOrder,
         is_active: data.status === "Active",
+        is_featured: data.featured,
         translations: [{ language_code: data.language, name: data.name, description: data.description || null }],
       });
       toast.success("Category saved");
-      if (videoFile) toast.info("Category video upload is pending backend upload support.");
+      if (iconFile || videoFile) toast.info("Selected media will be uploaded after category upload endpoints are available.");
       navigate({ to: ROUTES.CATEGORIES });
     } catch (err) {
       toast.error(isAuthApiError(err) ? "Backend admin auth is required to save category." : "Unable to save category");
@@ -92,7 +94,8 @@ function AddCategoryPage() {
           <Field label="Status"><Select defaultValue="Active" onValueChange={(v) => setValue("status", v as FormValues["status"], { shouldValidate: true })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
           <Field label="Display Order" error={errors.displayOrder?.message}><Input type="number" {...register("displayOrder")} /></Field>
           <Field label="Icon URL" error={errors.iconUrl?.message}><Input {...register("iconUrl")} placeholder="https://example.com/category.png" /></Field>
-          <Field label="Category Video"><Input type="file" accept="video/*" onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)} /></Field>
+          <Field label="Upload Icon"><MediaInput icon={<ImageIcon className="h-5 w-5" />} label={iconFile?.name || "Choose image file"} accept="image/*" onChange={setIconFile} /></Field>
+          <Field label="Category Video"><MediaInput icon={<Video className="h-5 w-5" />} label={videoFile?.name || "Choose video file"} accept="video/*" onChange={setVideoFile} /></Field>
           <label className="flex items-center justify-between rounded-lg border p-3 text-sm"><span>Featured Category</span><Switch onCheckedChange={(v) => setValue("featured", v)} /></label>
         </div>
         <Field label="Description"><Input {...register("description")} placeholder="Short category description" /></Field>
@@ -104,4 +107,14 @@ function AddCategoryPage() {
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return <div className="space-y-2"><Label>{label}</Label>{children}{error && <p className="text-xs text-destructive">{error}</p>}</div>;
+}
+
+function MediaInput({ icon, label, accept, onChange }: { icon: React.ReactNode; label: string; accept: string; onChange: (file: File | null) => void }) {
+  return (
+    <label className="flex h-24 cursor-pointer items-center justify-center gap-3 rounded-md border border-dashed bg-background text-sm transition hover:border-primary/70 hover:bg-primary/5">
+      <Input type="file" accept={accept} className="sr-only" onChange={(event) => onChange(event.target.files?.[0] ?? null)} />
+      {icon}
+      <span className="max-w-[220px] truncate">{label}</span>
+    </label>
+  );
 }

@@ -40,6 +40,8 @@ import { Route as AppNewsAdminRouteImport } from './routes/_app/news/admin'
 import { Route as AppNewsAddRouteImport } from './routes/_app/news/add'
 import { Route as AppMonetizationAddRouteImport } from './routes/_app/monetization/add'
 import { Route as AppListingsAddRouteImport } from './routes/_app/listings/add'
+import { Route as AppComplaintsCategoriesRouteImport } from './routes/_app/complaints/categories'
+import { Route as AppComplaintsAssignRulesRouteImport } from './routes/_app/complaints/assign-rules'
 import { Route as AppComplaintsComplaintIdRouteImport } from './routes/_app/complaints/$complaintId'
 import { Route as AppChannelsAddRouteImport } from './routes/_app/channels/add'
 import { Route as AppCategoriesAddRouteImport } from './routes/_app/categories/add'
@@ -225,6 +227,17 @@ const AppListingsAddRoute = AppListingsAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppListingsRoute,
 } as any)
+const AppComplaintsCategoriesRoute = AppComplaintsCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AppComplaintsRoute,
+} as any)
+const AppComplaintsAssignRulesRoute =
+  AppComplaintsAssignRulesRouteImport.update({
+    id: '/assign-rules',
+    path: '/assign-rules',
+    getParentRoute: () => AppComplaintsRoute,
+  } as any)
 const AppComplaintsComplaintIdRoute =
   AppComplaintsComplaintIdRouteImport.update({
     id: '/$complaintId',
@@ -419,6 +432,8 @@ export interface FileRoutesByFullPath {
   '/categories/add': typeof AppCategoriesAddRoute
   '/channels/add': typeof AppChannelsAddRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
+  '/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
+  '/complaints/categories': typeof AppComplaintsCategoriesRoute
   '/listings/add': typeof AppListingsAddRoute
   '/monetization/add': typeof AppMonetizationAddRoute
   '/news/add': typeof AppNewsAddRoute
@@ -481,6 +496,8 @@ export interface FileRoutesByTo {
   '/categories/add': typeof AppCategoriesAddRoute
   '/channels/add': typeof AppChannelsAddRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
+  '/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
+  '/complaints/categories': typeof AppComplaintsCategoriesRoute
   '/listings/add': typeof AppListingsAddRoute
   '/monetization/add': typeof AppMonetizationAddRoute
   '/news/add': typeof AppNewsAddRoute
@@ -545,6 +562,8 @@ export interface FileRoutesById {
   '/_app/categories/add': typeof AppCategoriesAddRoute
   '/_app/channels/add': typeof AppChannelsAddRoute
   '/_app/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
+  '/_app/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
+  '/_app/complaints/categories': typeof AppComplaintsCategoriesRoute
   '/_app/listings/add': typeof AppListingsAddRoute
   '/_app/monetization/add': typeof AppMonetizationAddRoute
   '/_app/news/add': typeof AppNewsAddRoute
@@ -609,6 +628,8 @@ export interface FileRouteTypes {
     | '/categories/add'
     | '/channels/add'
     | '/complaints/$complaintId'
+    | '/complaints/assign-rules'
+    | '/complaints/categories'
     | '/listings/add'
     | '/monetization/add'
     | '/news/add'
@@ -671,6 +692,8 @@ export interface FileRouteTypes {
     | '/categories/add'
     | '/channels/add'
     | '/complaints/$complaintId'
+    | '/complaints/assign-rules'
+    | '/complaints/categories'
     | '/listings/add'
     | '/monetization/add'
     | '/news/add'
@@ -734,6 +757,8 @@ export interface FileRouteTypes {
     | '/_app/categories/add'
     | '/_app/channels/add'
     | '/_app/complaints/$complaintId'
+    | '/_app/complaints/assign-rules'
+    | '/_app/complaints/categories'
     | '/_app/listings/add'
     | '/_app/monetization/add'
     | '/_app/news/add'
@@ -1001,6 +1026,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppListingsAddRouteImport
       parentRoute: typeof AppListingsRoute
     }
+    '/_app/complaints/categories': {
+      id: '/_app/complaints/categories'
+      path: '/categories'
+      fullPath: '/complaints/categories'
+      preLoaderRoute: typeof AppComplaintsCategoriesRouteImport
+      parentRoute: typeof AppComplaintsRoute
+    }
+    '/_app/complaints/assign-rules': {
+      id: '/_app/complaints/assign-rules'
+      path: '/assign-rules'
+      fullPath: '/complaints/assign-rules'
+      preLoaderRoute: typeof AppComplaintsAssignRulesRouteImport
+      parentRoute: typeof AppComplaintsRoute
+    }
     '/_app/complaints/$complaintId': {
       id: '/_app/complaints/$complaintId'
       path: '/$complaintId'
@@ -1248,10 +1287,14 @@ const AppChannelsRouteWithChildren = AppChannelsRoute._addFileChildren(
 
 interface AppComplaintsRouteChildren {
   AppComplaintsComplaintIdRoute: typeof AppComplaintsComplaintIdRoute
+  AppComplaintsAssignRulesRoute: typeof AppComplaintsAssignRulesRoute
+  AppComplaintsCategoriesRoute: typeof AppComplaintsCategoriesRoute
 }
 
 const AppComplaintsRouteChildren: AppComplaintsRouteChildren = {
   AppComplaintsComplaintIdRoute: AppComplaintsComplaintIdRoute,
+  AppComplaintsAssignRulesRoute: AppComplaintsAssignRulesRoute,
+  AppComplaintsCategoriesRoute: AppComplaintsCategoriesRoute,
 }
 
 const AppComplaintsRouteWithChildren = AppComplaintsRoute._addFileChildren(

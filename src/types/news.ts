@@ -1,5 +1,18 @@
 export type NewsStatus = "Published" | "Pending" | "Draft" | "Scheduled" | "Rejected";
 export type ContentType = "Article" | "Video" | "Shorts" | "Story";
+export type NewsVisibilityType = "All India" | "By State" | "By District" | "By Area" | "Private";
+
+export interface NewsPoll {
+  id?: number;
+  question: string;
+  options: Array<{
+    id?: number;
+    text: string;
+    sort_order?: number;
+    vote_count?: number;
+  }>;
+  total_votes?: number;
+}
 
 export interface NewsItem {
   id: string;
@@ -31,11 +44,19 @@ export interface NewsItem {
     areaId?: number | null;
   };
   visibility?: {
-    type: "All India" | "By State" | "By District" | "By Area";
+    type: NewsVisibilityType;
     state?: string;
     district?: string;
     area?: string;
+    users?: string;
+    stateIds?: number[];
+    districtIds?: number[];
+    areaIds?: number[];
+    userIds?: number[];
   };
+  hasPoll?: boolean;
+  pollQuestion?: string | null;
+  poll?: NewsPoll | null;
   tags?: string[];
   translations?: Array<{
     language_code?: string;
@@ -49,7 +70,11 @@ export interface NewsItem {
   rejectionReason?: string | null;
   scheduledFor?: string | null;
   publishedOn?: string;
-  uploadedBy?: { name: string; email: string; avatar?: string };
+  uploadedOn?: string;
+  uploadedBy?: { id?: number | string; name: string; email?: string; avatar?: string; role?: string | null };
+  createdById?: number | null;
+  createdByRole?: string | null;
+  analytics?: { views: number; shares?: number; comments?: number; hasPoll?: boolean };
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;

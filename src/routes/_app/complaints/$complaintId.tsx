@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, FileText, Image as ImageIcon, MapPin, MessageSquareText, Send, Tag, User as UserIcon } from "lucide-react";
+import { AlertCircle, FileText, Image as ImageIcon, MapPin, MessageSquareText, Play, Send, Tag, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -74,6 +74,7 @@ function ComplaintDetailPage() {
           <div className="rounded-lg border bg-card p-6">
             <dl className="grid gap-4 md:grid-cols-2">
               <Detail label="Complaint Number" value={complaint?.number} />
+              <Detail label="Category" value={complaint?.category} />
               <Detail label="Sub Category" value={complaint?.subCategory} />
               <Detail label="Reported By" value={complaint?.reportedBy} />
               <Detail label="Reporter Phone" value={complaint?.reportedByPhone} />
@@ -98,17 +99,23 @@ function ComplaintDetailPage() {
           )}
 
           <div className="rounded-lg border bg-card p-6">
-            <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><ImageIcon className="h-4 w-4" /> Attached Images</p>
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><ImageIcon className="h-4 w-4" /> Attached Images / Videos</p>
             {complaint?.images?.length ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 {complaint.images.map((url) => (
                   <a key={url} href={url} target="_blank" rel="noreferrer" className="block aspect-square overflow-hidden rounded-md border">
-                    <img src={url} alt="Complaint attachment" className="h-full w-full object-cover" />
+                    {/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-muted text-xs text-muted-foreground">
+                        <Play className="mb-2 h-6 w-6" /> Open video
+                      </div>
+                    ) : (
+                      <img src={url} alt="Complaint attachment" className="h-full w-full object-cover" />
+                    )}
                   </a>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No images attached to this complaint.</p>
+              <p className="text-sm text-muted-foreground">No attachments found for this complaint.</p>
             )}
           </div>
 

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { FileText, CheckCircle2, Clock, XCircle, Plus, MapPin, Eye } from "lucide-react";
+import { FileText, CheckCircle2, Clock, XCircle, Plus, MapPin, Eye, Bell, Share2 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
 import { DataTable, type Column } from "@/components/tables/DataTable";
@@ -16,9 +16,10 @@ import { ROUTES } from "@/constants/routes.constants";
 import { cn } from "@/lib/utils";
 import { useCategories } from "@/hooks/api/useCategories";
 import { useLanguages } from "@/hooks/api/useLanguages";
-import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews } from "@/hooks/api/useNews";
-import { isAuthApiError } from "@/lib/apiError";
+import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews, useSendNewsNotification, useShareNews } from "@/hooks/api/useNews";
+import { ApiError, isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export const Route = createFileRoute("/_app/news/all")({
   component: AllNewsPage,
@@ -36,6 +37,19 @@ function toIsoDate(date: string, endOfDay = false) {
   return new Date(`${date}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}`).toISOString();
 }
 
+function getNewsLocation(row: NewsItem) {
+  if (row.location) {
+    const primary = [row.location.area, row.location.district].filter(Boolean).join(", ") || row.location.state || "—";
+    const secondary = [row.location.state].filter(Boolean).join(", ");
+    return { primary: String(primary), secondary: String(secondary || "") };
+  }
+
+  const visibility = row.visibility;
+  if (!visibility) return null;
+  const detail = [visibility.area, visibility.district, visibility.state, visibility.users].filter(Boolean).join(", ");
+  return { primary: visibility.type, secondary: detail };
+}
+
 function AllNewsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
@@ -50,20 +64,21 @@ function AllNewsPage() {
   const [approveTarget, setApproveTarget] = useState<NewsItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<NewsItem | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
 
   const activeTab = TABS.find((item) => item.key === tab);
   const queryParams = useMemo(
     () => ({
       page,
       per_page: 10,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       category_id: categoryId === "all" ? undefined : Number(categoryId),
       status: status === "all" ? activeTab?.status : status,
       language_code: languageCode === "all" ? undefined : languageCode,
       from_date: toIsoDate(fromDate),
       to_date: toIsoDate(toDate, true),
     }),
-    [activeTab?.status, categoryId, fromDate, languageCode, page, search, status, toDate],
+    [activeTab?.status, categoryId, debouncedSearch, fromDate, languageCode, page, status, toDate],
   );
 
   const newsQuery = useNews(queryParams);
@@ -73,9 +88,54 @@ function AllNewsPage() {
   const deleteNews = useDeleteNews();
   const approveNews = useApproveNews();
   const rejectNews = useRejectNews();
+  const shareNews = useShareNews();
+  const sendNewsNotification = useSendNewsNotification();
   const rows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load news from backend." : undefined;
   const stats = statsQuery.data;
+  const deeplinkBase = import.meta.env.VITE_PUBLIC_APP_DEEPLINK_BASE || "pehlibaat://news";
+
+  const handleShare = async (row: NewsItem) => {
+    const link = `${deeplinkBase.replace(/\/$/, "")}/${row.id}`;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+        toast.success(`Share link copied: ${link}`);
+      } else {
+        toast.info(link);
+      }
+    } catch {
+      toast.info(`Share link: ${link}`);
+    }
+
+    try {
+      await shareNews.mutateAsync({ id: row.id, channel: "admin_panel" });
+    } catch (err) {
+      if (isAuthApiError(err)) return;
+    }
+  };
+
+  const handleSendNotification = async (row: NewsItem) => {
+    try {
+      const result = await sendNewsNotification.mutateAsync(row.id);
+      const recipientText = typeof result?.recipients === "number" ? ` to ${result.recipients.toLocaleString()} users` : "";
+      toast.success(`Notification sent${recipientText}`);
+    } catch (err) {
+      if (isAuthApiError(err)) {
+        toast.error("Backend admin auth is required to send notification.");
+        return;
+      }
+      if (err instanceof ApiError && (err.status === 501 || err.code === "notificationTargetingUnsupported")) {
+        toast.error("Private user notification targeting is not supported yet.");
+        return;
+      }
+      if (err instanceof Error) {
+        toast.error(err.message || "Unable to send notification");
+        return;
+      }
+      toast.error("Unable to send notification");
+    }
+  };
 
   const columns: Column<NewsItem>[] = [
     {
@@ -86,6 +146,7 @@ function AllNewsPage() {
           {r.thumbnail ? <img src={r.thumbnail} alt="" className="h-12 w-16 rounded object-cover shrink-0" /> : <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-muted text-xs text-muted-foreground">No media</div>}
           <div className="min-w-0">
             <p className="text-sm font-medium line-clamp-1">{r.title}</p>
+            <p className="text-xs text-muted-foreground">{r.contentType ?? "Article"}</p>
             <p className="text-xs text-muted-foreground">ID: #{r.code}</p>
           </div>
         </div>
@@ -96,18 +157,20 @@ function AllNewsPage() {
     {
       key: "location",
       header: "Location",
-      cell: (r) =>
-        r.location ? (
+      cell: (r) => {
+        const location = getNewsLocation(r);
+        return location ? (
           <div className="flex items-start gap-1.5">
             <MapPin className="h-3.5 w-3.5 mt-0.5 text-primary" />
             <div>
-              <p className="text-sm">{r.location.city}</p>
-              <p className="text-xs text-muted-foreground">{r.location.region}</p>
+              <p className="text-sm">{location.primary}</p>
+              {location.secondary && <p className="text-xs text-muted-foreground">{location.secondary}</p>}
             </div>
           </div>
         ) : (
           <span className="text-muted-foreground">—</span>
-        ),
+        );
+      },
     },
     {
       key: "views",
@@ -130,7 +193,9 @@ function AllNewsPage() {
             </Avatar>
             <div>
               <p className="text-sm font-medium">{r.uploadedBy.name}</p>
-              <p className="text-xs text-muted-foreground">{r.uploadedBy.email}</p>
+              <p className="text-xs text-muted-foreground">
+                {r.uploadedBy.id ? `ID: ${r.uploadedBy.id}` : r.uploadedBy.email || "—"}
+              </p>
             </div>
           </div>
         ) : (
@@ -141,7 +206,7 @@ function AllNewsPage() {
     {
       key: "uploadedOn",
       header: "Uploaded On",
-      cell: (r) => <span className="text-sm whitespace-nowrap">{r.publishedOn ?? "—"}</span>,
+      cell: (r) => <span className="text-sm whitespace-nowrap">{r.uploadedOn ?? r.publishedOn ?? "—"}</span>,
     },
     {
       key: "actions",
@@ -151,6 +216,12 @@ function AllNewsPage() {
           onView={() => navigate({ to: "/news/$newsId", params: { newsId: r.id } })}
           onEdit={() => navigate({ to: "/news/$newsId/edit", params: { newsId: r.id } })}
           extraItems={[
+            {
+              label: sendNewsNotification.isPending ? "Sending Notification..." : "Send Notification",
+              icon: Bell,
+              onClick: () => handleSendNotification(r),
+            },
+            { label: "Share", icon: Share2, onClick: () => handleShare(r) },
             ...(["Pending", "Draft", "Scheduled", "Rejected"].includes(r.status)
               ? [{ label: "Approve", icon: CheckCircle2, onClick: () => setApproveTarget(r) }]
               : []),
@@ -261,6 +332,7 @@ function AllNewsPage() {
           pageSize={10}
           total={newsQuery.data?.total ?? rows.length}
           onPageChange={setPage}
+          manualPagination
           emptyTitle="No news found"
           emptyDescription="Backend returned no news for the selected filters."
         />

@@ -10,18 +10,25 @@ import type { AreaItem } from "@/types/location";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
 import { useAreas, useDeleteArea, useDistricts, useStates, useUpdateAreaStatus } from "@/hooks/api/useLocations";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/areas")({ component: AreasPage });
+
+function formatDateTime(value?: string) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
 
 function AreasPage() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   if (pathname !== ROUTES.SYS_AREAS) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<AreaItem | null>(null);
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: "en", per_page: 100 });
-  const areasQuery = useAreas({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ per_page: 100 });
+  const districtsQuery = useDistricts({ per_page: 100 });
+  const areasQuery = useAreas({ per_page: 100 });
+  const languagesQuery = useLanguages();
   const updateStatus = useUpdateAreaStatus();
   const deleteArea = useDeleteArea();
   const states = statesQuery.data?.items ?? [];
@@ -32,11 +39,12 @@ function AreasPage() {
     const district = districtMetaById.get(area.district_id);
     return {
       id: String(area.id),
+      language: area.language_code,
       name: area.name,
       district: district?.name ?? `District #${area.district_id}`,
       state: district?.state ?? "—",
       status: area.is_active ? "Active" : "Inactive",
-      addedOn: "—",
+      addedOn: formatDateTime(area.created_at),
     };
   });
   const handleStatusToggle = (row: AreaItem) => {
@@ -49,6 +57,7 @@ function AreasPage() {
     );
   };
   const columns: Column<AreaItem>[] = [
+    { key: "language", header: "Language", cell: (r) => r.language.toUpperCase() },
     { key: "name", header: "Area Name", cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: "district", header: "District", cell: (r) => r.district },
     { key: "state", header: "State", cell: (r) => r.state },
@@ -68,9 +77,10 @@ function AreasPage() {
   ];
   return (
     <>
-      <AdminListPage title="Areas" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Areas" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_AREAS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Area</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={areasQuery.isLoading || districtsQuery.isLoading || statesQuery.isLoading} error={areasQuery.error ? "Unable to load areas from backend." : undefined} searchPlaceholder="Search area..." dropdowns={[{ key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }]} filter={(row, search, df) => {
+      <AdminListPage title="Areas" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Areas" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_AREAS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Area</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={areasQuery.isLoading || districtsQuery.isLoading || statesQuery.isLoading} error={areasQuery.error ? "Unable to load areas from backend." : undefined} searchPlaceholder="Search area..." dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }]} filter={(row, search, df) => {
       const term = search.toLowerCase();
       if (term && ![row.name, row.district, row.state].some((v) => v.toLowerCase().includes(term))) return false;
+      if (df.language && row.language !== df.language) return false;
       if (df.district && row.district !== df.district) return false;
       if (df.state && row.state !== df.state) return false;
       return true;

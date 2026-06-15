@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { newsService, type BulkNewsPayload, type CreateAdminNewsPayload, type NewsCommentListParams, type NewsListParams } from "@/services/news.service";
+import { newsService, type AutoFillTranslationsPayload, type BulkNewsPayload, type CreateAdminNewsPayload, type NewsCommentListParams, type NewsListParams, type UpdateAdminNewsPayload } from "@/services/news.service";
 
 export const newsKeys = {
   all: ["news"] as const,
@@ -7,6 +7,9 @@ export const newsKeys = {
   stats: (params?: { is_admin_news?: boolean }) => [...newsKeys.all, "stats", params] as const,
   detail: (id: string) => [...newsKeys.all, "detail", id] as const,
   comments: (id: string, params?: NewsCommentListParams) => [...newsKeys.all, "comments", id, params] as const,
+  poll: (id: string) => [...newsKeys.all, "poll", id] as const,
+  pollResults: (id: string) => [...newsKeys.all, "poll-results", id] as const,
+  userSearch: (params?: { search?: string; page?: number; per_page?: number }) => [...newsKeys.all, "user-search", params] as const,
 };
 
 export function useNews(params?: NewsListParams) {
@@ -42,11 +45,52 @@ export function useCreateNews() {
 export function useUpdateNews() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: unknown }) => newsService.update(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateAdminNewsPayload }) => newsService.update(id, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: newsKeys.all });
       queryClient.invalidateQueries({ queryKey: newsKeys.detail(variables.id) });
     },
+  });
+}
+
+export function useAutoFillNewsTranslations() {
+  return useMutation({
+    mutationFn: (payload: AutoFillTranslationsPayload) => newsService.autoFillTranslations(payload),
+  });
+}
+
+export function useNewsPoll(id: string) {
+  return useQuery({
+    queryKey: newsKeys.poll(id),
+    queryFn: () => newsService.getPoll(id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useNewsPollResults(id: string) {
+  return useQuery({
+    queryKey: newsKeys.pollResults(id),
+    queryFn: () => newsService.getPollResults(id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useDeleteNewsPoll() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => newsService.deletePoll(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: newsKeys.all });
+      queryClient.invalidateQueries({ queryKey: newsKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: newsKeys.poll(id) });
+    },
+  });
+}
+
+export function useAdminUserSearch(params?: { search?: string; page?: number; per_page?: number }) {
+  return useQuery({
+    queryKey: newsKeys.userSearch(params),
+    queryFn: () => newsService.searchUsers(params),
   });
 }
 
@@ -84,6 +128,12 @@ export function useLikeNews() {
 export function useShareNews() {
   return useMutation({
     mutationFn: ({ id, channel }: { id: string; channel?: string }) => newsService.share(id, channel ? { channel } : {}),
+  });
+}
+
+export function useSendNewsNotification() {
+  return useMutation({
+    mutationFn: (id: string) => newsService.sendNotification(id),
   });
 }
 

@@ -136,7 +136,7 @@ function CreateNotificationPage() {
   });
 
   return (
-    <form onSubmit={submit}>
+    <form onSubmit={submit} className="space-y-5 pb-2">
       <PageHeader
         title="Create Custom Notification"
         breadcrumbs={[
@@ -329,7 +329,7 @@ function CreateNotificationPage() {
         </div>
       </FormSection>
 
-      <div className="mt-6 flex justify-end">
+      <div className="flex justify-end">
         <Button type="submit" disabled={createMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           {createMutation.isPending ? "Saving..." : "Save Notification"}

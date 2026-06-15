@@ -5,7 +5,7 @@ import {
   type CreateComplaintPayload,
   type UpdateComplaintPayload,
 } from "@/services/complaint.service";
-import { complaintCategoryService, type ComplaintCategoryListParams } from "@/services/complaintCategory.service";
+import { complaintCategoryService, type ComplaintAssignRuleListParams, type ComplaintCategoryListParams } from "@/services/complaintCategory.service";
 import type { ComplaintStatus } from "@/types/complaint";
 
 export const complaintKeys = {
@@ -20,6 +20,7 @@ export const complaintKeys = {
 export const complaintCategoryKeys = {
   all: ["admin-complaint-categories"] as const,
   list: (params?: ComplaintCategoryListParams) => [...complaintCategoryKeys.all, "list", params] as const,
+  assignRules: (params?: ComplaintAssignRuleListParams) => [...complaintCategoryKeys.all, "assign-rules", params] as const,
 };
 
 export function useComplaints(params?: ComplaintListParams) {
@@ -64,6 +65,13 @@ export function useComplaintCategories(params?: ComplaintCategoryListParams) {
   return useQuery({
     queryKey: complaintCategoryKeys.list(params),
     queryFn: () => complaintCategoryService.list(params),
+  });
+}
+
+export function useComplaintAssignRules(params?: ComplaintAssignRuleListParams) {
+  return useQuery({
+    queryKey: complaintCategoryKeys.assignRules(params),
+    queryFn: () => complaintCategoryService.listAssignRules(params),
   });
 }
 

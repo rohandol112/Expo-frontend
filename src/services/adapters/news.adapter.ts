@@ -1,4 +1,6 @@
-import type { NewsItem, ContentType, NewsStatus } from "@/types/news";
+import type { NewsItem, ContentType, NewsPoll, NewsStatus } from "@/types/news";
+
+type LocationRef = string | number | { id?: number; name?: string | null } | null;
 
 export interface BackendNews {
   id: number;
@@ -18,6 +20,8 @@ export interface BackendNews {
   source_link?: string | null;
   categories?: Array<{ id: number; name: string }>;
   view_count?: number;
+  share_count?: number;
+  comment_count?: number;
   status?: string;
   status_label?: string;
   rejection_reason?: string | null;
@@ -26,23 +30,31 @@ export interface BackendNews {
   created_at?: string;
   updated_at?: string;
   created_by?: number;
+  created_by_role?: string | null;
+  creator?: { id?: number; name?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
+  created_by_user?: { id?: number; name?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
   location?: {
-    state?: string | number | null;
-    district?: string | number | null;
-    area?: string | number | null;
+    state?: LocationRef;
+    district?: LocationRef;
+    area?: LocationRef;
     state_id?: number | null;
     district_id?: number | null;
     area_id?: number | null;
   } | null;
   visibility?: {
-    scope?: "all_india" | "state" | "district" | "area";
+    scope?: "all_india" | "state" | "district" | "area" | "private";
     states?: string[];
     districts?: string[];
     areas?: string[];
+    users?: string[];
     state_ids?: number[];
     district_ids?: number[];
     area_ids?: number[];
+    user_ids?: number[];
   };
+  has_poll?: boolean;
+  poll_question?: string | null;
+  poll?: NewsPoll | null;
   tags?: string[];
   translations?: Array<{
     language_code?: string;
@@ -57,6 +69,17 @@ export interface BackendNews {
 function formatDate(value?: string | null) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function contentType(type?: BackendNews["type"]): ContentType {
@@ -78,15 +101,38 @@ function status(value?: string): NewsStatus {
   return value ? map[value] ?? "Pending" : "Pending";
 }
 
+function locationName(value: LocationRef): string | number | null {
+  if (value && typeof value === "object") return value.name || value.id || null;
+  return value ?? null;
+}
+
+function locationId(value: LocationRef, fallback?: number | null): number | null {
+  if (typeof value === "number") return value;
+  if (value && typeof value === "object" && typeof value.id === "number") return value.id;
+  return fallback ?? null;
+}
+
 function visibility(value: BackendNews["visibility"]): NewsItem["visibility"] {
   if (!value || value.scope === "all_india") return { type: "All India" };
-  if (value.scope === "state") return { type: "By State", state: value.states?.join(", ") || value.state_ids?.join(", ") };
-  if (value.scope === "district") return { type: "By District", district: value.districts?.join(", ") || value.district_ids?.join(", ") };
-  return { type: "By Area", area: value.areas?.join(", ") || value.area_ids?.join(", ") };
+  if (value.scope === "state") {
+    return { type: "By State", state: value.states?.join(", ") || value.state_ids?.join(", "), stateIds: value.state_ids ?? [] };
+  }
+  if (value.scope === "district") {
+    return { type: "By District", district: value.districts?.join(", ") || value.district_ids?.join(", "), districtIds: value.district_ids ?? [] };
+  }
+  if (value.scope === "area") {
+    return { type: "By Area", area: value.areas?.join(", ") || value.area_ids?.join(", "), areaIds: value.area_ids ?? [] };
+  }
+  return { type: "Private", users: value.users?.join(", ") || value.user_ids?.join(", "), userIds: value.user_ids ?? [] };
 }
 
 export function toNewsItem(row: BackendNews): NewsItem {
   const thumbnail = row.thumbnail_url || "";
+  const creator = row.creator ?? row.created_by_user ?? null;
+  const createdById = row.created_by ?? creator?.id ?? null;
+  const creatorName = creator?.name || (createdById ? `User #${createdById}` : "Admin");
+  const creatorRole = creator?.role ?? row.created_by_role ?? (row.is_admin_news ? "Admin" : "User");
+  const views = row.view_count ?? 0;
 
   return {
     id: String(row.id),
@@ -111,24 +157,43 @@ export function toNewsItem(row: BackendNews): NewsItem {
     language: row.language_name || row.language_code || "—",
     location: row.location
       ? {
-          state: row.location.state ?? row.location.state_id ?? null,
-          district: row.location.district ?? row.location.district_id ?? null,
-          area: row.location.area ?? row.location.area_id ?? null,
-          stateId: row.location.state_id ?? null,
-          districtId: row.location.district_id ?? null,
-          areaId: row.location.area_id ?? null,
+          state: locationName(row.location.state) ?? row.location.state_id ?? null,
+          district: locationName(row.location.district) ?? row.location.district_id ?? null,
+          area: locationName(row.location.area) ?? row.location.area_id ?? null,
+          stateId: locationId(row.location.state, row.location.state_id),
+          districtId: locationId(row.location.district, row.location.district_id),
+          areaId: locationId(row.location.area, row.location.area_id),
         }
       : undefined,
     visibility: visibility(row.visibility),
+    hasPoll: row.has_poll ?? Boolean(row.poll),
+    pollQuestion: row.poll_question ?? row.poll?.question ?? null,
+    poll: row.poll ?? null,
     tags: row.tags ?? [],
     translations: row.translations ?? [],
-    views: row.view_count ?? 0,
+    views,
     status: status(row.status),
     statusLabel: row.status_label,
     rejectionReason: row.rejection_reason ?? null,
     scheduledFor: row.scheduled_for ?? null,
-    publishedOn: formatDate(row.published_at || row.created_at),
-    createdBy: row.created_by ? `User #${row.created_by}` : "Admin",
+    publishedOn: formatDateTime(row.published_at || row.created_at),
+    uploadedOn: formatDateTime(row.created_at),
+    uploadedBy: {
+      id: createdById ?? undefined,
+      name: creatorName,
+      email: creator?.email ?? undefined,
+      avatar: creator?.avatar_url ?? undefined,
+      role: creatorRole,
+    },
+    createdBy: creatorName,
+    createdById,
+    createdByRole: creatorRole,
+    analytics: {
+      views,
+      shares: row.share_count ?? 0,
+      comments: row.comment_count ?? 0,
+      hasPoll: row.has_poll ?? Boolean(row.poll),
+    },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     isFeatured: row.is_featured,

@@ -84,15 +84,15 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-dvh w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground max-lg:w-20">
       <div className="flex items-center gap-3 px-5 py-4 border-b border-sidebar-border">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary">
           <Globe className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-semibold">News Admin</span>
+        <span className="text-lg font-semibold max-lg:hidden">News Admin</span>
       </div>
 
-      <div className="px-5 pt-4 pb-2 text-[11px] font-semibold tracking-wider text-sidebar-foreground/50">
+      <div className="px-5 pt-4 pb-2 text-[11px] font-semibold tracking-wider text-sidebar-foreground/50 max-lg:px-3 max-lg:text-center">
         MAIN
       </div>
 
@@ -107,7 +107,7 @@ export function Sidebar() {
                 <button
                   onClick={() => setOpen((s) => ({ ...s, [item.label]: !s[item.label] }))}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium transition-colors max-lg:justify-center",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-white/5 text-sidebar-foreground/85",
@@ -115,14 +115,14 @@ export function Sidebar() {
                 >
                   <span className="flex items-center gap-3">
                     {Icon && <Icon className="h-[18px] w-[18px]" />}
-                    {item.label}
+                    <span className="max-lg:hidden">{item.label}</span>
                   </span>
                   <ChevronDown
-                    className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")}
+                    className={cn("h-4 w-4 transition-transform max-lg:hidden", isOpen && "rotate-180")}
                   />
                 </button>
                 {isOpen && (
-                  <div className="mt-1 ml-3 border-l border-sidebar-border/60 pl-3">
+                  <div className="mt-1 ml-3 border-l border-sidebar-border/60 pl-3 max-lg:hidden">
                     {item.children.map((c) => {
                       const active = pathname === c.to;
                       return (
@@ -152,14 +152,14 @@ export function Sidebar() {
               key={item.label}
               to={item.to!}
               className={cn(
-                "mb-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                "mb-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors max-lg:justify-center",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-sidebar-foreground/85 hover:bg-white/5",
               )}
             >
               {Icon && <Icon className="h-[18px] w-[18px]" />}
-              {item.label}
+              <span className="max-lg:hidden">{item.label}</span>
             </Link>
           );
         })}
@@ -171,7 +171,7 @@ export function Sidebar() {
             <AvatarImage src={user?.avatarUrl} />
             <AvatarFallback>AU</AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1 max-lg:hidden">
             <p className="text-sm font-medium truncate">{user?.name ?? "Admin User"}</p>
             <p className="text-xs text-emerald-400">● Super Admin</p>
           </div>

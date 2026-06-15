@@ -1,7 +1,7 @@
 import { API } from "@/lib/apiEndpoints";
 import { httpClient } from "@/lib/httpClient";
 import { toNewsItem, type BackendNews } from "@/services/adapters/news.adapter";
-import type { NewsItem } from "@/types/news";
+import type { NewsItem, NewsPoll } from "@/types/news";
 
 interface ListResponse<T> {
   items: T[];
@@ -38,7 +38,7 @@ export interface AdminNewsStats {
 }
 
 export type NewsContentType = "article" | "video" | "short" | "story";
-export type NewsVisibilityScope = "all_india" | "state" | "district" | "area";
+export type NewsVisibilityScope = "all_india" | "state" | "district" | "area" | "private";
 export type NewsCreateStatus = "draft" | "publish" | "schedule";
 
 export interface CreateAdminNewsPayload {
@@ -46,7 +46,7 @@ export interface CreateAdminNewsPayload {
   language_code: string;
   title: string;
   description: string;
-  bottom_description?: string;
+  bottom_description?: string | null;
   news_source_id: number;
   source_link?: string;
   category_ids: number[];
@@ -61,6 +61,7 @@ export interface CreateAdminNewsPayload {
     state_ids?: number[];
     district_ids?: number[];
     area_ids?: number[];
+    user_ids?: number[];
   };
   translations?: Array<{
     language_code: string;
@@ -70,7 +71,13 @@ export interface CreateAdminNewsPayload {
   }>;
   status?: NewsCreateStatus;
   scheduled_for?: string;
+  poll?: {
+    question: string;
+    options: string[];
+  } | null;
 }
+
+export type UpdateAdminNewsPayload = Partial<Omit<CreateAdminNewsPayload, "status" | "scheduled_for">>;
 
 export interface UploadUrlPayload {
   file_name: string;
@@ -110,6 +117,36 @@ export interface BulkNewsResult {
   errors?: unknown[];
 }
 
+export interface AutoFillTranslationsPayload {
+  source_language_code: string;
+  target_language_codes: string[];
+  title: string;
+  description?: string;
+  bottom_description?: string;
+}
+
+export interface AutoFillTranslationsResult {
+  source: "placeholder";
+  translations: NonNullable<CreateAdminNewsPayload["translations"]>;
+}
+
+export interface NewsNotificationResult {
+  notificationId: string;
+  recipients: number;
+  deepLink: string;
+}
+
+export interface AdminUserSearchItem {
+  id: number;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  language_code?: string | null;
+  state?: string | null;
+  district?: string | null;
+  area?: string | null;
+}
+
 export const newsService = {
   async list(params?: NewsListParams): Promise<{ items: NewsItem[]; total: number; page: number; perPage: number }> {
     const data = await httpClient.get<ListResponse<BackendNews>>(API.news.adminList, { params });
@@ -129,7 +166,7 @@ export const newsService = {
     return toNewsItem(await httpClient.get<BackendNews>(API.news.detail(id)));
   },
 
-  async update(id: string, payload: unknown) {
+  async update(id: string, payload: UpdateAdminNewsPayload) {
     return toNewsItem(await httpClient.put<BackendNews>(API.news.detail(id), payload));
   },
 
@@ -161,6 +198,32 @@ export const newsService = {
     return httpClient.post<BulkNewsResult>(API.news.bulk, payload);
   },
 
+  async autoFillTranslations(payload: AutoFillTranslationsPayload) {
+    return httpClient.post<AutoFillTranslationsResult>(API.news.autoFillTranslations, payload);
+  },
+
+  async getPoll(id: string) {
+    return httpClient.get<NewsPoll>(API.news.poll(id));
+  },
+
+  async getPollResults(id: string) {
+    return httpClient.get<NewsPoll>(API.news.pollResults(id));
+  },
+
+  async deletePoll(id: string) {
+    return httpClient.delete<void>(API.news.poll(id));
+  },
+
+  async searchUsers(params?: { search?: string; page?: number; per_page?: number }) {
+    const data = await httpClient.get<ListResponse<AdminUserSearchItem>>(API.users.adminSearch, { params });
+    return {
+      items: data.items || [],
+      total: data.total ?? data.items?.length ?? 0,
+      page: data.page ?? params?.page ?? 1,
+      perPage: data.per_page ?? params?.per_page ?? 20,
+    };
+  },
+
   async requestVideoUploadUrl(id: string, payload: UploadUrlPayload) {
     return httpClient.post<UploadUrlResponse>(API.news.uploadUrl(id), payload);
   },
@@ -187,6 +250,10 @@ export const newsService = {
 
   async share(id: string, payload: { channel?: string } = {}) {
     return httpClient.post<{ shared: boolean }>(API.news.share(id), payload);
+  },
+
+  async sendNotification(id: string) {
+    return httpClient.post<NewsNotificationResult>(API.news.sendNotification(id));
   },
 
   async listComments(id: string, params?: NewsCommentListParams) {

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
 import { useCreateDistrict, useStates } from "@/hooks/api/useLocations";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/districts/add")({ component: AddDistrictPage });
@@ -28,12 +29,14 @@ type FormValues = z.infer<typeof schema>;
 
 function AddDistrictPage() {
   const navigate = useNavigate();
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
+  const languagesQuery = useLanguages({ is_active: true });
   const createDistrict = useCreateDistrict();
-  const { register, setValue, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { languageCode: "en", sortOrder: 0, status: "Active" },
   });
+  const selectedLanguage = watch("languageCode");
+  const statesQuery = useStates({ language_code: selectedLanguage || "en", per_page: 100 });
 
   const onSubmit = (values: FormValues) => {
     createDistrict.mutate(
@@ -79,7 +82,12 @@ function AddDistrictPage() {
             </Select>
           </Field>
           <Field label="District Code" error={errors.code?.message}><Input {...register("code")} placeholder="PUN" /></Field>
-          <Field label="Language Code" error={errors.languageCode?.message}><Input {...register("languageCode")} placeholder="en" /></Field>
+          <Field label="Language" error={errors.languageCode?.message}>
+            <Select value={selectedLanguage} onValueChange={(value) => { setValue("languageCode", value, { shouldValidate: true }); setValue("state", ""); }}>
+              <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+              <SelectContent>{(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
           <Field label="Sort Order" error={errors.sortOrder?.message}><Input type="number" min={0} {...register("sortOrder")} /></Field>
           <Field label="Status">
             <Select defaultValue="Active" onValueChange={(value) => setValue("status", value as FormValues["status"])}>

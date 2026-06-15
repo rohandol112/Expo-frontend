@@ -25,6 +25,7 @@ export interface CreateCategoryPayload {
   icon_url?: string | null;
   sort_order?: number;
   is_active?: boolean;
+  is_featured?: boolean;
   translations: Array<{ language_code: string; name: string; description?: string | null }>;
 }
 

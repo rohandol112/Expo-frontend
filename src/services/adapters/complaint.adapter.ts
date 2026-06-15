@@ -8,6 +8,10 @@ export interface BackendRegionRef {
 export interface BackendComplaintImage {
   id: number;
   image_url: string | null;
+  video_url?: string | null;
+  url?: string | null;
+  media_url?: string | null;
+  media_type?: "image" | "video" | string | null;
   sort_order: number;
 }
 
@@ -106,7 +110,7 @@ export function toComplaint(row: BackendComplaint): Complaint {
     subCategory: row.sub_category?.name || "—",
     priority: PRIORITY_LABELS[row.priority] ?? "Medium",
     status: STATUS_LABELS[row.status] ?? "Pending",
-    reportedBy: row.user?.name || "—",
+    reportedBy: row.user?.name || `User #${row.user?.id ?? "—"}`,
     reportedByPhone: row.user?.phone || "—",
     language: languageName(row.language_code),
     location: row.location_address || locationParts.join(", ") || "—",
@@ -114,12 +118,14 @@ export function toComplaint(row: BackendComplaint): Complaint {
     district: row.district?.name || "—",
     area: row.area?.name || "—",
     assignedTo: row.assigned_to?.name || "Unassigned",
-    registeredOn: formatDate(row.created_at),
-    updatedOn: formatDate(row.updated_at),
+    registeredOn: formatDateTime(row.created_at),
+    updatedOn: formatDateTime(row.updated_at),
     resolvedOn: formatDate(row.resolved_at),
     adminResponse: row.admin_response || "",
     description: row.description,
-    images: (row.images || []).map((img) => img.image_url).filter((url): url is string => Boolean(url)),
+    images: (row.images || [])
+      .map((img) => img.image_url || img.video_url || img.media_url || img.url)
+      .filter((url): url is string => Boolean(url)),
   };
 }
 

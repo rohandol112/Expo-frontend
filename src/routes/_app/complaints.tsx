@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
-import { AlertCircle, CheckCircle2, Clock, Download, ListTodo, ShieldAlert } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Download, ListTodo, Settings2, ShieldAlert, Tags } from "lucide-react";
 import { useMemo } from "react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -41,15 +41,16 @@ function ComplaintsPage() {
         <div>
           <span className="font-medium">{r.title}</span>
           <p className="text-xs text-muted-foreground">{r.number}</p>
+          <p className="max-w-[260px] truncate text-xs text-muted-foreground">{r.description}</p>
         </div>
       ),
     },
-    { key: "category", header: "Category", cell: (r) => r.category },
+    { key: "category", header: "Category", cell: (r) => <div><p>{r.category}</p><p className="text-xs text-muted-foreground">{r.subCategory}</p></div> },
     { key: "priority", header: "Priority", cell: (r) => r.priority },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
-    { key: "reported", header: "Reported By", cell: (r) => r.reportedBy },
+    { key: "reported", header: "Reported By", cell: (r) => <div><p className="font-medium">{r.reportedBy}</p><p className="text-xs text-muted-foreground">{r.reportedByPhone}</p></div> },
     { key: "language", header: "Language", cell: (r) => r.language },
-    { key: "location", header: "Location", cell: (r) => r.location },
+    { key: "location", header: "Location", cell: (r) => <div><p>{r.location}</p><p className="text-xs text-muted-foreground">{[r.area, r.district, r.state].filter((v) => v && v !== "—").join(", ")}</p></div> },
     { key: "assigned", header: "Assigned To", cell: (r) => r.assignedTo },
     { key: "registered", header: "Registered On", cell: (r) => r.registeredOn },
     { key: "actions", header: "Actions", cell: (r) => <ActionMenu onView={() => navigate({ to: "/complaints/$complaintId", params: { complaintId: r.id } })} /> },
@@ -59,7 +60,13 @@ function ComplaintsPage() {
     <AdminListPage
       title="Complaint Management"
       breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Complaints" }]}
-      actions={<Button variant="outline"><Download className="mr-2 h-4 w-4" />Export</Button>}
+      actions={
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate({ to: ROUTES.COMPLAINT_CATEGORIES })}><Tags className="mr-2 h-4 w-4" />Categories</Button>
+          <Button variant="outline" onClick={() => navigate({ to: ROUTES.COMPLAINT_ASSIGN_RULES })}><Settings2 className="mr-2 h-4 w-4" />Assign Rules</Button>
+          <Button variant="outline"><Download className="mr-2 h-4 w-4" />Export</Button>
+        </div>
+      }
       loading={complaintsQuery.isLoading}
       error={error}
       stats={[
