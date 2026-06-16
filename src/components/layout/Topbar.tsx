@@ -18,7 +18,7 @@ export function Topbar() {
   const navigate = useNavigate();
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4 lg:px-6">
       <div className="relative min-w-0 flex-1 max-w-xl">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input

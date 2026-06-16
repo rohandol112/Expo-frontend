@@ -84,7 +84,7 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="flex h-dvh w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground max-lg:w-20">
+    <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-sidebar text-sidebar-foreground max-lg:w-20">
       <div className="flex items-center gap-3 px-5 py-4 border-b border-sidebar-border">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary">
           <Globe className="h-5 w-5 text-primary-foreground" />

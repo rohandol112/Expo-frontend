@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { X, ArrowLeft, ArrowRight, Send, Save, Calendar, Sparkles, Plus, Trash2, CheckCircle2, AlertCircle, Circle, Bold, Italic, Underline, List, Image as ImageIcon, Quote, Video, type LucideIcon } from "lucide-react";
@@ -62,7 +62,7 @@ const schema = z.object({
   sourceLink: z.string().url("Enter a valid source URL").or(z.literal("")).optional(),
   translationTitle: z.string().optional(),
   translationDescription: z.string().optional(),
-  status: z.enum(["draft", "publish", "schedule"]),
+  status: z.enum(["draft", "schedule"]),
   scheduledFor: z.string().optional(),
   enablePoll: z.boolean().default(false),
   pollQuestion: z.string().optional(),
@@ -250,7 +250,12 @@ function AddNewsPage() {
 
   const submitNews = async (data: FormValues) => {
     try {
-      const created = await createNews.mutateAsync(buildPayload(data));
+      const finalStatus = data.status;
+      const created = await createNews.mutateAsync({
+        ...buildPayload(data),
+        status: "draft",
+        scheduled_for: undefined,
+      });
 
       try {
         const categoryPayload = {
@@ -280,7 +285,17 @@ function AddNewsPage() {
         await newsService.confirmVideoUpload(created.id, { file_key: upload.file_key });
       }
 
-      toast.success(thumbnailFile || videoFile ? "News and media uploaded" : "News create request sent to backend");
+      if (finalStatus === "schedule" && data.scheduledFor) {
+        await newsService.schedule(created.id, new Date(data.scheduledFor).toISOString());
+      }
+
+      toast.success(
+        finalStatus === "schedule"
+          ? "News scheduled successfully"
+          : thumbnailFile || videoFile
+            ? "News and media uploaded"
+            : "News saved as draft",
+      );
       navigate({ to: ROUTES.NEWS_ADMIN });
     } catch (err) {
       toast.error(isAuthApiError(err) ? "Backend admin auth is required to create news." : "Unable to create news or upload media");
@@ -610,10 +625,9 @@ function AddNewsPage() {
       {step === 2 && (
         <div className="space-y-6">
           <FormSection title="Visibility & Schedule" description="Choose how and when the news will be visible to users.">
-            <RadioGroup value={values.status} onValueChange={(value) => setValue("status", value as FormValues["status"])} className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <RadioGroup value={values.status} onValueChange={(value) => setValue("status", value as FormValues["status"])} className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
                 { value: "draft", label: "Draft", desc: "Save as draft. Only admin can see.", icon: Save },
-                { value: "publish", label: "Publish", desc: "Publish now for the selected audience.", icon: Send },
                 { value: "schedule", label: "Schedule", desc: "Schedule for later publish.", icon: Calendar },
               ].map((option) => {
                 const Icon = option.icon;
@@ -666,16 +680,11 @@ function AddNewsPage() {
           {step === 0 ? "Cancel" : (<><ArrowLeft className="h-4 w-4 mr-1" /> Back</>)}
         </Button>
         <div className="flex gap-2">
-          {step === 2 && (
-            <Button type="button" variant="outline" disabled={createNews.isPending} onClick={(event) => { event.preventDefault(); setValue("status", "draft"); void handleSubmit(submitNews)(); }}>
-              Save as Draft
-            </Button>
-          )}
           {step < 2 ? (
             <Button type="button" onClick={goNext}>Save & Next <ArrowRight className="h-4 w-4 ml-1" /></Button>
           ) : (
             <Button type="submit" disabled={createNews.isPending}>
-              <Send className="h-4 w-4 mr-1" /> {createNews.isPending ? "Submitting..." : "Submit"}
+              <Send className="h-4 w-4 mr-1" /> {createNews.isPending ? "Saving..." : values.status === "schedule" ? "Schedule News" : "Save Draft"}
             </Button>
           )}
         </div>
@@ -703,11 +712,22 @@ function MediaPicker({
   accept: string;
   onChange: (file: File | null) => void;
 }) {
+  const inputId = useId();
+
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <label className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed bg-background text-center transition hover:border-primary/70 hover:bg-primary/5">
-        <Input type="file" accept={accept} className="sr-only" onChange={(event) => onChange(event.target.files?.[0] ?? null)} />
+      <input
+        id={inputId}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+      />
+      <label
+        htmlFor={inputId}
+        className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed bg-background px-4 text-center transition hover:border-primary/70 hover:bg-primary/5"
+      >
         <Icon className="mb-2 h-8 w-8 text-muted-foreground" />
         <span className="text-sm font-semibold">{title}</span>
         <span className="mt-1 max-w-[90%] truncate text-xs text-muted-foreground">{hint}</span>
