@@ -26,6 +26,8 @@ export interface BackendChannel {
   post_count?: number;
   subscribers_count?: number;
   subscribersCount?: number;
+  subscriber_count?: number;
+  subscriberCount?: number;
   subscribers?: number;
 }
 
@@ -67,7 +69,7 @@ export function toChannel(row: BackendChannel): Channel {
     areaIds: areaIds?.length ? areaIds : undefined,
     areas: areaNames?.length ? areaNames : [stateName ? "—" : "All India"],
     posts: row.post_count ?? 0,
-    subscribers: row.subscribers_count ?? row.subscribersCount ?? row.subscribers ?? 0,
+    subscribers: Number(row.subscribers_count ?? row.subscribersCount ?? row.subscriber_count ?? row.subscriberCount ?? row.subscribers ?? 0),
     addedOn: formatDate(row.created_at),
     status: row.is_active === false ? "Inactive" : "Active",
     allowUserPosts: false,

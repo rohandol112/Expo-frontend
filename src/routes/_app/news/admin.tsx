@@ -41,6 +41,12 @@ function getVisibilityLabel(row: NewsItem) {
   };
 }
 
+function getShareUrl(newsId: string) {
+  const configuredBase = import.meta.env.VITE_PUBLIC_SITE_URL;
+  const origin = configuredBase?.trim() || (typeof window !== "undefined" ? window.location.origin : "");
+  return `${origin.replace(/\/$/, "")}/news/${newsId}`;
+}
+
 function AdminNewsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -87,10 +93,8 @@ function AdminNewsPage() {
   const sendNewsNotification = useSendNewsNotification();
   const sourceRows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load admin news from backend." : undefined;
-  const deeplinkBase = import.meta.env.VITE_PUBLIC_APP_DEEPLINK_BASE || "pehlibaat://news";
-
   const handleShare = async (row: NewsItem) => {
-    const link = `${deeplinkBase.replace(/\/$/, "")}/${row.id}`;
+    const link = getShareUrl(row.id);
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(link);

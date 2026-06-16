@@ -50,6 +50,12 @@ function getNewsLocation(row: NewsItem) {
   return { primary: visibility.type, secondary: detail };
 }
 
+function getShareUrl(newsId: string) {
+  const configuredBase = import.meta.env.VITE_PUBLIC_SITE_URL;
+  const origin = configuredBase?.trim() || (typeof window !== "undefined" ? window.location.origin : "");
+  return `${origin.replace(/\/$/, "")}/news/${newsId}`;
+}
+
 function AllNewsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
@@ -93,10 +99,8 @@ function AllNewsPage() {
   const rows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load news from backend." : undefined;
   const stats = statsQuery.data;
-  const deeplinkBase = import.meta.env.VITE_PUBLIC_APP_DEEPLINK_BASE || "pehlibaat://news";
-
   const handleShare = async (row: NewsItem) => {
-    const link = `${deeplinkBase.replace(/\/$/, "")}/${row.id}`;
+    const link = getShareUrl(row.id);
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(link);
