@@ -96,9 +96,6 @@ function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Backend admin credentials: admin@example.com / AdminPass123!
-        </p>
       </div>
     </div>
   );
