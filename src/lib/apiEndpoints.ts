@@ -1,4 +1,4 @@
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://expo-router-backend.onrender.com";
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://janu1g3okwroefybl3f4tvmw.195.35.7.46.sslip.io";
 
 export const API_ORIGIN = configuredBaseUrl.replace(/\/$/, "");
 export const API_BASE_URL = `${API_ORIGIN}/api`;
