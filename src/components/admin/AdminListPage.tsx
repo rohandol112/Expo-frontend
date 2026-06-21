@@ -1,10 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader, type Crumb } from "@/components/common/PageHeader";
 import { FilterBar, type FilterDropdown } from "@/components/common/FilterBar";
 import { DataTable, type Column } from "@/components/tables/DataTable";
 import { StatsGrid, type StatItem } from "@/components/admin/StatsGrid";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const ALL_VALUE = "__all__";
+
+export interface AdminListQuery {
+  search: string;
+  page: number;
+  dropdownValues: Record<string, string>;
+}
 
 export function AdminListPage<T>({
   title,
@@ -20,6 +27,13 @@ export function AdminListPage<T>({
   filter,
   loading = false,
   error,
+  serverSide = false,
+  total,
+  pageSize = 10,
+  page: controlledPage,
+  onPageChange: controlledOnPageChange,
+  onQueryChange,
+  searchDebounceMs = 300,
 }: {
   title: string;
   breadcrumbs: Crumb[];
@@ -34,10 +48,24 @@ export function AdminListPage<T>({
   filter?: (row: T, search: string, dropdownValues: Record<string, string>) => boolean;
   loading?: boolean;
   error?: React.ReactNode;
+  /** When true, `data` is already the current page from the backend (search/filter/pagination all server-side). */
+  serverSide?: boolean;
+  /** Real total row count from the backend. Required when serverSide is true. */
+  total?: number;
+  pageSize?: number;
+  page?: number;
+  onPageChange?: (page: number) => void;
+  /** Fires (debounced for search) whenever search/page/dropdowns change - wire this to refetch from the API. */
+  onQueryChange?: (query: AdminListQuery) => void;
+  searchDebounceMs?: number;
 }) {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebouncedValue(search, searchDebounceMs);
+  const [internalPage, setInternalPage] = useState(1);
   const [dropdownValues, setDropdownValues] = useState<Record<string, string>>({});
+
+  const page = controlledPage ?? internalPage;
+  const setPage = controlledOnPageChange ?? setInternalPage;
 
   const activeDropdownValues = useMemo(() => {
     const out: Record<string, string> = {};
@@ -46,6 +74,12 @@ export function AdminListPage<T>({
     }
     return out;
   }, [dropdownValues]);
+
+  useEffect(() => {
+    if (!onQueryChange) return;
+    onQueryChange({ search: debouncedSearch, page, dropdownValues: activeDropdownValues });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, page, activeDropdownValues]);
 
   const wiredDropdowns: FilterDropdown[] = useMemo(
     () =>
@@ -61,10 +95,10 @@ export function AdminListPage<T>({
     [dropdowns, dropdownValues],
   );
 
-  const filtered = useMemo(
-    () => data.filter((row) => (filter ? filter(row, search, activeDropdownValues) : true)),
-    [data, filter, search, activeDropdownValues],
-  );
+  const filtered = useMemo(() => {
+    if (serverSide) return data;
+    return data.filter((row) => (filter ? filter(row, debouncedSearch, activeDropdownValues) : true));
+  }, [data, filter, debouncedSearch, activeDropdownValues, serverSide]);
 
   return (
     <div>
@@ -92,9 +126,10 @@ export function AdminListPage<T>({
         rowKey={rowKey}
         loading={loading}
         page={page}
-        pageSize={10}
-        total={filtered.length}
+        pageSize={pageSize}
+        total={serverSide ? total ?? data.length : filtered.length}
         onPageChange={setPage}
+        serverPaged={serverSide}
       />
     </div>
   );

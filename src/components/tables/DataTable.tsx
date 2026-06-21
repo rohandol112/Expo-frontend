@@ -33,6 +33,8 @@ export interface DataTableProps<T> {
   onPageChange?: (page: number) => void;
   emptyTitle?: string;
   emptyDescription?: string;
+  /** When true, `data` is already just the current page (server-paginated) - render it as-is instead of re-slicing. */
+  serverPaged?: boolean;
 }
 
 export function DataTable<T>({
@@ -47,12 +49,13 @@ export function DataTable<T>({
   onPageChange,
   emptyTitle,
   emptyDescription,
+  serverPaged = false,
 }: DataTableProps<T>) {
   const totalCount = total ?? data.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const from = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, totalCount);
-  const pageRows = data.slice((page - 1) * pageSize, page * pageSize);
+  const to = serverPaged ? Math.min((page - 1) * pageSize + data.length, totalCount) : Math.min(page * pageSize, totalCount);
+  const pageRows = serverPaged ? data : data.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="rounded-lg border bg-card">
