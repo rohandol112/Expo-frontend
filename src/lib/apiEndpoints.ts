@@ -1,6 +1,26 @@
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://expo-router-backend.onrender.com";
 
-export const API_ORIGIN = configuredBaseUrl.replace(/\/$/, "");
+function resolveApiOrigin(baseUrl: string) {
+  const normalized = baseUrl.replace(/\/$/, "");
+
+  if (typeof window === "undefined") {
+    return normalized;
+  }
+
+  try {
+    const url = new URL(normalized);
+    if (window.location.protocol === "https:" && url.protocol === "http:") {
+      url.protocol = "https:";
+      return url.toString().replace(/\/$/, "");
+    }
+  } catch {
+    return normalized;
+  }
+
+  return normalized;
+}
+
+export const API_ORIGIN = resolveApiOrigin(configuredBaseUrl);
 export const API_BASE_URL = `${API_ORIGIN}/api`;
 
 export const API = {

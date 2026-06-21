@@ -58,12 +58,21 @@ async function request<T>(method: string, path: string, opts: RequestOptions = {
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(buildUrl(path, params), {
-    method,
-    headers: requestHeaders,
-    body: body instanceof FormData || typeof body === "string" ? body : body !== undefined ? JSON.stringify(body) : undefined,
-    ...rest,
-  });
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, params), {
+      method,
+      headers: requestHeaders,
+      body: body instanceof FormData || typeof body === "string" ? body : body !== undefined ? JSON.stringify(body) : undefined,
+      ...rest,
+    });
+  } catch (error) {
+    throw new ApiError("Unable to reach backend. Please check API URL, HTTPS/CORS, or network availability.", {
+      status: 0,
+      code: "networkError",
+      data: error instanceof Error ? { message: error.message } : undefined,
+    });
+  }
 
   const payload = await parseResponse(res);
   if (isApiEnvelope(payload)) {
