@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import type { NewsItem } from "@/types/news";
 import { ROUTES } from "@/constants/routes.constants";
 import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews, useScheduleNews, useShareNews } from "@/hooks/api/useNews";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/api/useCategories";
@@ -40,11 +41,12 @@ function AdminNewsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [scheduleTarget, setScheduleTarget] = useState<NewsItem | null>(null);
   const [scheduleDateTime, setScheduleDateTime] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 400);
   const queryParams = useMemo(
     () => ({
       page,
       per_page: 10,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       is_admin_news: true,
       category_id: categoryId === "all" ? undefined : Number(categoryId),
       status: status === "all" ? undefined : status,
@@ -54,7 +56,7 @@ function AdminNewsPage() {
       from_date: fromDate ? new Date(`${fromDate}T00:00:00.000`).toISOString() : undefined,
       to_date: toDate ? new Date(`${toDate}T23:59:59.999`).toISOString() : undefined,
     }),
-    [categoryId, channelId, contentType, fromDate, languageCode, page, search, status, toDate],
+    [categoryId, channelId, contentType, fromDate, languageCode, page, debouncedSearch, status, toDate],
   );
   const newsQuery = useNews(queryParams);
   const statsQuery = useNewsStats({ is_admin_news: true });
@@ -70,10 +72,8 @@ function AdminNewsPage() {
   const error = newsQuery.error ? "Unable to load admin news from backend." : undefined;
   const deeplinkBase = import.meta.env.VITE_PUBLIC_APP_DEEPLINK_BASE || "pehlibaat://news";
 
-  const filtered = useMemo(
-    () => sourceRows.filter((n) => !search || n.title.toLowerCase().includes(search.toLowerCase())),
-    [search, sourceRows],
-  );
+  // Search is applied server-side (debounced); render the page rows as-is.
+  const filtered = sourceRows;
 
   const handleShare = async (row: NewsItem) => {
     const link = `${deeplinkBase.replace(/\/$/, "")}/${row.id}`;
@@ -299,6 +299,7 @@ function AdminNewsPage() {
         pageSize={10}
         total={newsQuery.data?.total ?? filtered.length}
         onPageChange={setPage}
+        serverPaged
         emptyTitle="No admin news found"
         emptyDescription="Backend returned no admin news for the selected filters."
       />

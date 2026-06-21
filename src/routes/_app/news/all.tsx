@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useCategories } from "@/hooks/api/useCategories";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { useDeleteNews, useNews, useNewsStats } from "@/hooks/api/useNews";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 
@@ -49,18 +50,19 @@ function AllNewsPage() {
   const [deleteTarget, setDeleteTarget] = useState<NewsItem | null>(null);
 
   const activeTab = TABS.find((item) => item.key === tab);
+  const debouncedSearch = useDebouncedValue(search, 400);
   const queryParams = useMemo(
     () => ({
       page,
       per_page: 10,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       category_id: categoryId === "all" ? undefined : Number(categoryId),
       status: status === "all" ? activeTab?.status : status,
       language_code: languageCode === "all" ? undefined : languageCode,
       from_date: toIsoDate(fromDate),
       to_date: toIsoDate(toDate, true),
     }),
-    [activeTab?.status, categoryId, fromDate, languageCode, page, search, status, toDate],
+    [activeTab?.status, categoryId, fromDate, languageCode, page, debouncedSearch, status, toDate],
   );
 
   const newsQuery = useNews(queryParams);
@@ -92,12 +94,12 @@ function AllNewsPage() {
       key: "location",
       header: "Location",
       cell: (r) =>
-        r.location ? (
+        r.location && (r.location.area || r.location.district || r.location.state) ? (
           <div className="flex items-start gap-1.5">
             <MapPin className="h-3.5 w-3.5 mt-0.5 text-primary" />
             <div>
-              <p className="text-sm">{r.location.city}</p>
-              <p className="text-xs text-muted-foreground">{r.location.region}</p>
+              <p className="text-sm">{r.location.area || r.location.district || r.location.state}</p>
+              <p className="text-xs text-muted-foreground">{[r.location.district, r.location.state].filter((v) => v && v !== (r.location?.area || r.location?.district)).join(", ") || "—"}</p>
             </div>
           </div>
         ) : (
@@ -248,6 +250,7 @@ function AllNewsPage() {
           pageSize={10}
           total={newsQuery.data?.total ?? rows.length}
           onPageChange={setPage}
+          serverPaged
           emptyTitle="No news found"
           emptyDescription="Backend returned no news for the selected filters."
         />
