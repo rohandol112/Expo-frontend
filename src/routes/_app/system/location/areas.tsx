@@ -19,9 +19,9 @@ function AreasPage() {
   const { pathname } = useLocation();
   if (pathname !== ROUTES.SYS_AREAS) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<AreaItem | null>(null);
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: "en", per_page: 100 });
-  const areasQuery = useAreas({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: "hi", per_page: 100 });
+  const districtsQuery = useDistricts({ language_code: "hi", per_page: 100 });
+  const areasQuery = useAreas({ language_code: "hi", per_page: 100 });
   const updateStatus = useUpdateAreaStatus();
   const deleteArea = useDeleteArea();
   const states = statesQuery.data?.items ?? [];

@@ -29,8 +29,8 @@ type FormValues = z.infer<typeof schema>;
 
 function AddAreaPage() {
   const navigate = useNavigate();
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: "hi", per_page: 100 });
+  const districtsQuery = useDistricts({ language_code: "hi", per_page: 100 });
   const createArea = useCreateArea();
   const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),

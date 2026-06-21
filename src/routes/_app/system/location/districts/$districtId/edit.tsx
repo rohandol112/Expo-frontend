@@ -28,7 +28,7 @@ function EditDistrictPage() {
   const { districtId } = Route.useParams();
   const navigate = useNavigate();
   const districtQuery = useDistrict(districtId);
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: "hi", per_page: 100 });
   const updateDistrict = useUpdateDistrict();
   const { register, setValue, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),

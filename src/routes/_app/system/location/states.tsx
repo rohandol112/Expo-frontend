@@ -19,7 +19,7 @@ function StatesPage() {
   const { pathname } = useLocation();
   if (pathname !== ROUTES.SYS_STATES) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<StateItem | null>(null);
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: "hi", per_page: 100 });
   const updateStatus = useUpdateStateStatus();
   const deleteState = useDeleteState();
   const rows: StateItem[] = (statesQuery.data?.items ?? []).map((state) => ({

@@ -19,8 +19,8 @@ function DistrictsPage() {
   const { pathname } = useLocation();
   if (pathname !== ROUTES.SYS_DISTRICTS) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<DistrictItem | null>(null);
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: "hi", per_page: 100 });
+  const districtsQuery = useDistricts({ language_code: "hi", per_page: 100 });
   const updateStatus = useUpdateDistrictStatus();
   const deleteDistrict = useDeleteDistrict();
   const states = statesQuery.data?.items ?? [];
