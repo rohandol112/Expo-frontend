@@ -27,8 +27,8 @@ function EditAreaPage() {
   const { areaId } = Route.useParams();
   const navigate = useNavigate();
   const areaQuery = useArea(areaId);
-  const statesQuery = useStates({ language_code: "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: "hi", per_page: 100 });
+  const districtsQuery = useDistricts({ language_code: "hi", per_page: 100 });
   const updateArea = useUpdateArea();
   const { register, setValue, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),

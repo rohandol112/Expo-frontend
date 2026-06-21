@@ -7,6 +7,17 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const ALL_VALUE = "__all__";
 
+export interface AdminListQuery {
+  search: string;
+  page: number;
+  dropdownValues: Record<string, string>;
+}
+
+type FilterState = {
+  search: string;
+  dropdownValues: Record<string, string>;
+};
+
 export function AdminListPage<T>({
   title,
   breadcrumbs,
@@ -21,12 +32,14 @@ export function AdminListPage<T>({
   filter,
   loading = false,
   error,
-  page: controlledPage,
-  pageSize = 10,
+  serverSide = false,
   total,
+  pageSize = 10,
+  page: controlledPage,
   onPageChange,
-  manualPagination = false,
+  onQueryChange,
   onFiltersChange,
+  searchDebounceMs = 300,
 }: {
   title: string;
   breadcrumbs: Crumb[];
@@ -41,19 +54,21 @@ export function AdminListPage<T>({
   filter?: (row: T, search: string, dropdownValues: Record<string, string>) => boolean;
   loading?: boolean;
   error?: React.ReactNode;
-  page?: number;
-  pageSize?: number;
+  serverSide?: boolean;
   total?: number;
+  pageSize?: number;
+  page?: number;
   onPageChange?: (page: number) => void;
-  manualPagination?: boolean;
-  onFiltersChange?: (filters: { search: string; dropdownValues: Record<string, string> }) => void;
+  onQueryChange?: (query: AdminListQuery) => void;
+  onFiltersChange?: (filters: FilterState) => void;
+  searchDebounceMs?: number;
 }) {
   const [search, setSearch] = useState("");
   const [internalPage, setInternalPage] = useState(1);
   const [dropdownValues, setDropdownValues] = useState<Record<string, string>>({});
-  const debouncedSearch = useDebouncedValue(search);
+  const debouncedSearch = useDebouncedValue(search, searchDebounceMs);
   const page = controlledPage ?? internalPage;
-  const updatePage = onPageChange ?? setInternalPage;
+  const setPage = onPageChange ?? setInternalPage;
 
   const activeDropdownValues = useMemo(() => {
     const out: Record<string, string> = {};
@@ -63,6 +78,15 @@ export function AdminListPage<T>({
     return out;
   }, [dropdownValues]);
 
+  useEffect(() => {
+    onFiltersChange?.({ search: debouncedSearch, dropdownValues: activeDropdownValues });
+  }, [activeDropdownValues, debouncedSearch, onFiltersChange]);
+
+  useEffect(() => {
+    if (!onQueryChange) return;
+    onQueryChange({ search: debouncedSearch, page, dropdownValues: activeDropdownValues });
+  }, [activeDropdownValues, debouncedSearch, onQueryChange, page]);
+
   const wiredDropdowns: FilterDropdown[] = useMemo(
     () =>
       dropdowns.map((d) => ({
@@ -71,20 +95,16 @@ export function AdminListPage<T>({
         value: dropdownValues[d.key] ?? ALL_VALUE,
         onChange: (value: string) => {
           setDropdownValues((prev) => ({ ...prev, [d.key]: value }));
-          updatePage(1);
+          setPage(1);
         },
       })),
-    [dropdowns, dropdownValues, updatePage],
+    [dropdowns, dropdownValues, setPage],
   );
 
-  useEffect(() => {
-    onFiltersChange?.({ search: debouncedSearch, dropdownValues: activeDropdownValues });
-  }, [activeDropdownValues, debouncedSearch, onFiltersChange]);
-
-  const filtered = useMemo(
-    () => (manualPagination ? data : data.filter((row) => (filter ? filter(row, debouncedSearch, activeDropdownValues) : true))),
-    [data, filter, debouncedSearch, activeDropdownValues, manualPagination],
-  );
+  const filtered = useMemo(() => {
+    if (serverSide) return data;
+    return data.filter((row) => (filter ? filter(row, debouncedSearch, activeDropdownValues) : true));
+  }, [activeDropdownValues, data, debouncedSearch, filter, serverSide]);
 
   return (
     <div>
@@ -94,7 +114,7 @@ export function AdminListPage<T>({
         search={search}
         onSearchChange={(value) => {
           setSearch(value);
-          updatePage(1);
+          setPage(1);
         }}
         searchPlaceholder={searchPlaceholder}
         dropdowns={wiredDropdowns}
@@ -102,7 +122,7 @@ export function AdminListPage<T>({
         onReset={() => {
           setSearch("");
           setDropdownValues({});
-          updatePage(1);
+          setPage(1);
         }}
       />
       {error && <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>}
@@ -113,9 +133,9 @@ export function AdminListPage<T>({
         loading={loading}
         page={page}
         pageSize={pageSize}
-        total={manualPagination ? total : filtered.length}
-        onPageChange={updatePage}
-        manualPagination={manualPagination}
+        total={serverSide ? total ?? data.length : filtered.length}
+        onPageChange={setPage}
+        serverPaged={serverSide}
       />
     </div>
   );

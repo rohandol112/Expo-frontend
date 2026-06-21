@@ -30,13 +30,10 @@ export interface BackendNews {
   created_at?: string;
   updated_at?: string;
   created_by?: number;
-  created_by_role?: string | null;
-  creator?: { id?: number; name?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
-  created_by_user?: { id?: number; name?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
   location?: {
-    state?: LocationRef;
-    district?: LocationRef;
-    area?: LocationRef;
+    state?: string | number | null;
+    district?: string | number | null;
+    area?: string | number | null;
     state_id?: number | null;
     district_id?: number | null;
     area_id?: number | null;
@@ -101,17 +98,6 @@ function status(value?: string): NewsStatus {
   return value ? map[value] ?? "Pending" : "Pending";
 }
 
-function locationName(value: LocationRef): string | number | null {
-  if (value && typeof value === "object") return value.name || value.id || null;
-  return value ?? null;
-}
-
-function locationId(value: LocationRef, fallback?: number | null): number | null {
-  if (typeof value === "number") return value;
-  if (value && typeof value === "object" && typeof value.id === "number") return value.id;
-  return fallback ?? null;
-}
-
 function visibility(value: BackendNews["visibility"]): NewsItem["visibility"] {
   if (!value || value.scope === "all_india") return { type: "All India" };
   if (value.scope === "state") {
@@ -157,12 +143,12 @@ export function toNewsItem(row: BackendNews): NewsItem {
     language: row.language_name || row.language_code || "—",
     location: row.location
       ? {
-          state: locationName(row.location.state) ?? row.location.state_id ?? null,
-          district: locationName(row.location.district) ?? row.location.district_id ?? null,
-          area: locationName(row.location.area) ?? row.location.area_id ?? null,
-          stateId: locationId(row.location.state, row.location.state_id),
-          districtId: locationId(row.location.district, row.location.district_id),
-          areaId: locationId(row.location.area, row.location.area_id),
+          state: row.location.state ?? row.location.state_id ?? null,
+          district: row.location.district ?? row.location.district_id ?? null,
+          area: row.location.area ?? row.location.area_id ?? null,
+          stateId: row.location.state_id ?? null,
+          districtId: row.location.district_id ?? null,
+          areaId: row.location.area_id ?? null,
         }
       : undefined,
     visibility: visibility(row.visibility),
@@ -176,24 +162,8 @@ export function toNewsItem(row: BackendNews): NewsItem {
     statusLabel: row.status_label,
     rejectionReason: row.rejection_reason ?? null,
     scheduledFor: row.scheduled_for ?? null,
-    publishedOn: formatDateTime(row.published_at || row.created_at),
-    uploadedOn: formatDateTime(row.created_at),
-    uploadedBy: {
-      id: createdById ?? undefined,
-      name: creatorName,
-      email: creator?.email ?? undefined,
-      avatar: creator?.avatar_url ?? undefined,
-      role: creatorRole,
-    },
-    createdBy: creatorName,
-    createdById,
-    createdByRole: creatorRole,
-    analytics: {
-      views,
-      shares: row.share_count ?? 0,
-      comments: row.comment_count ?? 0,
-      hasPoll: row.has_poll ?? Boolean(row.poll),
-    },
+    publishedOn: formatDate(row.published_at || row.created_at),
+    createdBy: row.created_by ? `User #${row.created_by}` : "Admin",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     isFeatured: row.is_featured,

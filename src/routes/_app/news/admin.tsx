@@ -63,7 +63,8 @@ function AdminNewsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [scheduleTarget, setScheduleTarget] = useState<NewsItem | null>(null);
   const [scheduleDateTime, setScheduleDateTime] = useState("");
-  const debouncedSearch = useDebouncedValue(search);
+  const debouncedSearch = useDebouncedValue(search, 400);
+
   const queryParams = useMemo(
     () => ({
       page,
@@ -80,6 +81,7 @@ function AdminNewsPage() {
     }),
     [categoryId, channelId, contentType, debouncedSearch, fromDate, languageCode, page, status, toDate],
   );
+
   const newsQuery = useNews(queryParams);
   const statsQuery = useNewsStats({ is_admin_news: true });
   const categoriesQuery = useCategories();
@@ -93,6 +95,7 @@ function AdminNewsPage() {
   const sendNewsNotification = useSendNewsNotification();
   const sourceRows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load admin news from backend." : undefined;
+
   const handleShare = async (row: NewsItem) => {
     const link = getShareUrl(row.id);
     try {
@@ -261,158 +264,158 @@ function AdminNewsPage() {
 
   return (
     <>
-    <div>
-      <PageHeader
-        title="All News - Admin/Manager"
-        breadcrumbs={[
-          { label: "Dashboard", to: ROUTES.DASHBOARD },
-          { label: "News Management" },
-          { label: "Admin News" },
-        ]}
-        actions={
-          <Button onClick={() => navigate({ to: ROUTES.NEWS_ADD })}>
-            <Plus className="h-4 w-4 mr-1" /> Add News
-          </Button>
-        }
-      />
+      <div>
+        <PageHeader
+          title="All News - Admin/Manager"
+          breadcrumbs={[
+            { label: "Dashboard", to: ROUTES.DASHBOARD },
+            { label: "News Management" },
+            { label: "Admin News" },
+          ]}
+          actions={
+            <Button onClick={() => navigate({ to: ROUTES.NEWS_ADD })}>
+              <Plus className="h-4 w-4 mr-1" /> Add News
+            </Button>
+          }
+        />
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <StatsCard title="Total Admin News" value={(stats?.admin_news ?? stats?.total ?? 0).toLocaleString()} icon={FileText} variant="red" />
-        <StatsCard title="Published" value={(stats?.approved ?? 0).toLocaleString()} icon={CheckCircle2} variant="green" />
-        <StatsCard title="Draft" value={(stats?.draft ?? 0).toLocaleString()} icon={Clock} variant="amber" />
-        <StatsCard title="Scheduled" value={(stats?.scheduled ?? 0).toLocaleString()} icon={Archive} variant="violet" />
-        <StatsCard title="Total Views" value={(stats?.total_views ?? 0).toLocaleString()} icon={Eye} variant="pink" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <StatsCard title="Total Admin News" value={(stats?.admin_news ?? stats?.total ?? 0).toLocaleString()} icon={FileText} variant="red" />
+          <StatsCard title="Published" value={(stats?.approved ?? 0).toLocaleString()} icon={CheckCircle2} variant="green" />
+          <StatsCard title="Draft" value={(stats?.draft ?? 0).toLocaleString()} icon={Clock} variant="amber" />
+          <StatsCard title="Scheduled" value={(stats?.scheduled ?? 0).toLocaleString()} icon={Archive} variant="violet" />
+          <StatsCard title="Total Views" value={(stats?.total_views ?? 0).toLocaleString()} icon={Eye} variant="pink" />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search news by title..." className="max-w-sm" />
+          <Select value={categoryId} onValueChange={(value) => { setCategoryId(value); setPage(1); }}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="submitted">Pending</SelectItem>
+              <SelectItem value="approved">Published</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={languageCode} onValueChange={(value) => { setLanguageCode(value); setPage(1); }}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Language" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Languages</SelectItem>
+              {(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={channelId} onValueChange={(value) => { setChannelId(value); setPage(1); }}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Channel" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Channels</SelectItem>
+              {(channelsQuery.data?.items ?? []).map((channel) => <SelectItem key={channel.id} value={channel.id}>{channel.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={contentType} onValueChange={(value) => { setContentType(value); setPage(1); }}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Content Type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="article">Article</SelectItem>
+              <SelectItem value="video">Video</SelectItem>
+              <SelectItem value="short">Shorts</SelectItem>
+              <SelectItem value="story">Story</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="date" value={fromDate} max={toDate || undefined} onChange={(event) => { setFromDate(event.target.value); setPage(1); }} className="w-[160px]" aria-label="Start date" />
+          <Input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => { setToDate(event.target.value); setPage(1); }} className="w-[160px]" aria-label="End date" />
+          <Button variant="ghost" onClick={() => { setSearch(""); setCategoryId("all"); setStatus("all"); setLanguageCode("all"); setChannelId("all"); setContentType("all"); setFromDate(""); setToDate(""); setPage(1); }}>Reset</Button>
+        </div>
+        {error && <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>}
+
+        <DataTable
+          columns={columns}
+          data={sourceRows}
+          rowKey={(r) => r.id}
+          loading={newsQuery.isLoading}
+          page={page}
+          pageSize={10}
+          total={newsQuery.data?.total ?? sourceRows.length}
+          onPageChange={setPage}
+          serverPaged
+          emptyTitle="No admin news found"
+          emptyDescription="Backend returned no admin news for the selected filters."
+        />
       </div>
-
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search news by title..." className="max-w-sm" />
-        <Select value={categoryId} onValueChange={(value) => { setCategoryId(value); setPage(1); }}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="submitted">Pending</SelectItem>
-            <SelectItem value="approved">Published</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={languageCode} onValueChange={(value) => { setLanguageCode(value); setPage(1); }}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Language" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Languages</SelectItem>
-            {(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={channelId} onValueChange={(value) => { setChannelId(value); setPage(1); }}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Channel" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Channels</SelectItem>
-            {(channelsQuery.data?.items ?? []).map((channel) => <SelectItem key={channel.id} value={channel.id}>{channel.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={contentType} onValueChange={(value) => { setContentType(value); setPage(1); }}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Content Type" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="article">Article</SelectItem>
-            <SelectItem value="video">Video</SelectItem>
-            <SelectItem value="short">Shorts</SelectItem>
-            <SelectItem value="story">Story</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input type="date" value={fromDate} max={toDate || undefined} onChange={(event) => { setFromDate(event.target.value); setPage(1); }} className="w-[160px]" aria-label="Start date" />
-        <Input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => { setToDate(event.target.value); setPage(1); }} className="w-[160px]" aria-label="End date" />
-        <Button variant="ghost" onClick={() => { setSearch(""); setCategoryId("all"); setStatus("all"); setLanguageCode("all"); setChannelId("all"); setContentType("all"); setFromDate(""); setToDate(""); setPage(1); }}>Reset</Button>
-      </div>
-      {error && <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>}
-
-      <DataTable
-        columns={columns}
-        data={sourceRows}
-        rowKey={(r) => r.id}
-        loading={newsQuery.isLoading}
-        page={page}
-        pageSize={10}
-        total={newsQuery.data?.total ?? sourceRows.length}
-        onPageChange={setPage}
-        manualPagination
-        emptyTitle="No admin news found"
-        emptyDescription="Backend returned no admin news for the selected filters."
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete news?"
+        description={`This will delete "${deleteTarget?.title ?? "this news"}" if the backend allows it.`}
+        confirmLabel={deleteNews.isPending ? "Deleting..." : "Delete"}
+        destructive
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            await deleteNews.mutateAsync(deleteTarget.id);
+            toast.success("News deleted");
+            setDeleteTarget(null);
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend auth is required to delete news." : "Unable to delete news");
+          }
+        }}
       />
-    </div>
-    <ConfirmDialog
-      open={Boolean(deleteTarget)}
-      onOpenChange={(open) => !open && setDeleteTarget(null)}
-      title="Delete news?"
-      description={`This will delete "${deleteTarget?.title ?? "this news"}" if the backend allows it.`}
-      confirmLabel={deleteNews.isPending ? "Deleting..." : "Delete"}
-      destructive
-      onConfirm={async () => {
-        if (!deleteTarget) return;
-        try {
-          await deleteNews.mutateAsync(deleteTarget.id);
-          toast.success("News deleted");
-          setDeleteTarget(null);
-        } catch (err) {
-          toast.error(isAuthApiError(err) ? "Backend auth is required to delete news." : "Unable to delete news");
-        }
-      }}
-    />
-    <ConfirmDialog
-      open={Boolean(rejectTarget)}
-      onOpenChange={(open) => !open && setRejectTarget(null)}
-      title="Reject news?"
-      description="Provide a rejection reason for the backend audit trail."
-      confirmLabel={rejectNews.isPending ? "Rejecting..." : "Reject"}
-      destructive
-      onConfirm={async () => {
-        if (!rejectTarget) return;
-        if (rejectReason.trim().length < 3) {
-          toast.error("Rejection reason must be at least 3 characters");
-          return;
-        }
-        try {
-          await rejectNews.mutateAsync({ id: rejectTarget.id, reason: rejectReason.trim() });
-          toast.success("News rejected");
-          setRejectTarget(null);
-        } catch (err) {
-          toast.error(isAuthApiError(err) ? "Backend auth is required to reject news." : "Unable to reject news");
-        }
-      }}
-    >
-      <Textarea value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="Reason for rejection" />
-    </ConfirmDialog>
-    <ConfirmDialog
-      open={Boolean(scheduleTarget)}
-      onOpenChange={(open) => !open && setScheduleTarget(null)}
-      title="Schedule news?"
-      description="Choose a future date and time."
-      confirmLabel={scheduleNews.isPending ? "Scheduling..." : "Schedule"}
-      onConfirm={async () => {
-        if (!scheduleTarget) return;
-        if (!scheduleDateTime) {
-          toast.error("Select a schedule date and time");
-          return;
-        }
-        try {
-          await scheduleNews.mutateAsync({ id: scheduleTarget.id, scheduledFor: new Date(scheduleDateTime).toISOString() });
-          toast.success("News scheduled");
-          setScheduleTarget(null);
-        } catch (err) {
-          toast.error(isAuthApiError(err) ? "Backend auth is required to schedule news." : "Unable to schedule news");
-        }
-      }}
-    >
-      <Input type="datetime-local" value={scheduleDateTime} onChange={(event) => setScheduleDateTime(event.target.value)} />
-    </ConfirmDialog>
+      <ConfirmDialog
+        open={Boolean(rejectTarget)}
+        onOpenChange={(open) => !open && setRejectTarget(null)}
+        title="Reject news?"
+        description="Provide a rejection reason for the backend audit trail."
+        confirmLabel={rejectNews.isPending ? "Rejecting..." : "Reject"}
+        destructive
+        onConfirm={async () => {
+          if (!rejectTarget) return;
+          if (rejectReason.trim().length < 3) {
+            toast.error("Rejection reason must be at least 3 characters");
+            return;
+          }
+          try {
+            await rejectNews.mutateAsync({ id: rejectTarget.id, reason: rejectReason.trim() });
+            toast.success("News rejected");
+            setRejectTarget(null);
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend auth is required to reject news." : "Unable to reject news");
+          }
+        }}
+      >
+        <Textarea value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="Reason for rejection" />
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={Boolean(scheduleTarget)}
+        onOpenChange={(open) => !open && setScheduleTarget(null)}
+        title="Schedule news?"
+        description="Choose a future date and time."
+        confirmLabel={scheduleNews.isPending ? "Scheduling..." : "Schedule"}
+        onConfirm={async () => {
+          if (!scheduleTarget) return;
+          if (!scheduleDateTime) {
+            toast.error("Select a schedule date and time");
+            return;
+          }
+          try {
+            await scheduleNews.mutateAsync({ id: scheduleTarget.id, scheduledFor: new Date(scheduleDateTime).toISOString() });
+            toast.success("News scheduled");
+            setScheduleTarget(null);
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend auth is required to schedule news." : "Unable to schedule news");
+          }
+        }}
+      >
+        <Input type="datetime-local" value={scheduleDateTime} onChange={(event) => setScheduleDateTime(event.target.value)} />
+      </ConfirmDialog>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { createRouter } from "@tanstack/react-router";
 import { createAppQueryClient } from "@/lib/queryClient";
-import { BrandLoader } from "@/components/common/BrandLoader";
+import { GlobalPageSkeleton } from "@/components/common/GlobalPageSkeleton";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -11,7 +11,7 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
-    defaultPendingComponent: BrandLoader,
+    defaultPendingComponent: GlobalPageSkeleton,
     defaultPendingMs: 0,
   });
   return router;

@@ -26,7 +26,9 @@ export interface RegionListParams {
   language_code?: string;
 }
 
-const DEFAULT_REGION_LANGUAGE_CODE = "en";
+// Location data (states/districts/areas) was migrated under language_code='hi';
+// querying 'en' returns an empty tree (empty location dropdowns everywhere).
+const DEFAULT_REGION_LANGUAGE_CODE = "hi";
 
 export const regionService = {
   async list(params: RegionListParams = {}) {

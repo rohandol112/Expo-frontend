@@ -69,8 +69,8 @@ function AllNewsPage() {
   const [deleteTarget, setDeleteTarget] = useState<NewsItem | null>(null);
   const [approveTarget, setApproveTarget] = useState<NewsItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<NewsItem | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const debouncedSearch = useDebouncedValue(search);
+  const [rejectReason, setRejectReason] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 400);
 
   const activeTab = TABS.find((item) => item.key === tab);
   const queryParams = useMemo(
@@ -99,6 +99,7 @@ function AllNewsPage() {
   const rows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load news from backend." : undefined;
   const stats = statsQuery.data;
+
   const handleShare = async (row: NewsItem) => {
     const link = getShareUrl(row.id);
     try {
@@ -336,7 +337,7 @@ function AllNewsPage() {
           pageSize={10}
           total={newsQuery.data?.total ?? rows.length}
           onPageChange={setPage}
-          manualPagination
+          serverPaged
           emptyTitle="No news found"
           emptyDescription="Backend returned no news for the selected filters."
         />
@@ -382,7 +383,8 @@ function AllNewsPage() {
         }}
       >
         <Input value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="Reason for rejection" />
-      </ConfirmDialog>      <ConfirmDialog
+      </ConfirmDialog>
+      <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Delete news?"
@@ -403,4 +405,3 @@ function AllNewsPage() {
     </>
   );
 }
-

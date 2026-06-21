@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Ban, CheckCircle2, FileText, UserCheck, UserPlus, Users as UsersIcon, UserX } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
-import { AdminListPage } from "@/components/admin/AdminListPage";
+import { useMemo, useState } from "react";
+import { AdminListPage, type AdminListQuery } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -14,16 +14,31 @@ import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
 import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
-import type { UserListParams } from "@/services/user.service";
 
 export const Route = createFileRoute("/_app/users")({ component: UsersPage });
+
+const PAGE_SIZE = 10;
 
 function UsersPage() {
   const [statusTarget, setStatusTarget] = useState<AdminUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<{ search: string; dropdownValues: Record<string, string> }>({ search: "", dropdownValues: {} });
+  const [query, setQuery] = useState<{ search: string; dropdownValues: Record<string, string> }>({
+    search: "",
+    dropdownValues: {},
+  });
 
+  const usersQuery = useUsers({
+    page,
+    per_page: PAGE_SIZE,
+    search: query.search || undefined,
+    status: query.dropdownValues.status === "Active" ? "active" : query.dropdownValues.status === "Inactive" ? "inactive" : undefined,
+    is_guest: query.dropdownValues.type === "Guest" ? true : query.dropdownValues.type === "Registered" ? false : undefined,
+    language_code: query.dropdownValues.language || undefined,
+    state_id: query.dropdownValues.state ? Number(query.dropdownValues.state) : undefined,
+    district_id: query.dropdownValues.district ? Number(query.dropdownValues.district) : undefined,
+    area_id: query.dropdownValues.area ? Number(query.dropdownValues.area) : undefined,
+  });
   const statsQuery = useUserStats();
   const languagesQuery = useLanguages();
   const regionsQuery = useRegions();
@@ -33,41 +48,32 @@ function UsersPage() {
   const states = regionsQuery.data ?? [];
   const districts = useMemo(() => states.flatMap((state) => state.districts), [states]);
   const areas = useMemo(() => districts.flatMap((district) => district.areas), [districts]);
-  const userParams = useMemo<UserListParams>(() => {
-    const dropdowns = filters.dropdownValues;
-    return {
-      page,
-      per_page: 10,
-      search: filters.search || undefined,
-      status: dropdowns.status === "Active" ? "active" : dropdowns.status === "Inactive" ? "inactive" : undefined,
-      is_guest: dropdowns.type === "Guest" ? true : dropdowns.type === "Registered" ? false : undefined,
-      language_code: dropdowns.language || undefined,
-      state_id: dropdowns.state ? Number(dropdowns.state) : undefined,
-      district_id: dropdowns.district ? Number(dropdowns.district) : undefined,
-      area_id: dropdowns.area ? Number(dropdowns.area) : undefined,
-    };
-  }, [filters, page]);
-
-  const usersQuery = useUsers(userParams);
-
   const rows = usersQuery.data?.items ?? [];
   const stats = statsQuery.data;
   const error = usersQuery.error ? "Unable to load users from backend." : undefined;
-  const handleFiltersChange = useCallback((next: { search: string; dropdownValues: Record<string, string> }) => {
-    setFilters(next);
-    setPage(1);
-  }, []);
+
+  const handleQueryChange = (next: AdminListQuery) => {
+    setQuery({ search: next.search, dropdownValues: next.dropdownValues });
+    setPage(next.page);
+  };
 
   const columns: Column<AdminUser>[] = [
-    { key: "user", header: "User", cell: (r) => (
-      <div className="flex items-center gap-2">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src={r.avatar} />
-          <AvatarFallback>{r.name?.[0] ?? "U"}</AvatarFallback>
-        </Avatar>
-        <div><p className="font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.type}</p></div>
-      </div>
-    ) },
+    {
+      key: "user",
+      header: "User",
+      cell: (r) => (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={r.avatar} />
+            <AvatarFallback>{r.name?.[0] ?? "U"}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{r.name}</p>
+            <p className="text-xs text-muted-foreground">{r.type}</p>
+          </div>
+        </div>
+      ),
+    },
     { key: "contact", header: "Contact/Phone/Email", cell: (r) => <div><p>{r.phone}</p><p className="text-xs text-muted-foreground">{r.email}</p></div> },
     { key: "dob", header: "Date of Birth", cell: (r) => r.dob },
     { key: "language", header: "Language", cell: (r) => r.language },
@@ -100,7 +106,7 @@ function UsersPage() {
       <AdminListPage
         title="Users"
         breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Users" }]}
-        loading={usersQuery.isLoading}
+        loading={usersQuery.isFetching}
         error={error}
         stats={[
           { title: "All Users", value: stats?.total ?? rows.length, icon: UsersIcon, variant: "blue" },
@@ -114,14 +120,14 @@ function UsersPage() {
         data={rows}
         columns={columns}
         rowKey={(r) => r.id}
-        page={usersQuery.data?.page ?? page}
-        pageSize={usersQuery.data?.perPage ?? 10}
-        total={usersQuery.data?.total ?? 0}
-        onPageChange={setPage}
-        manualPagination
-        onFiltersChange={handleFiltersChange}
         searchPlaceholder="Search users..."
         showDateRange
+        serverSide
+        total={usersQuery.data?.total ?? 0}
+        pageSize={PAGE_SIZE}
+        page={page}
+        onPageChange={setPage}
+        onQueryChange={handleQueryChange}
         dropdowns={[
           { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) },
           { key: "type", placeholder: "User Type", options: ["Registered", "Guest"].map((s) => ({ label: s, value: s })) },
