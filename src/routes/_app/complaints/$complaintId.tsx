@@ -16,6 +16,7 @@ import {
   useUpdateComplaintStatus,
   useAddComplaintMessage,
 } from "@/hooks/api/useComplaints";
+import { useComplaintChatSocket } from "@/hooks/api/useComplaintChat";
 import { isAuthApiError } from "@/lib/apiError";
 import type { ComplaintStatus } from "@/types/complaint";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ function ComplaintDetailPage() {
   const { complaintId } = Route.useParams();
   const complaintQuery = useComplaint(complaintId);
   const messagesQuery = useComplaintMessages(complaintId);
+  const { connected: chatConnected } = useComplaintChatSocket(complaintId);
   const timelineQuery = useComplaintTimeline(complaintId);
   const updateStatus = useUpdateComplaintStatus();
   const addMessage = useAddComplaintMessage();
@@ -113,7 +115,13 @@ function ComplaintDetailPage() {
           </div>
 
           <div className="rounded-lg border bg-card p-6">
-            <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><MessageSquareText className="h-4 w-4" /> Conversation</p>
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <MessageSquareText className="h-4 w-4" /> Conversation
+              <span className="ml-auto flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                <span className={`h-2 w-2 rounded-full ${chatConnected ? "bg-green-500" : "bg-muted-foreground/40"}`} />
+                {chatConnected ? "Live" : "Offline"}
+              </span>
+            </p>
             <div className="space-y-3">
               {messagesQuery.isLoading && <p className="text-sm text-muted-foreground">Loading messages...</p>}
               {!messagesQuery.isLoading && (messagesQuery.data?.length ?? 0) === 0 && (
