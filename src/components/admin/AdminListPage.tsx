@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader, type Crumb } from "@/components/common/PageHeader";
 import { FilterBar, type FilterDropdown } from "@/components/common/FilterBar";
 import { DataTable, type Column } from "@/components/tables/DataTable";
@@ -40,6 +40,7 @@ export function AdminListPage<T>({
   onQueryChange,
   onFiltersChange,
   searchDebounceMs = 300,
+  initialDropdownValues,
 }: {
   title: string;
   breadcrumbs: Crumb[];
@@ -62,13 +63,31 @@ export function AdminListPage<T>({
   onQueryChange?: (query: AdminListQuery) => void;
   onFiltersChange?: (filters: FilterState) => void;
   searchDebounceMs?: number;
+  initialDropdownValues?: Record<string, string>;
 }) {
   const [search, setSearch] = useState("");
   const [internalPage, setInternalPage] = useState(1);
-  const [dropdownValues, setDropdownValues] = useState<Record<string, string>>({});
+  const [dropdownValues, setDropdownValues] = useState<Record<string, string>>(initialDropdownValues ?? {});
   const debouncedSearch = useDebouncedValue(search, searchDebounceMs);
   const page = controlledPage ?? internalPage;
   const setPage = onPageChange ?? setInternalPage;
+
+  const initialValuesStr = JSON.stringify(initialDropdownValues);
+  useEffect(() => {
+    if (initialDropdownValues) {
+      setDropdownValues((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [k, v] of Object.entries(initialDropdownValues)) {
+          if (prev[k] !== v) {
+            next[k] = v;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }
+  }, [initialValuesStr]);
 
   const activeDropdownValues = useMemo(() => {
     const out: Record<string, string> = {};
@@ -78,14 +97,17 @@ export function AdminListPage<T>({
     return out;
   }, [dropdownValues]);
 
+  const onFiltersChangeRef = useRef(onFiltersChange);
+  onFiltersChangeRef.current = onFiltersChange;
   useEffect(() => {
-    onFiltersChange?.({ search: debouncedSearch, dropdownValues: activeDropdownValues });
-  }, [activeDropdownValues, debouncedSearch, onFiltersChange]);
+    onFiltersChangeRef.current?.({ search: debouncedSearch, dropdownValues: activeDropdownValues });
+  }, [activeDropdownValues, debouncedSearch]);
 
+  const onQueryChangeRef = useRef(onQueryChange);
+  onQueryChangeRef.current = onQueryChange;
   useEffect(() => {
-    if (!onQueryChange) return;
-    onQueryChange({ search: debouncedSearch, page, dropdownValues: activeDropdownValues });
-  }, [activeDropdownValues, debouncedSearch, onQueryChange, page]);
+    onQueryChangeRef.current?.({ search: debouncedSearch, page, dropdownValues: activeDropdownValues });
+  }, [activeDropdownValues, debouncedSearch, page]);
 
   const wiredDropdowns: FilterDropdown[] = useMemo(
     () =>

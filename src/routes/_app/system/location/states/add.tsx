@@ -15,7 +15,12 @@ import { useCreateState } from "@/hooks/api/useLocations";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/system/location/states/add")({ component: AddStatePage });
+export const Route = createFileRoute("/_app/system/location/states/add")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    language_code: typeof search.language_code === "string" && search.language_code ? search.language_code : undefined,
+  }),
+  component: AddStatePage,
+});
 
 const schema = z.object({
   name: z.string().min(2),
@@ -28,9 +33,10 @@ type FormValues = z.infer<typeof schema>;
 
 function AddStatePage() {
   const navigate = useNavigate();
+  const { language_code } = Route.useSearch();
   const createState = useCreateState();
   const languagesQuery = useLanguages({ is_active: true });
-  const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { languageCode: "en", sortOrder: 0, status: "Active" } });
+  const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { languageCode: language_code ?? "en", sortOrder: 0, status: "Active" } });
   const selectedLanguage = watch("languageCode");
   const onSubmit = (values: FormValues) => {
     createState.mutate(

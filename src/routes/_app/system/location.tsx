@@ -45,9 +45,9 @@ function LocationOverviewPage() {
               <Metric label="Areas" value={item.areas} />
             </div>
             <div className="mt-5 flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate({ to: ROUTES.SYS_STATES })}>View</Button>
-              <Button variant="outline" size="sm">Edit</Button>
-              <Button size="sm" onClick={() => navigate({ to: ROUTES.SYS_STATES_ADD })}>Add</Button>
+              <Button variant="outline" size="sm" onClick={() => navigate({ to: ROUTES.SYS_STATES, search: { language_code: item.id } })}>View</Button>
+              <Button variant="outline" size="sm" onClick={() => navigate({ to: ROUTES.SYS_STATES, search: { language_code: item.id } })}>Edit</Button>
+              <Button size="sm" onClick={() => navigate({ to: ROUTES.SYS_STATES_ADD, search: { language_code: item.id } })}>Add</Button>
             </div>
           </SectionCard>
         ))}

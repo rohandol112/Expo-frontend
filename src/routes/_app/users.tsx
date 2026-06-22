@@ -45,15 +45,36 @@ function UsersPage() {
   const updateStatus = useUpdateUserStatus();
   const deleteUser = useDeleteUser();
 
+  const selectedStateId = query.dropdownValues.state;
+  const selectedDistrictId = query.dropdownValues.district;
+
   const states = regionsQuery.data ?? [];
-  const districts = useMemo(() => states.flatMap((state) => state.districts), [states]);
-  const areas = useMemo(() => districts.flatMap((district) => district.areas), [districts]);
+  const districts = useMemo(() => {
+    if (!selectedStateId) return [];
+    const state = states.find((s) => String(s.id) === selectedStateId);
+    return state ? state.districts : [];
+  }, [states, selectedStateId]);
+
+  const areas = useMemo(() => {
+    if (!selectedDistrictId) return [];
+    const district = districts.find((d) => String(d.id) === selectedDistrictId);
+    return district ? district.areas : [];
+  }, [districts, selectedDistrictId]);
+
   const rows = usersQuery.data?.items ?? [];
   const stats = statsQuery.data;
   const error = usersQuery.error ? "Unable to load users from backend." : undefined;
 
   const handleQueryChange = (next: AdminListQuery) => {
-    setQuery({ search: next.search, dropdownValues: next.dropdownValues });
+    const nextDropdowns = { ...next.dropdownValues };
+    if (nextDropdowns.state !== query.dropdownValues.state) {
+      nextDropdowns.district = "";
+      nextDropdowns.area = "";
+    }
+    if (nextDropdowns.district !== query.dropdownValues.district) {
+      nextDropdowns.area = "";
+    }
+    setQuery({ search: next.search, dropdownValues: nextDropdowns });
     setPage(next.page);
   };
 
@@ -128,6 +149,14 @@ function UsersPage() {
         page={page}
         onPageChange={setPage}
         onQueryChange={handleQueryChange}
+        initialDropdownValues={{
+          status: query.dropdownValues.status ?? "",
+          type: query.dropdownValues.type ?? "",
+          language: query.dropdownValues.language ?? "",
+          state: query.dropdownValues.state ?? "",
+          district: query.dropdownValues.district ?? "",
+          area: query.dropdownValues.area ?? "",
+        }}
         dropdowns={[
           { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) },
           { key: "type", placeholder: "User Type", options: ["Registered", "Guest"].map((s) => ({ label: s, value: s })) },

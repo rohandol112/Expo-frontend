@@ -15,7 +15,12 @@ import { useCreateArea, useDistricts, useStates } from "@/hooks/api/useLocations
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/system/location/areas/add")({ component: AddAreaPage });
+export const Route = createFileRoute("/_app/system/location/areas/add")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    language_code: typeof search.language_code === "string" && search.language_code ? search.language_code : undefined,
+  }),
+  component: AddAreaPage,
+});
 
 const schema = z.object({
   name: z.string().min(2, "Area name is required"),
@@ -30,11 +35,12 @@ type FormValues = z.infer<typeof schema>;
 
 function AddAreaPage() {
   const navigate = useNavigate();
+  const { language_code } = Route.useSearch();
   const languagesQuery = useLanguages({ is_active: true });
   const createArea = useCreateArea();
   const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { languageCode: "en", sortOrder: 0, status: "Active" },
+    defaultValues: { languageCode: language_code ?? "en", sortOrder: 0, status: "Active" },
   });
   const selectedLanguage = watch("languageCode");
   const selectedState = watch("state");

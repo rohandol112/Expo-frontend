@@ -14,7 +14,12 @@ import { useCreateDistrict, useStates } from "@/hooks/api/useLocations";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/system/location/districts/add")({ component: AddDistrictPage });
+export const Route = createFileRoute("/_app/system/location/districts/add")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    language_code: typeof search.language_code === "string" && search.language_code ? search.language_code : undefined,
+  }),
+  component: AddDistrictPage,
+});
 
 const schema = z.object({
   name: z.string().min(2, "District name is required"),
@@ -29,11 +34,12 @@ type FormValues = z.infer<typeof schema>;
 
 function AddDistrictPage() {
   const navigate = useNavigate();
+  const { language_code } = Route.useSearch();
   const languagesQuery = useLanguages({ is_active: true });
   const createDistrict = useCreateDistrict();
   const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { languageCode: "en", sortOrder: 0, status: "Active" },
+    defaultValues: { languageCode: language_code ?? "en", sortOrder: 0, status: "Active" },
   });
   const selectedLanguage = watch("languageCode");
   const statesQuery = useStates({ language_code: selectedLanguage || "en", per_page: 100 });

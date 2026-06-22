@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -9,11 +9,18 @@ import { Button } from "@/components/ui/button";
 import type { StateItem } from "@/types/location";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
-import { useDeleteState, useStates, useUpdateStateStatus } from "@/hooks/api/useLocations";
+import { useDeleteState, useStates, useUpdateStateStatus, locationKeys } from "@/hooks/api/useLocations";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
+import { useQueries } from "@tanstack/react-query";
+import { locationService } from "@/services/location.service";
 
-export const Route = createFileRoute("/_app/system/location/states")({ component: StatesPage });
+export const Route = createFileRoute("/_app/system/location/states")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    language_code: typeof search.language_code === "string" && search.language_code ? search.language_code : undefined,
+  }),
+  component: StatesPage,
+});
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
@@ -23,13 +30,31 @@ function formatDateTime(value?: string) {
 function StatesPage() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { language_code } = Route.useSearch();
   if (pathname !== ROUTES.SYS_STATES) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<StateItem | null>(null);
-  const statesQuery = useStates({ per_page: 100 });
+  const [selectedLanguage, setSelectedLanguage] = useState(language_code);
+  useEffect(() => {
+    setSelectedLanguage(language_code);
+  }, [language_code]);
   const languagesQuery = useLanguages();
+  const activeLanguages = (languagesQuery.data?.items ?? [])
+    .filter((l) => l.status === "Active")
+    .map((l) => l.code);
+  const languagesToQuery = selectedLanguage ? [selectedLanguage] : activeLanguages;
+
+  const statesQueries = useQueries({
+    queries: languagesToQuery.map((lang) => ({
+      queryKey: locationKeys.states({ language_code: lang, per_page: 100 }),
+      queryFn: () => locationService.listStates({ language_code: lang, per_page: 100 }),
+      retry: false,
+      enabled: languagesQuery.isSuccess,
+    })),
+  });
+
   const updateStatus = useUpdateStateStatus();
   const deleteState = useDeleteState();
-  const rows: StateItem[] = (statesQuery.data?.items ?? []).map((state) => ({
+  const rows: StateItem[] = statesQueries.flatMap((q) => (q.data?.items ?? [])).map((state) => ({
     id: String(state.id),
     language: state.language_code,
     name: state.name,
@@ -37,6 +62,8 @@ function StatesPage() {
     status: state.is_active ? "Active" : "Inactive",
     addedOn: formatDateTime(state.created_at),
   }));
+  const isLoading = statesQueries.some((q) => q.isLoading) || languagesQuery.isLoading;
+  const isError = statesQueries.some((q) => q.isError);
   const handleStatusToggle = (row: StateItem) => {
     updateStatus.mutate(
       { id: row.id, isActive: row.status !== "Active" },
@@ -66,12 +93,18 @@ function StatesPage() {
   ];
   return (
     <>
-      <AdminListPage title="States" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "States" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_STATES_ADD })}><Plus className="mr-2 h-4 w-4" />Add State</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={statesQuery.isLoading} error={statesQuery.error ? "Unable to load states from backend." : undefined} searchPlaceholder="Search state..." dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) }, { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]} filter={(row, search, df) => {
+      <AdminListPage title="States" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "States" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_STATES_ADD, search: { language_code: selectedLanguage } })}><Plus className="mr-2 h-4 w-4" />Add State</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={isLoading} error={isError ? "Unable to load states from backend." : undefined} searchPlaceholder="Search state..." initialDropdownValues={{ language: selectedLanguage }} dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) }, { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]} filter={(row, search, df) => {
       const term = search.toLowerCase();
       if (term && !(row.name.toLowerCase().includes(term) || row.code.toLowerCase().includes(term))) return false;
       if (df.language && row.language !== df.language) return false;
       if (df.status && row.status !== df.status) return false;
       return true;
+    }} onFiltersChange={({ dropdownValues }) => {
+      const nextLanguage = dropdownValues.language;
+      if (nextLanguage !== selectedLanguage) {
+        setSelectedLanguage(nextLanguage);
+        navigate({ to: ROUTES.SYS_STATES, search: { language_code: nextLanguage }, replace: true });
+      }
     }} />
       <ConfirmDialog
         open={Boolean(deleteTarget)}
