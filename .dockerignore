@@ -1,0 +1,17 @@
+node_modules
+.output
+.vercel
+.nitro
+dist
+.git
+.github
+.vscode
+.idea
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+coverage
+docs

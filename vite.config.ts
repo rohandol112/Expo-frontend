@@ -12,12 +12,18 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  nitro: {
-    preset: "vercel",
-    output: {
-      dir: ".vercel/output",
-      serverDir: ".vercel/output/functions/__server.func",
-      publicDir: ".vercel/output/static",
-    },
-  },
+  // Default target stays Vercel (develop branch). The Coolify/Docker build sets
+  // NITRO_PRESET=node-server, which emits a self-contained Node server at
+  // .output/server/index.mjs (run with `node`) — so this change is non-breaking.
+  nitro:
+    process.env.NITRO_PRESET === "node-server"
+      ? { preset: "node-server" }
+      : {
+          preset: "vercel",
+          output: {
+            dir: ".vercel/output",
+            serverDir: ".vercel/output/functions/__server.func",
+            publicDir: ".vercel/output/static",
+          },
+        },
 });
