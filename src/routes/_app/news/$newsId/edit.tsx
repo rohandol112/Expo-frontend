@@ -59,6 +59,9 @@ function EditNewsPage() {
   const { newsId } = Route.useParams();
   const navigate = useNavigate();
   const [userSearch, setUserSearch] = useState("");
+  const [selectedLanguageCodes, setSelectedLanguageCodes] = useState<string[]>([]);
+  const [translationDrafts, setTranslationDrafts] = useState<Record<string, { title: string; description: string; bottomDescription: string }>>({});
+  const [activeTranslationCode, setActiveTranslationCode] = useState<string>("");
   const newsQuery = useNewsItem(newsId);
   const categoriesQuery = useCategories();
   const channelsQuery = useChannels();
@@ -116,9 +119,43 @@ function EditNewsPage() {
       pollQuestion: news.poll?.question || "",
       pollOptions: news.poll?.options.map((option) => option.text) ?? ["Strongly Agree", "Agree"],
     });
+    // Seed the language multi-select + per-language drafts from the saved news.
+    const primary = news.languageCode || "";
+    const codes = new Set<string>();
+    if (primary) codes.add(primary);
+    const drafts: Record<string, { title: string; description: string; bottomDescription: string }> = {};
+    for (const t of news.translations ?? []) {
+      if (!t.language_code) continue;
+      codes.add(t.language_code);
+      if (t.language_code !== primary) {
+        drafts[t.language_code] = { title: t.title ?? "", description: t.description ?? "", bottomDescription: t.bottom_description ?? "" };
+      }
+    }
+    setSelectedLanguageCodes(Array.from(codes));
+    setTranslationDrafts(drafts);
+    setActiveTranslationCode(primary);
   }, [news, reset]);
 
   const userItems = userSearchQuery.data?.items ?? [];
+  const languages = languagesQuery.data?.items ?? [];
+  const activeLanguage = activeTranslationCode || values.languageCode || selectedLanguageCodes[0] || "";
+
+  const toggleLanguage = (code: string) => {
+    const next = selectedLanguageCodes.includes(code) ? selectedLanguageCodes.filter((c) => c !== code) : [...selectedLanguageCodes, code];
+    setSelectedLanguageCodes(next);
+    if (!next.includes(values.languageCode)) setValue("languageCode", next[0] ?? "", { shouldValidate: true });
+    if (activeTranslationCode === code && !next.includes(code)) setActiveTranslationCode("");
+  };
+  const setDefaultLanguage = (code: string) => {
+    if (!selectedLanguageCodes.includes(code)) setSelectedLanguageCodes((prev) => [...prev, code]);
+    setValue("languageCode", code, { shouldValidate: true });
+  };
+  const updateTranslationDraft = (code: string, patch: Partial<{ title: string; description: string; bottomDescription: string }>) => {
+    setTranslationDrafts((prev) => {
+      const current = prev[code] ?? { title: "", description: "", bottomDescription: "" };
+      return { ...prev, [code]: { ...current, ...patch } };
+    });
+  };
 
   const visibility = useMemo<UpdateAdminNewsPayload["visibility"]>(() => {
     if (values.visibilityScope === "state") return { scope: "state", state_ids: values.visibilityStateIds.map(Number) };
@@ -129,11 +166,20 @@ function EditNewsPage() {
   }, [values.visibilityAreaIds, values.visibilityDistrictIds, values.visibilityScope, values.visibilityStateIds, values.visibilityUserIds]);
 
   const onSubmit = async (data: FormValues) => {
+    const translations = Object.entries(translationDrafts)
+      .filter(([code, draft]) => code !== data.languageCode && selectedLanguageCodes.includes(code) && Boolean(draft.title.trim()))
+      .map(([language_code, draft]) => ({
+        language_code,
+        title: draft.title.trim(),
+        description: draft.description.trim() || null,
+        bottom_description: draft.bottomDescription.trim() || null,
+      }));
     const payload: UpdateAdminNewsPayload = {
       title: data.title,
       description: data.description,
       bottom_description: data.bottomDescription || null,
       language_code: data.languageCode,
+      translations: translations.length ? translations : undefined,
       type: data.type,
       news_source_id: Number(data.newsSourceId),
       category_ids: [Number(data.categoryId)],
@@ -171,7 +217,27 @@ function EditNewsPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Field label="Channel" error={errors.newsSourceId?.message}><Select value={values.newsSourceId} onValueChange={(value) => setValue("newsSourceId", value)}><SelectTrigger><SelectValue placeholder="Select channel" /></SelectTrigger><SelectContent>{(channelsQuery.data?.items ?? []).map((channel) => <SelectItem key={channel.id} value={channel.id}>{channel.name}</SelectItem>)}</SelectContent></Select></Field>
           <Field label="Type"><Select value={values.type} onValueChange={(value) => setValue("type", value as FormValues["type"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="article">Article</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="short">Shorts</SelectItem><SelectItem value="story">Story</SelectItem></SelectContent></Select></Field>
-          <Field label="Language"><Select value={values.languageCode} onValueChange={(value) => setValue("languageCode", value)}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}</SelectContent></Select></Field>
+          <div className="md:col-span-3">
+            <Field label="Languages" error={errors.languageCode?.message}>
+              <div className="flex flex-wrap gap-2">
+                {(languagesQuery.data?.items ?? []).map((language) => {
+                  const selected = selectedLanguageCodes.includes(language.code);
+                  const isDefault = values.languageCode === language.code;
+                  return (
+                    <button
+                      type="button"
+                      key={language.id}
+                      onClick={() => toggleLanguage(language.code)}
+                      className={`rounded-full border px-3 py-1 text-sm ${selected ? "border-primary bg-primary/10 text-primary" : "border-input text-muted-foreground"}`}
+                    >
+                      {language.name}{isDefault ? " (default)" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Select every language this news appears in. The first is the default (edited in the Title / Description fields below); others are edited under Multi Language Content.</p>
+            </Field>
+          </div>
           <Field label="Category" error={errors.categoryId?.message}><Select value={values.categoryId} onValueChange={(value) => setValue("categoryId", value)}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}</SelectContent></Select></Field>
           <Field label="Source Link" error={errors.sourceLink?.message}><Input {...register("sourceLink")} placeholder="https://example.com/source" /></Field>
           <Field label="Thumbnail URL" error={errors.thumbnailUrl?.message}><Input {...register("thumbnailUrl")} /></Field>
@@ -180,6 +246,45 @@ function EditNewsPage() {
         <Field label="Description" error={errors.description?.message}><Textarea {...register("description")} className="min-h-[140px]" maxLength={5000} /></Field>
         <Field label="Bottom Description" error={errors.bottomDescription?.message}><Textarea {...register("bottomDescription")} maxLength={300} /></Field>
         <Field label="Tags"><Input {...register("tagsText")} placeholder="politics, breaking, local" /></Field>
+      </FormSection>
+
+      <FormSection title="Multi Language Content" description="Manage this news in each selected language. The default language uses the Title / Description fields above.">
+        {selectedLanguageCodes.filter((code) => code !== values.languageCode).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Select more than one language above to add translated content.</p>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+            <div className="space-y-2">
+              {languages.filter((language) => selectedLanguageCodes.includes(language.code)).map((language) => (
+                <button
+                  key={language.id}
+                  type="button"
+                  onClick={() => setActiveTranslationCode(language.code)}
+                  className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${activeLanguage === language.code ? "border-primary bg-primary/5" : ""}`}
+                >
+                  <span className="font-medium">
+                    {language.nativeName || language.name}{" "}
+                    {language.code === values.languageCode ? (
+                      <span className="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">Default</span>
+                    ) : (
+                      <span onClick={(event) => { event.stopPropagation(); setDefaultLanguage(language.code); }} className="ml-1 cursor-pointer rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Make default</span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="space-y-3">
+              {activeLanguage && activeLanguage === values.languageCode ? (
+                <p className="text-sm text-muted-foreground">Editing the default language — use the Title / Description fields above.</p>
+              ) : activeLanguage ? (
+                <>
+                  <Field label={`Title (${activeLanguage})`}><Input value={translationDrafts[activeLanguage]?.title ?? ""} onChange={(event) => updateTranslationDraft(activeLanguage, { title: event.target.value })} /></Field>
+                  <Field label={`Description (${activeLanguage})`}><Textarea className="min-h-[120px]" value={translationDrafts[activeLanguage]?.description ?? ""} onChange={(event) => updateTranslationDraft(activeLanguage, { description: event.target.value })} /></Field>
+                  <Field label={`Bottom Description (${activeLanguage})`}><Textarea value={translationDrafts[activeLanguage]?.bottomDescription ?? ""} onChange={(event) => updateTranslationDraft(activeLanguage, { bottomDescription: event.target.value })} /></Field>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
       </FormSection>
 
       <FormSection title="Location & Visibility">
