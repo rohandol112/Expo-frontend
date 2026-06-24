@@ -96,6 +96,7 @@ function UsersPage() {
       ),
     },
     { key: "contact", header: "Contact/Phone/Email", cell: (r) => <div><p>{r.phone}</p><p className="text-xs text-muted-foreground">{r.email}</p></div> },
+    { key: "deviceId", header: "Device ID", cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.deviceId}</span> },
     { key: "dob", header: "Date of Birth", cell: (r) => r.dob },
     { key: "language", header: "Language", cell: (r) => r.language },
     { key: "location", header: "Location", cell: (r) => <div><p>{r.area}</p><p className="text-xs text-muted-foreground">{[r.district, r.state].filter((v) => v && v !== "—").join(", ") || "—"}</p></div> },

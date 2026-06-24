@@ -95,7 +95,7 @@ function DistrictsPage() {
       header: "Actions",
       cell: (row) => (
         <ActionMenu
-          onEdit={() => navigate({ to: "/system/location/districts/$districtId/edit", params: { districtId: row.id } })}
+          onEdit={() => navigate({ to: "/system/location/districts/$districtId/edit", params: { districtId: row.id }, search: { language_code: selectedLanguage } })}
           onDelete={() => setDeleteTarget(row)}
           extraItems={[{ label: row.status === "Active" ? "Mark Inactive" : "Mark Active", onClick: () => handleStatusToggle(row) }]}
         />

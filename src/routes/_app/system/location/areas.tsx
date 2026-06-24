@@ -111,7 +111,7 @@ function AreasPage() {
       header: "Actions",
       cell: (row) => (
         <ActionMenu
-          onEdit={() => navigate({ to: "/system/location/areas/$areaId/edit", params: { areaId: row.id } })}
+          onEdit={() => navigate({ to: "/system/location/areas/$areaId/edit", params: { areaId: row.id }, search: { language_code: selectedLanguage } })}
           onDelete={() => setDeleteTarget(row)}
           extraItems={[{ label: row.status === "Active" ? "Mark Inactive" : "Mark Active", onClick: () => handleStatusToggle(row) }]}
         />

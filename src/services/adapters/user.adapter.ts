@@ -25,6 +25,9 @@ export interface BackendAdminUser {
   posts?: number;
   registered_on?: string;
   last_active_at?: string | null;
+  device_id?: string | null;
+  "x-device-id"?: string | null;
+  x_device_id?: string | null;
 }
 
 function formatDateTime(value?: string | null) {
@@ -52,5 +55,6 @@ export function toAdminUser(row: BackendAdminUser): AdminUser {
     posts: row.posts ?? 0,
     status: row.is_active === false ? "Inactive" : "Active",
     type: row.is_guest ? "Guest" : "Registered",
+    deviceId: row.device_id || row["x-device-id"] || row.x_device_id || "—",
   };
 }

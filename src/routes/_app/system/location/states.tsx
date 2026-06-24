@@ -84,7 +84,7 @@ function StatesPage() {
       header: "Actions",
       cell: (row) => (
         <ActionMenu
-          onEdit={() => navigate({ to: "/system/location/states/$stateId/edit", params: { stateId: row.id } })}
+          onEdit={() => navigate({ to: "/system/location/states/$stateId/edit", params: { stateId: row.id }, search: { language_code: selectedLanguage } })}
           onDelete={() => setDeleteTarget(row)}
           extraItems={[{ label: row.status === "Active" ? "Mark Inactive" : "Mark Active", onClick: () => handleStatusToggle(row) }]}
         />
