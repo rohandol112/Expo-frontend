@@ -66,7 +66,6 @@ function EditNewsPage() {
   const categoriesQuery = useCategories();
   const channelsQuery = useChannels();
   const languagesQuery = useLanguages();
-  const regionsQuery = useRegions({ language_code: newsQuery.data?.languageCode || undefined });
   const userSearchQuery = useAdminUserSearch({ search: userSearch || undefined, page: 1, per_page: 20 });
   const updateNews = useUpdateNews();
   const news = newsQuery.data;
@@ -86,6 +85,9 @@ function EditNewsPage() {
     },
   });
   const values = watch();
+  // Regions are language-scoped; fetch them in the news's primary language so the
+  // saved location ids match language_code (backend validateGeo).
+  const regionsQuery = useRegions({ language_code: values.languageCode || undefined });
   const states = regionsQuery.data ?? [];
   const selectedState = states.find((state) => String(state.id) === values.stateId);
   const districts = selectedState?.districts ?? [];
@@ -140,14 +142,20 @@ function EditNewsPage() {
   const languages = languagesQuery.data?.items ?? [];
   const activeLanguage = activeTranslationCode || values.languageCode || selectedLanguageCodes[0] || "";
 
+  const resetLocation = () => {
+    setValue("stateId", undefined);
+    setValue("districtId", undefined);
+    setValue("areaId", undefined);
+  };
   const toggleLanguage = (code: string) => {
     const next = selectedLanguageCodes.includes(code) ? selectedLanguageCodes.filter((c) => c !== code) : [...selectedLanguageCodes, code];
     setSelectedLanguageCodes(next);
-    if (!next.includes(values.languageCode)) setValue("languageCode", next[0] ?? "", { shouldValidate: true });
+    if (!next.includes(values.languageCode)) { setValue("languageCode", next[0] ?? "", { shouldValidate: true }); resetLocation(); }
     if (activeTranslationCode === code && !next.includes(code)) setActiveTranslationCode("");
   };
   const setDefaultLanguage = (code: string) => {
     if (!selectedLanguageCodes.includes(code)) setSelectedLanguageCodes((prev) => [...prev, code]);
+    if (code !== values.languageCode) resetLocation();
     setValue("languageCode", code, { shouldValidate: true });
   };
   const updateTranslationDraft = (code: string, patch: Partial<{ title: string; description: string; bottomDescription: string }>) => {
