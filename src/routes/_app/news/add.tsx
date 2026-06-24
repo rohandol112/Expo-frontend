@@ -122,7 +122,6 @@ function AddNewsPage() {
   const categoriesQuery = useCategories();
   const channelsQuery = useChannels();
   const languagesQuery = useLanguages();
-  const regionsQuery = useRegions();
   const userSearchQuery = useAdminUserSearch({ search: userSearch || undefined, page: 1, per_page: 20 });
   const createNews = useCreateNews();
   const autoFillTranslations = useAutoFillNewsTranslations();
@@ -146,6 +145,10 @@ function AddNewsPage() {
   });
 
   const values = watch();
+  // Regions are language-scoped (each language has its own state/district/area
+  // ids); fetch them in the news's primary language so the saved location ids
+  // match language_code and pass the backend's validateGeo check.
+  const regionsQuery = useRegions({ language_code: values.languageCode || undefined });
   const subcategoriesQuery = useCategorySubcategories(values.categoryId || "", { page: 1, per_page: 100 });
   const newsCategories = categoriesQuery.data?.items ?? [];
   const newsSubcategories = subcategoriesQuery.data?.items ?? [];
@@ -183,6 +186,14 @@ function AddNewsPage() {
     }));
   };
 
+  // Location ids belong to a specific language's region tree; clear them when the
+  // primary language changes so we never submit a cross-language (invalid) region.
+  const resetLocation = () => {
+    setValue("stateId", undefined);
+    setValue("districtId", undefined);
+    setValue("areaId", undefined);
+  };
+
   const toggleLanguage = (code: string) => {
     const next = selectedLanguageCodes.includes(code)
       ? selectedLanguageCodes.filter((c) => c !== code)
@@ -191,6 +202,7 @@ function AddNewsPage() {
     // First selected language is the default; keep it valid if the default was removed.
     if (!next.includes(values.languageCode)) {
       setValue("languageCode", next[0] ?? "", { shouldValidate: true });
+      resetLocation();
     }
     if (activeTranslationCode === code && !next.includes(code)) {
       setActiveTranslationCode("");
@@ -199,6 +211,7 @@ function AddNewsPage() {
 
   const setDefaultLanguage = (code: string) => {
     if (!selectedLanguageCodes.includes(code)) setSelectedLanguageCodes((prev) => [...prev, code]);
+    if (code !== values.languageCode) resetLocation();
     setValue("languageCode", code, { shouldValidate: true });
   };
 
