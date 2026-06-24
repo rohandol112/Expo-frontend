@@ -61,6 +61,9 @@ export interface BackendNews {
   }>;
   is_featured?: boolean;
   is_admin_news?: boolean;
+  creator?: { id: number; name: string | null; phone: string; email: string | null; avatar_url: string | null; role?: string | null } | null;
+  created_by_user?: { id: number; name: string | null; phone: string; email: string | null; avatar_url: string | null; role?: string | null } | null;
+  created_by_role?: string | null;
 }
 
 function formatDate(value?: string | null) {
@@ -143,12 +146,18 @@ export function toNewsItem(row: BackendNews): NewsItem {
     language: row.language_name || row.language_code || "—",
     location: row.location
       ? {
-          state: row.location.state ?? row.location.state_id ?? null,
-          district: row.location.district ?? row.location.district_id ?? null,
-          area: row.location.area ?? row.location.area_id ?? null,
-          stateId: row.location.state_id ?? null,
-          districtId: row.location.district_id ?? null,
-          areaId: row.location.area_id ?? null,
+          state: typeof row.location.state === 'object' && row.location.state !== null
+            ? (row.location.state as any).name
+            : row.location.state ?? null,
+          district: typeof row.location.district === 'object' && row.location.district !== null
+            ? (row.location.district as any).name
+            : row.location.district ?? null,
+          area: typeof row.location.area === 'object' && row.location.area !== null
+            ? (row.location.area as any).name
+            : row.location.area ?? null,
+          stateId: row.location.state_id ?? (typeof row.location.state === 'object' && row.location.state !== null ? (row.location.state as any).id : null),
+          districtId: row.location.district_id ?? (typeof row.location.district === 'object' && row.location.district !== null ? (row.location.district as any).id : null),
+          areaId: row.location.area_id ?? (typeof row.location.area === 'object' && row.location.area !== null ? (row.location.area as any).id : null),
         }
       : undefined,
     visibility: visibility(row.visibility),
@@ -163,7 +172,24 @@ export function toNewsItem(row: BackendNews): NewsItem {
     rejectionReason: row.rejection_reason ?? null,
     scheduledFor: row.scheduled_for ?? null,
     publishedOn: formatDate(row.published_at || row.created_at),
-    createdBy: row.created_by ? `User #${row.created_by}` : "Admin",
+    createdBy: creatorName,
+    createdById,
+    createdByRole: creatorRole,
+    uploadedBy: creator
+      ? {
+          id: creator.id,
+          name: creator.name || `User #${creator.id}`,
+          email: creator.email ?? undefined,
+          avatar: creator.avatar_url ?? undefined,
+          role: creatorRole,
+        }
+      : createdById
+        ? {
+            id: createdById,
+            name: `User #${createdById}`,
+            role: creatorRole,
+          }
+        : undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     isFeatured: row.is_featured,
