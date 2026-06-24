@@ -61,6 +61,13 @@ export interface UpdateAreaPayload {
   sort_order?: number;
 }
 
+// All location data is stored under language_code 'hi'; the admin states list
+// endpoint requires language_code, so default it here unless a caller overrides.
+const DEFAULT_LOCATION_LANGUAGE = "hi";
+function withLang(params?: LocationListParams): LocationListParams {
+  return { language_code: DEFAULT_LOCATION_LANGUAGE, ...params };
+}
+
 function normalizePage<T>(data: BackendListResponse<T>, params?: LocationListParams): LocationPage<T> {
   return {
     items: data.items ?? [],
@@ -78,7 +85,8 @@ export const locationService = {
   },
 
   async listStates(params?: LocationListParams) {
-    return normalizePage(await httpClient.get<BackendListResponse<BackendState>>(API.locations.states, { params }), params);
+    const p = withLang(params);
+    return normalizePage(await httpClient.get<BackendListResponse<BackendState>>(API.locations.states, { params: p }), p);
   },
 
   async createState(payload: CreateStatePayload) {
@@ -102,7 +110,8 @@ export const locationService = {
   },
 
   async listDistricts(params?: LocationListParams) {
-    return normalizePage(await httpClient.get<BackendListResponse<BackendDistrict>>(API.locations.districts, { params }), params);
+    const p = withLang(params);
+    return normalizePage(await httpClient.get<BackendListResponse<BackendDistrict>>(API.locations.districts, { params: p }), p);
   },
 
   async createDistrict(payload: CreateDistrictPayload) {
@@ -126,7 +135,8 @@ export const locationService = {
   },
 
   async listAreas(params?: LocationListParams) {
-    return normalizePage(await httpClient.get<BackendListResponse<BackendArea>>(API.locations.areas, { params }), params);
+    const p = withLang(params);
+    return normalizePage(await httpClient.get<BackendListResponse<BackendArea>>(API.locations.areas, { params: p }), p);
   },
 
   async createArea(payload: CreateAreaPayload) {

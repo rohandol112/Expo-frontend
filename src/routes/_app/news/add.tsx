@@ -117,6 +117,7 @@ function AddNewsPage() {
   const [translationMode, setTranslationMode] = useState<"manual" | "ai">("manual");
   const [activeTranslationCode, setActiveTranslationCode] = useState<string>("");
   const [translationDrafts, setTranslationDrafts] = useState<Record<string, { title: string; description: string; bottomDescription: string }>>({});
+  const [selectedLanguageCodes, setSelectedLanguageCodes] = useState<string[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const categoriesQuery = useCategories();
   const channelsQuery = useChannels();
@@ -149,7 +150,7 @@ function AddNewsPage() {
   const newsCategories = categoriesQuery.data?.items ?? [];
   const newsSubcategories = subcategoriesQuery.data?.items ?? [];
   const languages = languagesQuery.data?.items ?? [];
-  const activeLanguage = activeTranslationCode || values.languageCode || languages[0]?.code || "";
+  const activeLanguage = activeTranslationCode || values.languageCode || selectedLanguageCodes[0] || "";
   const states = regionsQuery.data ?? [];
   const selectedState = states.find((state) => String(state.id) === values.stateId);
   const districts = selectedState?.districts ?? [];
@@ -182,6 +183,25 @@ function AddNewsPage() {
     }));
   };
 
+  const toggleLanguage = (code: string) => {
+    const next = selectedLanguageCodes.includes(code)
+      ? selectedLanguageCodes.filter((c) => c !== code)
+      : [...selectedLanguageCodes, code];
+    setSelectedLanguageCodes(next);
+    // First selected language is the default; keep it valid if the default was removed.
+    if (!next.includes(values.languageCode)) {
+      setValue("languageCode", next[0] ?? "", { shouldValidate: true });
+    }
+    if (activeTranslationCode === code && !next.includes(code)) {
+      setActiveTranslationCode("");
+    }
+  };
+
+  const setDefaultLanguage = (code: string) => {
+    if (!selectedLanguageCodes.includes(code)) setSelectedLanguageCodes((prev) => [...prev, code]);
+    setValue("languageCode", code, { shouldValidate: true });
+  };
+
   const translationStatus = (code: string) => {
     if (code === values.languageCode) return values.title && values.description ? "Filled" : "Partial";
     const draft = translationDrafts[code];
@@ -199,7 +219,7 @@ function AddNewsPage() {
     if (data.visibilityScope === "private") visibility.user_ids = data.visibilityUserIds.map(Number);
 
     const translations = Object.entries(translationDrafts)
-      .filter(([code, draft]) => code !== data.languageCode && Boolean(draft.title.trim()))
+      .filter(([code, draft]) => code !== data.languageCode && selectedLanguageCodes.includes(code) && Boolean(draft.title.trim()))
       .map(([language_code, draft]) => ({
         language_code,
         title: draft.title.trim(),
@@ -317,7 +337,7 @@ function AddNewsPage() {
   const goBack = () => (step === 0 ? navigate({ to: ROUTES.NEWS_ADMIN }) : setStep((current) => current - 1));
 
   const handleAutoFill = async () => {
-    const targets = languages.map((language) => language.code).filter((code) => code && code !== values.languageCode);
+    const targets = selectedLanguageCodes.filter((code) => code && code !== values.languageCode);
     if (!values.languageCode || !values.title) {
       toast.error("Select a source language and enter a title first");
       return;
@@ -402,11 +422,27 @@ function AddNewsPage() {
                 ))}
               </div>
             </Field>
-            <Field label="Language *" error={errors.languageCode?.message}>
-              <Select value={values.languageCode} onValueChange={(value) => setValue("languageCode", value)}>
-                <SelectTrigger><SelectValue placeholder="Select Language" /></SelectTrigger>
-                <SelectContent>{(languagesQuery.data?.items ?? []).map((language) => <SelectItem key={language.id} value={language.code}>{language.name}</SelectItem>)}</SelectContent>
-              </Select>
+            <Field label="Languages *" error={errors.languageCode?.message}>
+              <div className="flex flex-wrap gap-2">
+                {(languagesQuery.data?.items ?? []).map((language) => {
+                  const selected = selectedLanguageCodes.includes(language.code);
+                  const isDefault = values.languageCode === language.code;
+                  return (
+                    <button
+                      type="button"
+                      key={language.id}
+                      onClick={() => toggleLanguage(language.code)}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-sm transition-colors",
+                        selected ? "border-primary bg-primary/10 text-primary" : "border-input text-muted-foreground hover:bg-accent",
+                      )}
+                    >
+                      {language.name}{isDefault ? " (default)" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Select every language this news should appear in. The first becomes the default; add per-language content in the next step.</p>
             </Field>
           </div>
 
@@ -587,7 +623,10 @@ function AddNewsPage() {
           )}
           <div className="grid gap-5 p-5 lg:grid-cols-[320px_1fr]">
             <div className="space-y-3">
-              {languages.map((language) => {
+              {selectedLanguageCodes.length === 0 && (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Select one or more languages in the Basic Information step first.</div>
+              )}
+              {languages.filter((language) => selectedLanguageCodes.includes(language.code)).map((language) => {
                 const status = translationStatus(language.code);
                 const Icon = status === "Filled" ? CheckCircle2 : status === "Partial" ? AlertCircle : Circle;
                 return (
@@ -597,7 +636,19 @@ function AddNewsPage() {
                     onClick={() => setActiveTranslationCode(language.code)}
                     className={cn("flex w-full items-center justify-between rounded-lg border p-3 text-left", activeLanguage === language.code && "border-primary bg-primary/5")}
                   >
-                    <span className="font-medium">{language.nativeName || language.name} {language.code === values.languageCode && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">Default</span>}</span>
+                    <span className="font-medium">
+                      {language.nativeName || language.name}{" "}
+                      {language.code === values.languageCode ? (
+                        <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">Default</span>
+                      ) : (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); setDefaultLanguage(language.code); }}
+                          className="ml-2 cursor-pointer rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent"
+                        >
+                          Make default
+                        </span>
+                      )}
+                    </span>
                     <span className={cn("inline-flex items-center gap-1 text-xs", status === "Filled" ? "text-green-600" : status === "Partial" ? "text-amber-600" : "text-muted-foreground")}><Icon className="h-3.5 w-3.5" />{status}</span>
                   </button>
                 );

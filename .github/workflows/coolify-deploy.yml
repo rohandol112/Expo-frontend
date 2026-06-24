@@ -1,0 +1,41 @@
+name: Deploy Admin to Coolify
+
+# Production branch is hosted on Coolify (develop deploys to Vercel via Vercel's
+# own git integration). Coolify builds the app from the Dockerfile; this workflow
+# just triggers that deploy. Required repo secrets:
+#   COOLIFY_DEPLOY_WEBHOOK  - the resource's deploy webhook URL from Coolify
+#   COOLIFY_API_TOKEN       - a Coolify API token (Bearer auth for the webhook)
+on:
+  push:
+    branches: [production]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch: {}
+
+concurrency:
+  group: coolify-admin-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Trigger Coolify deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy webhook
+        run: |
+          set -eo pipefail
+          if [ -z "${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}" ]; then
+            echo "::error::COOLIFY_DEPLOY_WEBHOOK is not set (repo Settings → Secrets → Actions)."
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/resp.txt -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            "${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}")
+          echo "Coolify responded HTTP $code"
+          cat /tmp/resp.txt || true
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::Coolify deploy trigger failed (HTTP $code)."
+            exit 1
+          fi
+          echo "::notice::Coolify deploy triggered for $GITHUB_SHA"
