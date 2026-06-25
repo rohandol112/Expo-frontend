@@ -13,6 +13,7 @@ export interface BackendChannel {
   source_url?: string;
   image_url?: string | null;
   logo_url?: string | null;
+  logo_key?: string | null;
   language_name?: string | null;
   language_code?: string | null;
   state_id?: number | null;
@@ -58,6 +59,7 @@ export function toChannel(row: BackendChannel): Channel {
     name,
     logo: initials(name) || "CH",
     logoUrl: row.logo_url || row.image_url || undefined,
+    logoKey: row.logo_key || undefined,
     languageCode: row.language_code || undefined,
     language: row.language_name || row.language_code || "—",
     website: row.source_url || "",

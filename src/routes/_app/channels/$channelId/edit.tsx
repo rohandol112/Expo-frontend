@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Save } from "lucide-react";
+import { Save, ImageIcon } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FormSection } from "@/components/forms/FormSection";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
 import { ApiError, isAuthApiError } from "@/lib/apiError";
-import { useChannel, useUpdateChannel } from "@/hooks/api/useChannels";
+import { useChannel, useUpdateChannel, useChannelLogoUploadUrl } from "@/hooks/api/useChannels";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { useRegions } from "@/hooks/api/useRegions";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ const schema = z.object({
   website: z.string().url().or(z.literal("")),
   companyName: z.string().optional(),
   description: z.string().max(250).optional(),
+  logoKey: z.string().optional(),
   language: z.string().optional(),
   nationalVisibility: z.boolean(),
   state: z.string().optional(),
@@ -38,19 +39,22 @@ type FormValues = z.infer<typeof schema>;
 function EditChannelPage() {
   const { channelId } = Route.useParams();
   const navigate = useNavigate();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const channelQuery = useChannel(channelId);
   const updateChannel = useUpdateChannel();
+  const uploadLogoMutation = useChannelLogoUploadUrl();
   const languagesQuery = useLanguages({ is_active: true });
   const channel = channelQuery.data;
   const { register, setValue, watch, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { website: "", status: "Active", language: "", nationalVisibility: true, state: "", district: "", area: "" },
+    defaultValues: { website: "", status: "Active", language: "", nationalVisibility: true, state: "", district: "", area: "", logoKey: "" },
   });
   const selectedLanguage = watch("language");
   const nationalVisibility = watch("nationalVisibility");
   const selectedState = watch("state");
   const selectedDistrict = watch("district");
   const selectedArea = watch("area");
+  const logoKey = watch("logoKey");
   const regionsQuery = useRegions({ language_code: selectedLanguage || channel?.languageCode || "en" });
   const states = regionsQuery.data ?? [];
   const districts = useMemo(
@@ -69,6 +73,7 @@ function EditChannelPage() {
       website: channel.website,
       companyName: channel.description === "—" ? "" : channel.description,
       description: "",
+      logoKey: channel.logoKey ?? "",
       language: channel.languageCode ?? "",
       nationalVisibility: !channel.stateId,
       state: channel.stateId ? String(channel.stateId) : "",
@@ -88,6 +93,7 @@ function EditChannelPage() {
           description: data.description || undefined,
           website: data.website || undefined,
           language_code: data.language || undefined,
+          logo_key: data.logoKey || undefined,
           ...(data.nationalVisibility
             ? { state_id: null, district_id: null, area_ids: [] }
             : data.state && data.district && data.area
@@ -110,6 +116,51 @@ function EditChannelPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Channel Title" error={errors.title?.message}><Input {...register("title")} /></Field>
           <Field label="Company Name"><Input {...register("companyName")} /></Field>
+          <Field label="Channel Image">
+            <div className="flex gap-2">
+              <MediaInput
+                icon={<ImageIcon className="h-5 w-5" />}
+                label={
+                  uploadLogoMutation.isPending
+                    ? "Uploading logo..."
+                    : logoKey
+                    ? `Logo ready: ${imageFile?.name || logoKey.substring(0, 15)}...`
+                    : "Choose image file"
+                }
+                accept="image/*"
+                onChange={(file) => {
+                  if (!file) return;
+                  setImageFile(file);
+                  uploadLogoMutation.mutate(
+                    { file_name: file.name, content_type: file.type || "image/jpeg" },
+                    {
+                      onSuccess: async (result) => {
+                        try {
+                          await fetch(result.upload_url, {
+                            method: "PUT",
+                            body: file,
+                            headers: { "Content-Type": file.type || "image/jpeg" },
+                          });
+                          setValue("logoKey", result.file_key, { shouldDirty: true });
+                          toast.success("Logo uploaded.");
+                        } catch (err) {
+                          toast.error("Failed to upload logo to storage.");
+                        }
+                      },
+                      onError: (err) => {
+                        toast.error(err.message || "Failed to generate upload URL.");
+                      },
+                    }
+                  );
+                }}
+              />
+              {logoKey && (
+                <div className="flex items-center text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">
+                  <span>logo_key: {logoKey.substring(0, 10)}...</span>
+                </div>
+              )}
+            </div>
+          </Field>
           <Field label="Source URL" error={errors.website?.message}><Input {...register("website")} /></Field>
           <Field label="Description" error={errors.description?.message}><Textarea {...register("description")} placeholder="Short channel description" /></Field>
           <Field label="Language"><Select value={selectedLanguage} onValueChange={(v) => setValue("language", v, { shouldValidate: true })}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((l) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}</SelectContent></Select></Field>
@@ -143,4 +194,14 @@ function EditChannelPage() {
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return <div className="space-y-2"><Label>{label}</Label>{children}{error && <p className="text-xs text-destructive">{error}</p>}</div>;
+}
+
+function MediaInput({ icon, label, accept, onChange }: { icon: React.ReactNode; label: string; accept: string; onChange: (file: File | null) => void }) {
+  return (
+    <label className="flex h-24 cursor-pointer items-center justify-center gap-3 rounded-md border border-dashed bg-background text-sm transition hover:border-primary/70 hover:bg-primary/5">
+      <Input type="file" accept={accept} className="sr-only" onChange={(event) => onChange(event.target.files?.[0] ?? null)} />
+      {icon}
+      <span className="max-w-[220px] truncate">{label}</span>
+    </label>
+  );
 }

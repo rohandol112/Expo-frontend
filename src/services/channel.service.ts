@@ -53,4 +53,11 @@ export const channelService = {
   async delete(id: string) {
     return httpClient.delete<void>(API.channels.detail(id));
   },
+
+  async getLogoUploadUrl(payload: { file_name: string; content_type: string }) {
+    return httpClient.post<{ upload_url: string; file_key: string; expires_in: number }>(
+      API.channels.logoUploadUrl,
+      payload
+    );
+  },
 };

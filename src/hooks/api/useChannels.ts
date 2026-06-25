@@ -45,3 +45,10 @@ export function useDeleteChannel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: channelKeys.all }),
   });
 }
+
+export function useChannelLogoUploadUrl() {
+  return useMutation({
+    mutationFn: (payload: { file_name: string; content_type: string }) =>
+      channelService.getLogoUploadUrl(payload),
+  });
+}

@@ -5,6 +5,7 @@ export interface Channel {
   name: string;
   logo: string;
   logoUrl?: string;
+  logoKey?: string;
   languageCode?: string;
   language: string;
   website: string;

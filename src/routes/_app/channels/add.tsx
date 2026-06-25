@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
-import { useCreateChannel } from "@/hooks/api/useChannels";
+import { useCreateChannel, useChannelLogoUploadUrl } from "@/hooks/api/useChannels";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { useRegions } from "@/hooks/api/useRegions";
 import { ApiError, isAuthApiError } from "@/lib/apiError";
@@ -26,6 +26,7 @@ const schema = z.object({
   website: z.string().url().or(z.literal("")),
   companyName: z.string().optional(),
   description: z.string().max(250, "Description must be 250 characters or less").optional(),
+  logoKey: z.string().optional(),
   language: z.string().min(1, "Language is required"),
   nationalVisibility: z.boolean(),
   state: z.string().optional(),
@@ -46,15 +47,17 @@ function AddChannelPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const createChannel = useCreateChannel();
+  const uploadLogoMutation = useChannelLogoUploadUrl();
   const languagesQuery = useLanguages({ is_active: true });
   const { register, setValue, watch, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { status: "Active", allowUserPosts: true, nationalVisibility: true, website: "", language: "", state: "", district: "", area: "" },
+    defaultValues: { status: "Active", allowUserPosts: true, nationalVisibility: true, website: "", language: "", state: "", district: "", area: "", logoKey: "" },
   });
   const selectedLanguage = watch("language");
   const nationalVisibility = watch("nationalVisibility");
   const selectedState = watch("state");
   const selectedDistrict = watch("district");
+  const logoKey = watch("logoKey");
   const regionsQuery = useRegions({ language_code: selectedLanguage || "en" });
   const states = regionsQuery.data ?? [];
   const districts = useMemo(
@@ -89,6 +92,7 @@ function AddChannelPage() {
         language_code: data.language,
         description: data.description || undefined,
         website: data.website || undefined,
+        logo_key: data.logoKey || undefined,
         ...(data.nationalVisibility
           ? { state_id: null, district_id: null, area_ids: [] }
           : { state_id: Number(data.state), district_id: Number(data.district), area_ids: [Number(data.area)] }),
@@ -96,7 +100,7 @@ function AddChannelPage() {
         is_active: data.status === "Active",
       });
       toast.success("Channel saved");
-      if (imageFile || videoFile) toast.info("Selected media will be uploaded after channel upload endpoints are available.");
+      if (videoFile) toast.info("Selected video file will be uploaded after channel video upload endpoints are available.");
       navigate({ to: ROUTES.CHANNELS });
     } catch (err) {
       toast.error(isAuthApiError(err) ? "Backend admin auth is required to save channel." : err instanceof ApiError ? err.message : "Unable to save channel");
@@ -120,9 +124,53 @@ function AddChannelPage() {
         <FormSection title="Channel Details">
           <Field label="Channel Title" error={errors.title?.message}><Input {...register("title")} placeholder="Pune Local Desk" /></Field>
           <Field label="Company Name"><Input {...register("companyName")} placeholder="Pehli Baat Media" /></Field>
-          <Field label="Channel Image"><MediaInput icon={<ImageIcon className="h-5 w-5" />} label={imageFile?.name || "Choose image file"} accept="image/*" onChange={setImageFile} /></Field>
+          <Field label="Channel Image">
+            <div className="flex gap-2">
+              <MediaInput
+                icon={<ImageIcon className="h-5 w-5" />}
+                label={
+                  uploadLogoMutation.isPending
+                    ? "Uploading logo..."
+                    : logoKey
+                    ? `Logo ready: ${imageFile?.name || logoKey.substring(0, 15)}...`
+                    : "Choose image file"
+                }
+                accept="image/*"
+                onChange={(file) => {
+                  if (!file) return;
+                  setImageFile(file);
+                  uploadLogoMutation.mutate(
+                    { file_name: file.name, content_type: file.type || "image/jpeg" },
+                    {
+                      onSuccess: async (result) => {
+                        try {
+                          await fetch(result.upload_url, {
+                            method: "PUT",
+                            body: file,
+                            headers: { "Content-Type": file.type || "image/jpeg" },
+                          });
+                          setValue("logoKey", result.file_key, { shouldDirty: true });
+                          toast.success("Logo uploaded.");
+                        } catch (err) {
+                          toast.error("Failed to upload logo to storage.");
+                        }
+                      },
+                      onError: (err) => {
+                        toast.error(err.message || "Failed to generate upload URL.");
+                      },
+                    }
+                  );
+                }}
+              />
+              {logoKey && (
+                <div className="flex items-center text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">
+                  <span>logo_key: {logoKey.substring(0, 10)}...</span>
+                </div>
+              )}
+            </div>
+          </Field>
           <Field label="Channel Video"><MediaInput icon={<Video className="h-5 w-5" />} label={videoFile?.name || "Choose video file"} accept="video/*" onChange={setVideoFile} /></Field>
-          <p className="text-xs text-muted-foreground">Channel logo upload endpoint is available separately; selected files are kept local until media upload is wired into this form.</p>
+          <p className="text-xs text-muted-foreground">Logo upload will be triggered immediately upon file selection. The generated key is submitted with the channel.</p>
           <Field label="Language" error={errors.language?.message}><Select value={selectedLanguage} onValueChange={(v) => setValue("language", v, { shouldValidate: true })}><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger><SelectContent>{(languagesQuery.data?.items ?? []).map((l) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}</SelectContent></Select></Field>
           <Field label="Source URL" error={errors.website?.message}><Input {...register("website")} placeholder="https://example.com" /></Field>
           <Field label="Description" error={errors.description?.message}><Textarea {...register("description")} placeholder="Short channel description" /></Field>

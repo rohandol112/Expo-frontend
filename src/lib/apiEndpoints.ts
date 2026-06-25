@@ -55,6 +55,7 @@ export const API = {
     publicList: "/channels",
     adminList: "/admin/channels",
     detail: (id: string | number) => `/admin/channels/${id}`,
+    logoUploadUrl: "/admin/channels/logo/upload-url",
   },
   news: {
     list: "/news",
