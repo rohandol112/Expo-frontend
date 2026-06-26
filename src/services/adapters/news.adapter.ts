@@ -144,7 +144,7 @@ export function toNewsItem(row: BackendNews): NewsItem {
     type: row.type,
     languageCode: row.language_code,
     language: row.language_name || row.language_code || "—",
-    location: row.location
+    location: row.location && (row.location.state || row.location.district || row.location.area || row.location.state_id || row.location.district_id || row.location.area_id)
       ? {
           state: typeof row.location.state === 'object' && row.location.state !== null
             ? (row.location.state as any).name
