@@ -23,6 +23,7 @@ export interface BackendAdminUser {
   area?: BackendRegionRef | null;
   referred_by?: { id: number; name: string | null } | null;
   posts?: number;
+  device_id?: string | null;
   registered_on?: string;
   last_active_at?: string | null;
 }
@@ -47,6 +48,7 @@ export function toAdminUser(row: BackendAdminUser): AdminUser {
     district: row.district?.name || "—",
     area: row.area?.name || "—",
     referredBy: row.referred_by?.name || "—",
+    deviceId: row.device_id || "—",
     registeredOn: formatDateTime(row.registered_on),
     lastActive: formatDateTime(row.last_active_at),
     posts: row.posts ?? 0,

@@ -79,6 +79,15 @@ function UsersPage() {
     { key: "language", header: "Language", cell: (r) => r.language },
     { key: "location", header: "Location", cell: (r) => <div><p>{r.area}</p><p className="text-xs text-muted-foreground">{[r.district, r.state].filter((v) => v && v !== "—").join(", ") || "—"}</p></div> },
     { key: "ref", header: "Referred By", cell: (r) => r.referredBy },
+    {
+      key: "device",
+      header: "Device ID (X-Device-Id)",
+      cell: (r) => (
+        <span className="font-mono text-xs" title={r.deviceId}>
+          {r.deviceId}
+        </span>
+      ),
+    },
     { key: "registered", header: "Registered On", cell: (r) => r.registeredOn },
     { key: "active", header: "Last Active", cell: (r) => r.lastActive },
     { key: "posts", header: "Posts", cell: (r) => r.posts },

@@ -12,6 +12,7 @@ export interface AdminUser {
   district: string;
   area: string;
   referredBy: string;
+  deviceId: string;
   registeredOn: string;
   lastActive: string;
   posts: number;
