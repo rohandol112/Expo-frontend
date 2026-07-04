@@ -93,12 +93,12 @@ export const locationService = {
     return httpClient.post<BackendState>(API.locations.states, payload);
   },
 
-  async getState(id: string) {
-    return httpClient.get<BackendState>(API.locations.stateDetail(id));
+  async getState(id: string, languageCode: string = DEFAULT_LOCATION_LANGUAGE) {
+    return httpClient.get<BackendState>(API.locations.stateDetail(id), { params: { language_code: languageCode } });
   },
 
-  async updateState(id: string, payload: UpdateStatePayload) {
-    return httpClient.put<BackendState>(API.locations.stateDetail(id), payload);
+  async updateState(id: string, payload: UpdateStatePayload, languageCode: string = DEFAULT_LOCATION_LANGUAGE) {
+    return httpClient.put<BackendState>(API.locations.stateDetail(id), payload, { params: { language_code: languageCode } });
   },
 
   async updateStateStatus(id: string, isActive: boolean) {
@@ -118,12 +118,12 @@ export const locationService = {
     return httpClient.post<BackendDistrict>(API.locations.districts, payload);
   },
 
-  async getDistrict(id: string) {
-    return httpClient.get<BackendDistrict>(API.locations.districtDetail(id));
+  async getDistrict(id: string, languageCode: string = DEFAULT_LOCATION_LANGUAGE) {
+    return httpClient.get<BackendDistrict>(API.locations.districtDetail(id), { params: { language_code: languageCode } });
   },
 
-  async updateDistrict(id: string, payload: UpdateDistrictPayload) {
-    return httpClient.put<BackendDistrict>(API.locations.districtDetail(id), payload);
+  async updateDistrict(id: string, payload: UpdateDistrictPayload, languageCode: string = DEFAULT_LOCATION_LANGUAGE) {
+    return httpClient.put<BackendDistrict>(API.locations.districtDetail(id), payload, { params: { language_code: languageCode } });
   },
 
   async updateDistrictStatus(id: string, isActive: boolean) {
@@ -143,12 +143,12 @@ export const locationService = {
     return httpClient.post<BackendArea>(API.locations.areas, payload);
   },
 
-  async getArea(id: string) {
-    return httpClient.get<BackendArea>(API.locations.areaDetail(id));
+  async getArea(id: string, languageCode: string = DEFAULT_LOCATION_LANGUAGE) {
+    return httpClient.get<BackendArea>(API.locations.areaDetail(id), { params: { language_code: languageCode } });
   },
 
-  async updateArea(id: string, payload: UpdateAreaPayload) {
-    return httpClient.put<BackendArea>(API.locations.areaDetail(id), payload);
+  async updateArea(id: string, payload: UpdateAreaPayload, languageCode: string = DEFAULT_LOCATION_LANGUAGE) {
+    return httpClient.put<BackendArea>(API.locations.areaDetail(id), payload, { params: { language_code: languageCode } });
   },
 
   async updateAreaStatus(id: string, isActive: boolean) {
