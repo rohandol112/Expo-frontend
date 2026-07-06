@@ -102,36 +102,52 @@ function NotificationsPage() {
     {
       key: "actions",
       header: "Actions",
-      cell: (row) => (
-        <ActionMenu
-          onView={() => navigate({ to: ROUTES.NOTIFICATIONS_VIEW(row.id) })}
-          onEdit={() => navigate({ to: ROUTES.NOTIFICATIONS_EDIT(row.id) })}
-          onDelete={() => setDeleteTarget(row)}
-          extraItems={[
-            {
-              label: "Publish Now",
-              icon: Megaphone,
-              onClick: () =>
-                publishMutation.mutate(
-                  { id: row.id, payload: { scheduled_at: null } },
-                  {
-                    onSuccess: () => toast.success("Notification published."),
-                    onError: (error) => toast.error(getErrorMessage(error)),
-                  },
-                ),
-            },
-            {
-              label: "Send",
-              icon: Send,
-              onClick: () =>
-                sendMutation.mutate(row.id, {
-                  onSuccess: () => toast.success("Notification sent."),
-                  onError: (error) => toast.error(getErrorMessage(error)),
-                }),
-            },
-          ]}
-        />
-      ),
+      cell: (row) => {
+        // Publishing auto-sends, so it only makes sense before the notification
+        // is live. "Send" is a retry only — a published notification whose
+        // auto-send hasn't gone out yet. Once sent, hide both so the admin can't
+        // fire duplicate pushes.
+        const canPublish = row.status === "draft" || row.status === "scheduled";
+        const canSend = row.status === "published" && !row.sentAt;
+        return (
+          <ActionMenu
+            onView={() => navigate({ to: ROUTES.NOTIFICATIONS_VIEW(row.id) })}
+            onEdit={() => navigate({ to: ROUTES.NOTIFICATIONS_EDIT(row.id) })}
+            onDelete={() => setDeleteTarget(row)}
+            extraItems={[
+              ...(canPublish
+                ? [
+                    {
+                      label: "Publish Now",
+                      icon: Megaphone,
+                      onClick: () =>
+                        publishMutation.mutate(
+                          { id: row.id, payload: { scheduled_at: null } },
+                          {
+                            onSuccess: () => toast.success("Notification published."),
+                            onError: (error) => toast.error(getErrorMessage(error)),
+                          },
+                        ),
+                    },
+                  ]
+                : []),
+              ...(canSend
+                ? [
+                    {
+                      label: "Send",
+                      icon: Send,
+                      onClick: () =>
+                        sendMutation.mutate(row.id, {
+                          onSuccess: () => toast.success("Notification sent."),
+                          onError: (error) => toast.error(getErrorMessage(error)),
+                        }),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        );
+      },
     },
   ];
 
