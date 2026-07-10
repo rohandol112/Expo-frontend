@@ -36,6 +36,29 @@ function AddCategoryPage() {
   const navigate = useNavigate();
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [iconPreviewUrl, setIconPreviewUrl] = useState<string | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (iconFile) {
+      const url = URL.createObjectURL(iconFile);
+      setIconPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setIconPreviewUrl(null);
+    }
+  }, [iconFile]);
+
+  useEffect(() => {
+    if (videoFile) {
+      const url = URL.createObjectURL(videoFile);
+      setVideoPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setVideoPreviewUrl(null);
+    }
+  }, [videoFile]);
+
   const createCategory = useCreateCategory();
   const languagesQuery = useLanguages({ is_active: true });
   const categoriesQuery = useCategories();
@@ -94,8 +117,26 @@ function AddCategoryPage() {
           <Field label="Status"><Select defaultValue="Active" onValueChange={(v) => setValue("status", v as FormValues["status"], { shouldValidate: true })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
           <Field label="Display Order" error={errors.displayOrder?.message}><Input type="number" {...register("displayOrder")} /></Field>
           <Field label="Icon URL" error={errors.iconUrl?.message}><Input {...register("iconUrl")} placeholder="https://example.com/category.png" /></Field>
-          <Field label="Upload Icon"><MediaInput icon={<ImageIcon className="h-5 w-5" />} label={iconFile?.name || "Choose image file"} accept="image/*" onChange={setIconFile} /></Field>
-          <Field label="Category Video"><MediaInput icon={<Video className="h-5 w-5" />} label={videoFile?.name || "Choose video file"} accept="video/*" onChange={setVideoFile} /></Field>
+          <Field label="Upload Icon">
+            <div className="space-y-2">
+              {iconPreviewUrl && (
+                <div className="h-20 w-20 rounded-md overflow-hidden border bg-muted">
+                  <img src={iconPreviewUrl} alt="Icon Preview" className="h-full w-full object-cover" />
+                </div>
+              )}
+              <MediaInput icon={<ImageIcon className="h-5 w-5" />} label={iconFile?.name || "Choose image file"} accept="image/*" onChange={setIconFile} />
+            </div>
+          </Field>
+          <Field label="Category Video">
+            <div className="space-y-2">
+              {videoPreviewUrl && (
+                <div className="h-20 w-32 rounded-md overflow-hidden border bg-muted">
+                  <video src={videoPreviewUrl} controls className="h-full w-full object-cover" />
+                </div>
+              )}
+              <MediaInput icon={<Video className="h-5 w-5" />} label={videoFile?.name || "Choose video file"} accept="video/*" onChange={setVideoFile} />
+            </div>
+          </Field>
           <label className="flex items-center justify-between rounded-lg border p-3 text-sm"><span>Featured Category</span><Switch onCheckedChange={(v) => setValue("featured", v)} /></label>
         </div>
         <Field label="Description"><Input {...register("description")} placeholder="Short category description" /></Field>

@@ -11,11 +11,14 @@ import {
 import { useAuthStore } from "@/store/useAuthStore";
 import { useNavigate } from "@tanstack/react-router";
 import { ROUTES } from "@/constants/routes.constants";
+import { useCategories } from "@/hooks/api/useCategories";
 
 export function Topbar() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const { data: categoriesData } = useCategories();
+  const featuredCategories = (categoriesData?.items ?? []).filter((c) => c.featured && c.status === "Active");
 
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4 lg:px-6">
@@ -26,6 +29,16 @@ export function Topbar() {
           className="pl-9 bg-muted/50 border-transparent focus-visible:bg-background"
         />
       </div>
+      {featuredCategories.length > 0 && (
+        <div className="hidden xl:flex items-center gap-2 overflow-x-auto max-w-md px-2 border-l pl-4">
+          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">Featured:</span>
+          {featuredCategories.map((c) => (
+            <span key={c.id} className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 whitespace-nowrap">
+              {c.name}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="ml-auto flex items-center gap-4">
         <button className="relative rounded-full p-2 hover:bg-muted">
           <Bell className="h-5 w-5" />

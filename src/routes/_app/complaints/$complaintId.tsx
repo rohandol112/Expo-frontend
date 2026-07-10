@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, FileText, Image as ImageIcon, MapPin, MessageSquareText, Play, Send, Tag, User as UserIcon } from "lucide-react";
+import { AlertCircle, FileText, Image as ImageIcon, MapPin, MessageSquareText, Play, Send, Tag, User as UserIcon, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -15,6 +15,7 @@ import {
   useComplaintTimeline,
   useUpdateComplaintStatus,
   useAddComplaintMessage,
+  useComplaintAssignRules,
 } from "@/hooks/api/useComplaints";
 import { useComplaintChatSocket } from "@/hooks/api/useComplaintChat";
 import { isAuthApiError } from "@/lib/apiError";
@@ -39,6 +40,8 @@ function ComplaintDetailPage() {
   const [messageDraft, setMessageDraft] = useState("");
 
   const complaint = complaintQuery.data;
+  const rulesQuery = useComplaintAssignRules({ category_id: complaint?.categoryId });
+  const rules = (rulesQuery.data?.items ?? []).filter((r) => r.is_active);
 
   if (complaintQuery.isError) {
     return (
@@ -104,17 +107,20 @@ function ComplaintDetailPage() {
             <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><ImageIcon className="h-4 w-4" /> Attached Images / Videos</p>
             {complaint?.images?.length ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {complaint.images.map((url) => (
-                  <a key={url} href={url} target="_blank" rel="noreferrer" className="block aspect-square overflow-hidden rounded-md border">
-                    {/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) ? (
-                      <div className="flex h-full w-full flex-col items-center justify-center bg-muted text-xs text-muted-foreground">
-                        <Play className="mb-2 h-6 w-6" /> Open video
-                      </div>
-                    ) : (
-                      <img src={url} alt="Complaint attachment" className="h-full w-full object-cover" />
-                    )}
-                  </a>
-                ))}
+                {complaint.images.map((url) => {
+                  const isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url);
+                  return (
+                    <div key={url} className="relative aspect-square overflow-hidden rounded-md border bg-muted">
+                      {isVideo ? (
+                        <video src={url} controls className="h-full w-full object-cover" />
+                      ) : (
+                        <a href={url} target="_blank" rel="noreferrer" className="block h-full w-full">
+                          <img src={url} alt="Complaint attachment" className="h-full w-full object-cover hover:scale-105 transition duration-200" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No attachments found for this complaint.</p>
@@ -204,6 +210,25 @@ function ComplaintDetailPage() {
               </Button>
             </div>
           </div>
+
+          {complaint?.categoryId && (
+            <div className="rounded-lg border bg-card p-6">
+              <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Settings2 className="h-4 w-4" /> Assignment Rules</p>
+              <div className="space-y-3">
+                {rulesQuery.isLoading && <p className="text-sm text-muted-foreground">Loading rules...</p>}
+                {!rulesQuery.isLoading && rules.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No routing rules match this category.</p>
+                )}
+                {rules.map((rule) => (
+                  <div key={rule.id} className="rounded-md border p-3 text-xs space-y-1 bg-muted/40">
+                    <p className="font-semibold text-foreground">{rule.name}</p>
+                    {rule.description && <p className="text-muted-foreground">{rule.description}</p>}
+                    <p className="text-muted-foreground">Routes to: <span className="font-medium text-foreground">{rule.assign_to?.name || `Officer #${rule.assign_to?.id}`}</span></p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-lg border bg-card p-6">
             <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><MapPin className="h-4 w-4" /> Timeline</p>

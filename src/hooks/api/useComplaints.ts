@@ -5,7 +5,7 @@ import {
   type CreateComplaintPayload,
   type UpdateComplaintPayload,
 } from "@/services/complaint.service";
-import { complaintCategoryService, type ComplaintAssignRuleListParams, type ComplaintCategoryListParams } from "@/services/complaintCategory.service";
+import { complaintCategoryService, type ComplaintAssignRuleListParams, type ComplaintCategoryListParams, type CreateComplaintCategoryPayload, type CreateComplaintSubCategoryPayload, type CreateComplaintAssignRulePayload } from "@/services/complaintCategory.service";
 import type { ComplaintStatus } from "@/types/complaint";
 
 export const complaintKeys = {
@@ -120,5 +120,29 @@ export function useAddComplaintMessage() {
   return useMutation({
     mutationFn: ({ id, message }: { id: string; message: string }) => complaintService.addMessage(id, message),
     onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: complaintKeys.messages(variables.id) }),
+  });
+}
+
+export function useCreateComplaintCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateComplaintCategoryPayload) => complaintCategoryService.create(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: complaintCategoryKeys.all }),
+  });
+}
+
+export function useCreateComplaintSubCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateComplaintSubCategoryPayload) => complaintCategoryService.createSubCategory(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: complaintCategoryKeys.all }),
+  });
+}
+
+export function useCreateComplaintAssignRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateComplaintAssignRulePayload) => complaintCategoryService.createAssignRule(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: complaintCategoryKeys.all }),
   });
 }

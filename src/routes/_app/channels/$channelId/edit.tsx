@@ -40,6 +40,7 @@ function EditChannelPage() {
   const { channelId } = Route.useParams();
   const navigate = useNavigate();
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const channelQuery = useChannel(channelId);
   const updateChannel = useUpdateChannel();
   const uploadLogoMutation = useChannelLogoUploadUrl();
@@ -65,6 +66,18 @@ function EditChannelPage() {
     () => districts.find((district) => String(district.id) === selectedDistrict)?.areas ?? [],
     [selectedDistrict, districts],
   );
+
+  useEffect(() => {
+    if (imageFile) {
+      const url = URL.createObjectURL(imageFile);
+      setLogoPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else if (channel?.logoUrl) {
+      setLogoPreviewUrl(channel.logoUrl);
+    } else {
+      setLogoPreviewUrl(null);
+    }
+  }, [imageFile, channel?.logoUrl]);
 
   useEffect(() => {
     if (!channel) return;
@@ -117,49 +130,56 @@ function EditChannelPage() {
           <Field label="Channel Title" error={errors.title?.message}><Input {...register("title")} /></Field>
           <Field label="Company Name"><Input {...register("companyName")} /></Field>
           <Field label="Channel Image">
-            <div className="flex gap-2">
-              <MediaInput
-                icon={<ImageIcon className="h-5 w-5" />}
-                label={
-                  uploadLogoMutation.isPending
-                    ? "Uploading logo..."
-                    : logoKey
-                    ? `Logo ready: ${imageFile?.name || logoKey.substring(0, 15)}...`
-                    : "Choose image file"
-                }
-                accept="image/*"
-                onChange={(file) => {
-                  if (!file) return;
-                  setImageFile(file);
-                  uploadLogoMutation.mutate(
-                    { file_name: file.name, content_type: file.type || "image/jpeg" },
-                    {
-                      onSuccess: async (result) => {
-                        try {
-                          await fetch(result.upload_url, {
-                            method: "PUT",
-                            body: file,
-                            headers: { "Content-Type": file.type || "image/jpeg" },
-                          });
-                          setValue("logoKey", result.file_key, { shouldDirty: true });
-                          toast.success("Logo uploaded.");
-                        } catch (err) {
-                          toast.error("Failed to upload logo to storage.");
-                        }
-                      },
-                      onError: (err) => {
-                        toast.error(err.message || "Failed to generate upload URL.");
-                      },
-                    }
-                  );
-                }}
-              />
-              {logoKey && (
+            <div className="space-y-2">
+              {logoPreviewUrl && (
+                <div className="h-20 w-20 rounded-md overflow-hidden border bg-muted">
+                  <img src={logoPreviewUrl} alt="Logo Preview" className="h-full w-full object-cover" />
+                </div>
+              )}
+              <div className="flex gap-2">
+                <MediaInput
+                  icon={<ImageIcon className="h-5 w-5" />}
+                  label={
+                    uploadLogoMutation.isPending
+                      ? "Uploading logo..."
+                      : logoKey
+                      ? `Logo ready: ${imageFile?.name || logoKey.substring(0, 15)}...`
+                      : "Choose image file"
+                  }
+                  accept="image/*"
+                  onChange={(file) => {
+                    if (!file) return;
+                    setImageFile(file);
+                    uploadLogoMutation.mutate(
+                      { file_name: file.name, content_type: file.type || "image/jpeg" },
+                      {
+                        onSuccess: async (result) => {
+                          try {
+                            await fetch(result.upload_url, {
+                              method: "PUT",
+                              body: file,
+                              headers: { "Content-Type": file.type || "image/jpeg" },
+                            });
+                            setValue("logoKey", result.file_key, { shouldDirty: true });
+                            toast.success("Logo uploaded.");
+                          } catch (err) {
+                            toast.error("Failed to upload logo to storage.");
+                          }
+                        },
+                        onError: (err) => {
+                          toast.error(err.message || "Failed to generate upload URL.");
+                        },
+                      }
+                    );
+                  }}
+                />
+              </div>
+            </div>
+            {logoKey && (
                 <div className="flex items-center text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">
                   <span>logo_key: {logoKey.substring(0, 10)}...</span>
                 </div>
               )}
-            </div>
           </Field>
           <Field label="Source URL" error={errors.website?.message}><Input {...register("website")} /></Field>
           <Field label="Description" error={errors.description?.message}><Textarea {...register("description")} placeholder="Short channel description" /></Field>

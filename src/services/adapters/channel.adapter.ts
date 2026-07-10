@@ -41,9 +41,9 @@ function initials(value: string) {
     .join("");
 }
 
-function formatDate(value?: string) {
+function formatDateTime(value?: string) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 export function toChannel(row: BackendChannel): Channel {
@@ -72,7 +72,7 @@ export function toChannel(row: BackendChannel): Channel {
     areas: areaNames?.length ? areaNames : [stateName ? "—" : "All India"],
     posts: row.post_count ?? 0,
     subscribers: Number(row.subscribers_count ?? row.subscribersCount ?? row.subscriber_count ?? row.subscriberCount ?? row.subscribers ?? 0),
-    addedOn: formatDate(row.created_at),
+    addedOn: formatDateTime(row.created_at),
     status: row.is_active === false ? "Inactive" : "Active",
     allowUserPosts: false,
   };

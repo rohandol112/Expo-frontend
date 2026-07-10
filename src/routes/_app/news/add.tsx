@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { X, ArrowLeft, ArrowRight, Send, Save, Calendar, Sparkles, Plus, Trash2, CheckCircle2, AlertCircle, Circle, Bold, Italic, Underline, List, Image as ImageIcon, Quote, Video, type LucideIcon } from "lucide-react";
@@ -100,13 +100,47 @@ function numberOrUndefined(value?: string) {
   return value ? Number(value) : undefined;
 }
 
-async function uploadToPresignedUrl(uploadUrl: string, file: File) {
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
+function uploadToPresignedUrl(
+  uploadUrl: string,
+  file: File,
+  onProgress?: (percent: number, loaded: number, total: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+
+    if (onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          onProgress(
+            Math.round((event.loaded / event.total) * 100),
+            event.loaded,
+            event.total
+          );
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(file);
   });
-  if (!response.ok) throw new Error("Unable to upload media file");
+}
+
+function formatEta(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "Estimating...";
+  if (seconds < 60) return `${Math.round(seconds)}s remaining`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return `${mins}m ${secs}s remaining`;
 }
 
 function AddNewsPage() {
@@ -119,6 +153,10 @@ function AddNewsPage() {
   const [translationDrafts, setTranslationDrafts] = useState<Record<string, { title: string; description: string; bottomDescription: string }>>({});
   const [selectedLanguageCodes, setSelectedLanguageCodes] = useState<string[]>([]);
   const [userSearch, setUserSearch] = useState("");
+  const [uploadStatus, setUploadStatus] = useState<{
+    thumbnail: { percent: number; eta: string } | null;
+    video: { percent: number; eta: string } | null;
+  } | null>(null);
   const categoriesQuery = useCategories();
   const channelsQuery = useChannels();
   const languagesQuery = useLanguages();
@@ -159,6 +197,21 @@ function AddNewsPage() {
   const districts = selectedState?.districts ?? [];
   const selectedDistrict = districts.find((district) => String(district.id) === values.districtId);
   const areas = selectedDistrict?.areas ?? [];
+
+  const selectedLanguageObj = useMemo(() => {
+    return languages.find((l) => l.code === values.languageCode);
+  }, [languages, values.languageCode]);
+  const selectedLanguageName = selectedLanguageObj?.name;
+
+  const filteredChannels = useMemo(() => {
+    if (!values.languageCode) return [];
+    return (channelsQuery.data?.items ?? []).filter((c) => c.languageCode === values.languageCode);
+  }, [channelsQuery.data?.items, values.languageCode]);
+
+  const filteredCategories = useMemo(() => {
+    if (!selectedLanguageName) return [];
+    return newsCategories.filter((c) => c.language === selectedLanguageName);
+  }, [newsCategories, selectedLanguageName]);
 
   const visibilityDistricts = states
     .filter((state) => values.visibilityStateIds?.includes(String(state.id)))
@@ -300,23 +353,59 @@ function AddNewsPage() {
         // Deployed backend may already persist categories during create; this compatibility call is best-effort.
       }
 
+      setUploadStatus({ thumbnail: null, video: null });
+
       if (thumbnailFile) {
+        setUploadStatus((prev) => ({
+          ...(prev ?? { video: null }),
+          thumbnail: { percent: 0, eta: "Estimating time..." },
+        }));
         const upload = await newsService.requestThumbnailUploadUrl(created.id, {
           file_name: thumbnailFile.name,
           content_type: thumbnailFile.type || "image/jpeg",
         });
-        await uploadToPresignedUrl(upload.upload_url, thumbnailFile);
+
+        const startTime = Date.now();
+        await uploadToPresignedUrl(upload.upload_url, thumbnailFile, (percent, loaded, total) => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const speed = elapsed > 0 ? loaded / elapsed : 0;
+          const etaSecs = speed > 0 ? (total - loaded) / speed : 0;
+          const etaText = etaSecs > 0 ? formatEta(etaSecs) : "Completing...";
+          setUploadStatus((prev) => {
+            if (!prev) return null;
+            return { ...prev, thumbnail: { percent, eta: etaText } };
+          });
+        });
+
         await newsService.confirmThumbnailUpload(created.id, { file_key: upload.file_key });
       }
 
       if (videoFile) {
+        setUploadStatus((prev) => ({
+          ...(prev ?? { thumbnail: null }),
+          video: { percent: 0, eta: "Estimating time..." },
+        }));
         const upload = await newsService.requestVideoUploadUrl(created.id, {
           file_name: videoFile.name,
           content_type: videoFile.type || "video/mp4",
         });
-        await uploadToPresignedUrl(upload.upload_url, videoFile);
+
+        const startTime = Date.now();
+        await uploadToPresignedUrl(upload.upload_url, videoFile, (percent, loaded, total) => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const speed = elapsed > 0 ? loaded / elapsed : 0;
+          const etaSecs = speed > 0 ? (total - loaded) / speed : 0;
+          const etaText = etaSecs > 0 ? formatEta(etaSecs) : "Completing...";
+          setUploadStatus((prev) => {
+            if (!prev) return null;
+            return { ...prev, video: { percent, eta: etaText } };
+          });
+        });
+
         await newsService.confirmVideoUpload(created.id, { file_key: upload.file_key });
       }
+
+      setUploadStatus(null);
 
       if (finalStatus === "schedule" && data.scheduledFor) {
         await newsService.schedule(created.id, new Date(data.scheduledFor).toISOString());
@@ -331,6 +420,7 @@ function AddNewsPage() {
       );
       navigate({ to: ROUTES.NEWS_ADMIN });
     } catch (err) {
+      setUploadStatus(null);
       toast.error(isAuthApiError(err) ? "Backend admin auth is required to create news." : "Unable to create news or upload media");
     }
   };
@@ -410,12 +500,44 @@ function AddNewsPage() {
       {step === 0 && (
         <FormSection title="Basic Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-3">
+              <Field label="Languages *" error={errors.languageCode?.message}>
+                <div className="flex flex-wrap gap-2">
+                  {(languagesQuery.data?.items ?? []).map((language) => {
+                    const selected = selectedLanguageCodes.includes(language.code);
+                    const isDefault = values.languageCode === language.code;
+                    return (
+                      <button
+                        type="button"
+                        key={language.id}
+                        onClick={() => toggleLanguage(language.code)}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-sm transition-colors",
+                          selected ? "border-primary bg-primary/10 text-primary" : "border-input text-muted-foreground hover:bg-accent",
+                        )}
+                      >
+                        {language.name}{isDefault ? " (default)" : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Select every language this news should appear in. The first becomes the default; add per-language content in the next step.</p>
+              </Field>
+            </div>
+
             <Field label="Select Channel *" error={errors.newsSourceId?.message}>
-              <Select value={values.newsSourceId} onValueChange={(value) => setValue("newsSourceId", value)}>
-                <SelectTrigger><SelectValue placeholder="Select Channel" /></SelectTrigger>
-                <SelectContent>{(channelsQuery.data?.items ?? []).map((channel) => <SelectItem key={channel.id} value={channel.id}>{channel.name}</SelectItem>)}</SelectContent>
+              <Select 
+                value={values.newsSourceId} 
+                onValueChange={(value) => setValue("newsSourceId", value)}
+                disabled={!values.languageCode}
+              >
+                <SelectTrigger><SelectValue placeholder={values.languageCode ? "Select Channel" : "Select language first"} /></SelectTrigger>
+                <SelectContent>
+                  {filteredChannels.map((channel) => <SelectItem key={channel.id} value={channel.id}>{channel.name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </Field>
+
             <Field label="Type of Content *">
               <div className="grid grid-cols-4 rounded-md border p-1">
                 {[
@@ -435,41 +557,23 @@ function AddNewsPage() {
                 ))}
               </div>
             </Field>
-            <Field label="Languages *" error={errors.languageCode?.message}>
-              <div className="flex flex-wrap gap-2">
-                {(languagesQuery.data?.items ?? []).map((language) => {
-                  const selected = selectedLanguageCodes.includes(language.code);
-                  const isDefault = values.languageCode === language.code;
-                  return (
-                    <button
-                      type="button"
-                      key={language.id}
-                      onClick={() => toggleLanguage(language.code)}
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-sm transition-colors",
-                        selected ? "border-primary bg-primary/10 text-primary" : "border-input text-muted-foreground hover:bg-accent",
-                      )}
-                    >
-                      {language.name}{isDefault ? " (default)" : ""}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Select every language this news should appear in. The first becomes the default; add per-language content in the next step.</p>
+
+            <Field label="Category *" error={errors.categoryId?.message}>
+              <Select 
+                value={values.categoryId} 
+                onValueChange={(value) => { setValue("categoryId", value); setValue("subcategoryIds", []); }}
+                disabled={!values.languageCode}
+              >
+                <SelectTrigger><SelectValue placeholder={values.languageCode ? "Select Category" : "Select language first"} /></SelectTrigger>
+                <SelectContent>
+                  {filteredCategories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Only active backend categories for the selected language are listed here.
+              </p>
             </Field>
           </div>
-
-          <Field label="Category *" error={errors.categoryId?.message}>
-            <Select value={values.categoryId} onValueChange={(value) => { setValue("categoryId", value); setValue("subcategoryIds", []); }}>
-              <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-              <SelectContent>
-                {newsCategories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Only active backend categories are listed here.
-            </p>
-          </Field>
 
           {values.categoryId && (
             <div className="rounded-md border p-4 space-y-3">
@@ -493,15 +597,15 @@ function AddNewsPage() {
           <div className="rounded-md border p-4 space-y-3">
             <Label>News Location</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Select value={values.stateId} onValueChange={(value) => { setValue("stateId", value); setValue("districtId", undefined); setValue("areaId", undefined); }}>
+              <Select value={values.stateId} onValueChange={(value) => { setValue("stateId", value); setValue("districtId", undefined); setValue("areaId", undefined); }} disabled={!values.languageCode}>
                 <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
                 <SelectContent>{states.map((state) => <SelectItem key={state.id} value={String(state.id)}>{state.name}</SelectItem>)}</SelectContent>
               </Select>
-              <Select value={values.districtId} onValueChange={(value) => { setValue("districtId", value); setValue("areaId", undefined); }}>
+              <Select value={values.districtId} onValueChange={(value) => { setValue("districtId", value); setValue("areaId", undefined); }} disabled={!values.stateId}>
                 <SelectTrigger><SelectValue placeholder="Select District" /></SelectTrigger>
                 <SelectContent>{districts.map((district) => <SelectItem key={district.id} value={String(district.id)}>{district.name}</SelectItem>)}</SelectContent>
               </Select>
-              <Select value={values.areaId} onValueChange={(value) => setValue("areaId", value)}>
+              <Select value={values.areaId} onValueChange={(value) => setValue("areaId", value)} disabled={!values.districtId}>
                 <SelectTrigger><SelectValue placeholder="Select Area" /></SelectTrigger>
                 <SelectContent>{areas.map((area) => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}</SelectContent>
               </Select>
@@ -517,6 +621,7 @@ function AddNewsPage() {
                 setValue("visibilityStateIds", []);
                 setValue("visibilityDistrictIds", []);
                 setValue("visibilityAreaIds", []);
+                setValue("visibilityUserIds", []);
               }}
               className="grid grid-cols-2 md:grid-cols-4 gap-3"
             >
@@ -596,6 +701,7 @@ function AddNewsPage() {
                 hint={thumbnailFile?.name || "JPG, PNG recommended"}
                 icon={ImageIcon}
                 accept="image/*"
+                value={thumbnailFile}
                 onChange={(file) => setThumbnailFile(file)}
               />
               <MediaPicker
@@ -604,6 +710,7 @@ function AddNewsPage() {
                 hint={videoFile?.name || "MP4, WebM, MOV recommended"}
                 icon={Video}
                 accept="video/*"
+                value={videoFile}
                 onChange={(file) => setVideoFile(file)}
               />
             </div>
@@ -753,6 +860,40 @@ function AddNewsPage() {
           )}
         </div>
       </div>
+      {uploadStatus && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card border rounded-lg p-6 max-w-md w-full shadow-lg space-y-4">
+            <h3 className="text-lg font-semibold">Uploading Media</h3>
+            <p className="text-sm text-muted-foreground">Please wait while your media is being uploaded to the server.</p>
+            
+            {uploadStatus.thumbnail && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Thumbnail Upload</span>
+                  <span>{uploadStatus.thumbnail.percent}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadStatus.thumbnail.percent}%` }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">{uploadStatus.thumbnail.eta}</p>
+              </div>
+            )}
+
+            {uploadStatus.video && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Video Upload</span>
+                  <span>{uploadStatus.video.percent}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadStatus.video.percent}%` }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">{uploadStatus.video.eta}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </form>
   );
 }
@@ -767,6 +908,7 @@ function MediaPicker({
   hint,
   icon: Icon,
   accept,
+  value,
   onChange,
 }: {
   label: string;
@@ -774,28 +916,68 @@ function MediaPicker({
   hint: string;
   icon: LucideIcon;
   accept: string;
+  value: File | string | null;
   onChange: (file: File | null) => void;
 }) {
   const inputId = useId();
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (value instanceof File) {
+      const url = URL.createObjectURL(value);
+      setObjectUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else if (typeof value === "string" && value) {
+      setObjectUrl(value);
+    } else {
+      setObjectUrl(null);
+    }
+  }, [value]);
+
+  const isImage = accept.includes("image");
+  const isVideo = accept.includes("video");
 
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <input
-        id={inputId}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
-      />
-      <label
-        htmlFor={inputId}
-        className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed bg-background px-4 text-center transition hover:border-primary/70 hover:bg-primary/5"
-      >
-        <Icon className="mb-2 h-8 w-8 text-muted-foreground" />
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="mt-1 max-w-[90%] truncate text-xs text-muted-foreground">{hint}</span>
-      </label>
+      {objectUrl ? (
+        <div className="relative rounded-md border bg-muted flex flex-col items-center justify-center overflow-hidden h-48 group">
+          {isImage && (
+            <img src={objectUrl} alt="Preview" className="h-full w-full object-cover" />
+          )}
+          {isVideo && (
+            <video src={objectUrl} controls className="h-full w-full object-contain" />
+          )}
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="absolute top-2 right-2 rounded-full bg-red-600 p-1.5 text-white hover:bg-red-700 shadow-md transition-colors"
+            title="Remove media"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <>
+          <input
+            id={inputId}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+          />
+          <label
+            htmlFor={inputId}
+            className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed bg-background px-4 text-center transition hover:border-primary/70 hover:bg-primary/5"
+          >
+            <Icon className="mb-2 h-8 w-8 text-muted-foreground" />
+            <span className="text-sm font-semibold">{title}</span>
+            <span className="mt-1 max-w-[90%] truncate text-xs text-muted-foreground">{hint}</span>
+          </label>
+        </>
+      )}
     </div>
   );
 }

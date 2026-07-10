@@ -47,7 +47,7 @@ function CategoriesPage() {
     },
     { key: "slug", header: "Slug", cell: (r) => <span className="text-muted-foreground">{r.slug}</span> },
     { key: "language", header: "Language", cell: (r) => r.language },
-    { key: "posts", header: "Posts", cell: (r) => r.posts.toLocaleString() },
+    { key: "posts", header: "No. of Posts", cell: (r) => r.posts.toLocaleString() },
     { key: "featured", header: "Featured", cell: (r) => <Switch checked={r.featured} disabled aria-label={`${r.name} featured`} /> },
     {
       key: "status",

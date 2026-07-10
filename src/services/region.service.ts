@@ -32,9 +32,21 @@ const DEFAULT_REGION_LANGUAGE_CODE = "hi";
 
 export const regionService = {
   async list(params: RegionListParams = {}) {
-    const data = await httpClient.get<RegionTreeResponse>(API.regions, {
+    let data = await httpClient.get<RegionTreeResponse>(API.regions, {
       params: { language_code: params.language_code || DEFAULT_REGION_LANGUAGE_CODE },
     });
+
+    if (
+      (!data.states || data.states.length === 0) &&
+      params.language_code &&
+      params.language_code !== DEFAULT_REGION_LANGUAGE_CODE
+    ) {
+      data = await httpClient.get<RegionTreeResponse>(API.regions, {
+        params: { language_code: DEFAULT_REGION_LANGUAGE_CODE },
+      });
+    }
+
     return data.states || [];
   },
 };
+

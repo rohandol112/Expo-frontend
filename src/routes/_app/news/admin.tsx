@@ -159,17 +159,41 @@ function AdminNewsPage() {
         </div>
       ),
     },
-    { key: "category", header: "Category", cell: (r) => <CategoryBadge category={r.category} /> },
+    {
+      key: "category",
+      header: "Category",
+      cell: (r) => {
+        const cats = r.categories?.map((c) => c.name).filter(Boolean) || [];
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[150px]">
+            {cats.length > 0 ? (
+              cats.map((cat, idx) => <CategoryBadge key={idx} category={cat} />)
+            ) : (
+              <CategoryBadge category="General" />
+            )}
+          </div>
+        );
+      },
+    },
     {
       key: "channel",
       header: "Channel",
       cell: (r) => <span className="text-sm font-medium">{r.channel?.name ?? "—"}</span>,
     },
-    { key: "language", header: "Language", cell: (r) => <span className="text-sm">{r.language}</span> },
     {
-      key: "contentType",
-      header: "Content Type",
-      cell: (r) => <span className="text-sm">{r.contentType ?? "—"}</span>,
+      key: "language",
+      header: "Language",
+      cell: (r) => {
+        const additionalCodes = r.translations?.map((t) => t.language_code?.toUpperCase()).filter(Boolean) || [];
+        return (
+          <div>
+            <p className="text-sm font-medium">{r.language}</p>
+            {additionalCodes.length > 0 && (
+              <p className="text-[10px] text-muted-foreground">Extra: {additionalCodes.join(", ")}</p>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "visibility",
@@ -182,6 +206,14 @@ function AdminNewsPage() {
             {visibility.detail && <p className="text-xs text-muted-foreground">{visibility.detail}</p>}
           </div>
         );
+      },
+    },
+    {
+      key: "location",
+      header: "News Location",
+      cell: (r) => {
+        const locs = [r.location?.state, r.location?.district, r.location?.area].filter(Boolean);
+        return <span className="text-sm font-medium text-muted-foreground">{locs.length > 0 ? locs.join(" > ") : "National"}</span>;
       },
     },
     {

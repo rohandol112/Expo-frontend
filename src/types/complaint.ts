@@ -5,7 +5,9 @@ export interface Complaint {
   number: string;
   title: string;
   category: string;
+  categoryId?: number;
   subCategory: string;
+  subCategoryId?: number;
   priority: "Low" | "Medium" | "High" | "Critical";
   status: ComplaintStatus;
   reportedBy: string;

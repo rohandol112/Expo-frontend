@@ -171,7 +171,7 @@ export function toNewsItem(row: BackendNews): NewsItem {
     statusLabel: row.status_label,
     rejectionReason: row.rejection_reason ?? null,
     scheduledFor: row.scheduled_for ?? null,
-    publishedOn: formatDate(row.published_at || row.created_at),
+    publishedOn: formatDateTime(row.published_at || row.created_at),
     createdBy: creatorName,
     createdById,
     createdByRole: creatorRole,

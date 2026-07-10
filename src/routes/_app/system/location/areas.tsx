@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -14,6 +14,7 @@ import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 import { useQueries } from "@tanstack/react-query";
 import { locationService } from "@/services/location.service";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export const Route = createFileRoute("/_app/system/location/areas")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -34,9 +35,13 @@ function AreasPage() {
   if (pathname !== ROUTES.SYS_AREAS) return <Outlet />;
   const [deleteTarget, setDeleteTarget] = useState<AreaItem | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState(language_code);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   useEffect(() => {
     setSelectedLanguage(language_code);
   }, [language_code]);
+
   const languagesQuery = useLanguages();
   const activeLanguages = (languagesQuery.data?.items ?? [])
     .filter((l) => l.status === "Active")
@@ -63,8 +68,8 @@ function AreasPage() {
 
   const areasQueries = useQueries({
     queries: languagesToQuery.map((lang) => ({
-      queryKey: locationKeys.areas({ language_code: lang, per_page: 100 }),
-      queryFn: () => locationService.listAreas({ language_code: lang, per_page: 100 }),
+      queryKey: locationKeys.areas({ language_code: lang, search: debouncedSearch || undefined, per_page: 100 }),
+      queryFn: () => locationService.listAreas({ language_code: lang, search: debouncedSearch || undefined, per_page: 100 }),
       retry: false,
       enabled: languagesQuery.isSuccess,
     })),
@@ -90,6 +95,7 @@ function AreasPage() {
   });
   const isLoading = statesQueries.some((q) => q.isLoading) || districtsQueries.some((q) => q.isLoading) || areasQueries.some((q) => q.isLoading) || languagesQuery.isLoading;
   const isError = statesQueries.some((q) => q.isError) || districtsQueries.some((q) => q.isError) || areasQueries.some((q) => q.isError);
+  
   const handleStatusToggle = (row: AreaItem) => {
     updateStatus.mutate(
       { id: row.id, isActive: row.status !== "Active" },
@@ -99,8 +105,16 @@ function AreasPage() {
       },
     );
   };
+  
   const columns: Column<AreaItem>[] = [
-    { key: "language", header: "Language", cell: (r) => r.language.toUpperCase() },
+    {
+      key: "language",
+      header: "Language",
+      cell: (r) => {
+        const langObj = languagesQuery.data?.items?.find((l) => l.code === r.language);
+        return <span className="text-sm font-medium">{langObj?.name ?? r.language.toUpperCase()}</span>;
+      },
+    },
     { key: "name", header: "Area Name", cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: "district", header: "District", cell: (r) => r.district },
     { key: "state", header: "State", cell: (r) => r.state },
@@ -120,14 +134,13 @@ function AreasPage() {
   ];
   return (
     <>
-      <AdminListPage title="Areas" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Areas" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_AREAS_ADD, search: { language_code: selectedLanguage } })}><Plus className="mr-2 h-4 w-4" />Add Area</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={isLoading} error={isError ? "Unable to load areas from backend." : undefined} searchPlaceholder="Search area..." initialDropdownValues={{ language: selectedLanguage }} dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }]} filter={(row, search, df) => {
-      const term = search.toLowerCase();
-      if (term && ![row.name, row.district, row.state].some((v) => v.toLowerCase().includes(term))) return false;
+      <AdminListPage title="Areas" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Locations", to: ROUTES.SYS_LOCATION }, { label: "Areas" }]} actions={<Button onClick={() => navigate({ to: ROUTES.SYS_AREAS_ADD, search: { language_code: selectedLanguage } })}><Plus className="mr-2 h-4 w-4" />Add Area</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={isLoading} error={isError ? "Unable to load areas from backend." : undefined} searchPlaceholder="Search area..." initialDropdownValues={{ language: selectedLanguage }} dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }]} filter={(row, searchVal, df) => {
       if (df.language && row.language !== df.language) return false;
       if (df.district && row.district !== df.district) return false;
       if (df.state && row.state !== df.state) return false;
       return true;
-    }} onFiltersChange={({ dropdownValues }) => {
+    }} onFiltersChange={({ dropdownValues, search: searchVal }) => {
+      setSearch(searchVal);
       const nextLanguage = dropdownValues.language;
       if (nextLanguage !== selectedLanguage) {
         setSelectedLanguage(nextLanguage);

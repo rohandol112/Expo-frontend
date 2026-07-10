@@ -74,7 +74,14 @@ function StatesPage() {
     );
   };
   const columns: Column<StateItem>[] = [
-    { key: "language", header: "Language", cell: (r) => r.language.toUpperCase() },
+    {
+      key: "language",
+      header: "Language",
+      cell: (r) => {
+        const langObj = languagesQuery.data?.items?.find((l) => l.code === r.language);
+        return <span className="text-sm font-medium">{langObj?.name ?? r.language.toUpperCase()}</span>;
+      },
+    },
     { key: "name", header: "State Name", cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: "code", header: "State Code", cell: (r) => r.code },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },

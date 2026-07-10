@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { FileText, CheckCircle2, Clock, XCircle, Plus, MapPin, Eye, Bell, Share2 } from "lucide-react";
+import { FileText, CheckCircle2, Clock, XCircle, Plus, MapPin, Eye, Bell, Share2, CalendarClock, Calendar, Play, FileText as FT } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsCard } from "@/components/common/StatsCard";
 import { DataTable, type Column } from "@/components/tables/DataTable";
@@ -16,17 +16,17 @@ import { ROUTES } from "@/constants/routes.constants";
 import { cn } from "@/lib/utils";
 import { useCategories } from "@/hooks/api/useCategories";
 import { useLanguages } from "@/hooks/api/useLanguages";
-import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews, useSendNewsNotification, useShareNews } from "@/hooks/api/useNews";
+import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews, useScheduleNews, useSendNewsNotification, useShareNews } from "@/hooks/api/useNews";
 import { ApiError, isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export const Route = createFileRoute("/_app/news/all")({
-  component: AllNewsPage,
+  component: UserNewsPage,
 });
 
 const TABS = [
-  { key: "all", label: "All News", status: undefined },
+  { key: "all", label: "User News", status: undefined },
   { key: "pending", label: "Pending Review", status: "submitted" },
   { key: "published", label: "Published", status: "approved" },
   { key: "rejected", label: "Rejected", status: "rejected" },
@@ -50,13 +50,29 @@ function getNewsLocation(row: NewsItem) {
   return { primary: visibility.type, secondary: detail };
 }
 
+function getVisibilityLabel(row: NewsItem) {
+  const visibility = row.visibility;
+  const detail = [visibility?.state, visibility?.district, visibility?.area, visibility?.users].filter(Boolean).join(", ");
+  const labelMap: Record<string, string> = {
+    "All India": "National",
+    "By State": "State",
+    "By District": "District",
+    "By Area": "Area",
+    Private: "Private",
+  };
+  return {
+    label: labelMap[visibility?.type ?? "All India"] ?? "National",
+    detail,
+  };
+}
+
 function getShareUrl(newsId: string) {
   const configuredBase = import.meta.env.VITE_PUBLIC_SITE_URL;
   const origin = configuredBase?.trim() || (typeof window !== "undefined" ? window.location.origin : "");
   return `${origin.replace(/\/$/, "")}/news/${newsId}`;
 }
 
-function AllNewsPage() {
+function UserNewsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [search, setSearch] = useState("");
@@ -70,6 +86,8 @@ function AllNewsPage() {
   const [approveTarget, setApproveTarget] = useState<NewsItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<NewsItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [scheduleTarget, setScheduleTarget] = useState<NewsItem | null>(null);
+  const [scheduleDateTime, setScheduleDateTime] = useState("");
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const activeTab = TABS.find((item) => item.key === tab);
@@ -78,6 +96,7 @@ function AllNewsPage() {
       page,
       per_page: 10,
       search: debouncedSearch || undefined,
+      is_admin_news: false,
       category_id: categoryId === "all" ? undefined : Number(categoryId),
       status: status === "all" ? activeTab?.status : status,
       language_code: languageCode === "all" ? undefined : languageCode,
@@ -88,12 +107,13 @@ function AllNewsPage() {
   );
 
   const newsQuery = useNews(queryParams);
-  const statsQuery = useNewsStats();
+  const statsQuery = useNewsStats({ is_admin_news: false });
   const categoriesQuery = useCategories();
   const languagesQuery = useLanguages();
   const deleteNews = useDeleteNews();
   const approveNews = useApproveNews();
   const rejectNews = useRejectNews();
+  const scheduleNews = useScheduleNews();
   const shareNews = useShareNews();
   const sendNewsNotification = useSendNewsNotification();
   const rows = newsQuery.data?.items ?? [];
@@ -151,40 +171,64 @@ function AllNewsPage() {
           {r.thumbnail ? <img src={r.thumbnail} alt="" className="h-12 w-16 rounded object-cover shrink-0" /> : <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-muted text-xs text-muted-foreground">No media</div>}
           <div className="min-w-0">
             <p className="text-sm font-medium line-clamp-1">{r.title}</p>
-            <p className="text-xs text-muted-foreground">{r.contentType ?? "Article"}</p>
             <p className="text-xs text-muted-foreground">ID: #{r.code}</p>
           </div>
         </div>
       ),
     },
-    { key: "category", header: "Category", cell: (r) => <CategoryBadge category={r.category} /> },
-    { key: "language", header: "Language", cell: (r) => <span className="text-sm">{r.language}</span> },
     {
-      key: "location",
-      header: "Location",
+      key: "category",
+      header: "Category",
       cell: (r) => {
-        const location = getNewsLocation(r);
-        return location ? (
-          <div className="flex items-start gap-1.5">
-            <MapPin className="h-3.5 w-3.5 mt-0.5 text-primary" />
-            <div>
-              <p className="text-sm">{location.primary}</p>
-              {location.secondary && <p className="text-xs text-muted-foreground">{location.secondary}</p>}
-            </div>
+        const cats = r.categories?.map((c) => c.name).filter(Boolean) || [];
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[120px]">
+            {cats.length > 0 ? (
+              cats.map((cat, idx) => <CategoryBadge key={idx} category={cat} />)
+            ) : (
+              <CategoryBadge category="General" />
+            )}
           </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
         );
       },
     },
     {
-      key: "views",
-      header: "Views",
-      cell: (r) => (
-        <span className="text-sm inline-flex items-center gap-1">
-          {r.views.toLocaleString()} <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-        </span>
-      ),
+      key: "language",
+      header: "Default Language",
+      cell: (r) => <span className="text-sm font-medium">{r.language}</span>,
+    },
+    {
+      key: "additionalLanguage",
+      header: "Additional Language",
+      cell: (r) => {
+        const additionalCodes = r.translations?.map((t) => t.language_code?.toUpperCase()).filter(Boolean) || [];
+        return (
+          <span className="text-sm">
+            {additionalCodes.length > 0 ? additionalCodes.join(", ") : "—"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "location",
+      header: "User Location",
+      cell: (r) => {
+        const locs = [r.location?.state, r.location?.district, r.location?.area].filter(Boolean);
+        return <span className="text-sm">{locs.length > 0 ? locs.join(" > ") : "National"}</span>;
+      },
+    },
+    {
+      key: "visibility",
+      header: "Visibility",
+      cell: (r) => {
+        const visibility = getVisibilityLabel(r);
+        return (
+          <div>
+            <p className="text-sm font-medium">{visibility.label}</p>
+            {visibility.detail && <p className="text-xs text-muted-foreground">{visibility.detail}</p>}
+          </div>
+        );
+      },
     },
     {
       key: "uploadedBy",
@@ -214,6 +258,11 @@ function AllNewsPage() {
       cell: (r) => <span className="text-sm whitespace-nowrap">{r.uploadedOn ?? r.publishedOn ?? "—"}</span>,
     },
     {
+      key: "updatedOn",
+      header: "Last Updated On",
+      cell: (r) => <span className="text-sm whitespace-nowrap">{r.updatedAt ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(r.updatedAt)) : "—"}</span>,
+    },
+    {
       key: "actions",
       header: "Actions",
       cell: (r) => (
@@ -222,7 +271,7 @@ function AllNewsPage() {
           onEdit={() => navigate({ to: "/news/$newsId/edit", params: { newsId: r.id } })}
           extraItems={[
             {
-              label: sendNewsNotification.isPending ? "Sending Notification..." : "Send Notification",
+              label: sendNewsNotification.isPending ? "Sending ..." : "Send Notification",
               icon: Bell,
               onClick: () => handleSendNotification(r),
             },
@@ -233,6 +282,14 @@ function AllNewsPage() {
             ...(["Pending", "Scheduled"].includes(r.status)
               ? [{ label: "Reject", icon: XCircle, onClick: () => { setRejectTarget(r); setRejectReason(""); } }]
               : []),
+            {
+              label: "Schedule",
+              icon: CalendarClock,
+              onClick: () => {
+                setScheduleTarget(r);
+                setScheduleDateTime("");
+              },
+            },
           ]}
           onDelete={() => setDeleteTarget(r)}
         />
@@ -254,11 +311,11 @@ function AllNewsPage() {
     <>
       <div>
         <PageHeader
-          title="News Management"
+          title="User News"
           breadcrumbs={[
             { label: "Dashboard", to: ROUTES.DASHBOARD },
             { label: "News Management" },
-            { label: "All News" },
+            { label: "User News" },
           ]}
         />
 
@@ -320,7 +377,7 @@ function AllNewsPage() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatsCard title="Total News" value={(stats?.total ?? 0).toLocaleString()} icon={FileText} variant="red" />
+          <StatsCard title="Total User News" value={(stats?.user_news ?? stats?.total ?? 0).toLocaleString()} icon={FileText} variant="red" />
           <StatsCard title="Published" value={(stats?.approved ?? 0).toLocaleString()} icon={CheckCircle2} variant="green" />
           <StatsCard title="Pending Review" value={(stats?.submitted ?? 0).toLocaleString()} icon={Clock} variant="amber" />
           <StatsCard title="Rejected" value={(stats?.rejected ?? 0).toLocaleString()} icon={XCircle} variant="rose" />
@@ -338,8 +395,8 @@ function AllNewsPage() {
           total={newsQuery.data?.total ?? rows.length}
           onPageChange={setPage}
           serverPaged
-          emptyTitle="No news found"
-          emptyDescription="Backend returned no news for the selected filters."
+          emptyTitle="No user news found"
+          emptyDescription="Backend returned no user news for the selected filters."
         />
       </div>
       <ConfirmDialog
@@ -402,6 +459,29 @@ function AllNewsPage() {
           }
         }}
       />
+      <ConfirmDialog
+        open={Boolean(scheduleTarget)}
+        onOpenChange={(open) => !open && setScheduleTarget(null)}
+        title="Schedule news?"
+        description="Choose a future date and time."
+        confirmLabel={scheduleNews.isPending ? "Scheduling..." : "Schedule"}
+        onConfirm={async () => {
+          if (!scheduleTarget) return;
+          if (!scheduleDateTime) {
+            toast.error("Select a schedule date and time");
+            return;
+          }
+          try {
+            await scheduleNews.mutateAsync({ id: scheduleTarget.id, scheduledFor: new Date(scheduleDateTime).toISOString() });
+            toast.success("News scheduled");
+            setScheduleTarget(null);
+          } catch (err) {
+            toast.error(isAuthApiError(err) ? "Backend auth is required to schedule news." : "Unable to schedule news");
+          }
+        }}
+      >
+        <Input type="datetime-local" value={scheduleDateTime} onChange={(event) => setScheduleDateTime(event.target.value)} />
+      </ConfirmDialog>
     </>
   );
 }
