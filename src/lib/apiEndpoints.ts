@@ -1,4 +1,4 @@
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://janu1g3okwroefybl3f4tvmw.195.35.7.46.sslip.io";
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://api.pehlibaat.com";
 
 function resolveApiOrigin(baseUrl: string) {
   const normalized = baseUrl.replace(/\/$/, "");
