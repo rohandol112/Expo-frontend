@@ -48,6 +48,13 @@ export const ROUTES = {
   SYS_TRANSLATIONS: "/system/translations",
   SETTINGS: "/settings",
   CMS: "/cms",
+  COMPETITION: "/competition",
+  COMPETITION_LEADERBOARD: "/competition/leaderboard",
+  COMPETITION_PARTICIPANTS: "/competition/participants",
+  COMPETITION_PARTICIPANT: (id: string) => `/competition/participants/${id}`,
+  COMPETITION_BANNER_REVIEW: "/competition/banner-review",
+  COMPETITION_AI_CALLING: "/competition/ai-calling",
+  COMPETITION_SETTINGS: "/competition/settings",
 } as const;
 
 export type AppRoute = Extract<(typeof ROUTES)[keyof typeof ROUTES], string>;
