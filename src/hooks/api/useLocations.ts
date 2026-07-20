@@ -29,8 +29,8 @@ export function useStates(params?: LocationListParams) {
   return useQuery({ queryKey: locationKeys.states(params), queryFn: () => locationService.listStates(params), retry: false });
 }
 
-export function useStateItem(id: string) {
-  return useQuery({ queryKey: locationKeys.state(id), queryFn: () => locationService.getState(id), enabled: Boolean(id), retry: false });
+export function useStateItem(id: string, languageCode?: string) {
+  return useQuery({ queryKey: locationKeys.state(id), queryFn: () => locationService.getState(id, languageCode), enabled: Boolean(id), retry: false });
 }
 
 export function useCreateState() {
@@ -44,7 +44,8 @@ export function useCreateState() {
 export function useUpdateState() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateStatePayload }) => locationService.updateState(id, payload),
+    mutationFn: ({ id, payload, languageCode }: { id: string; payload: UpdateStatePayload; languageCode?: string }) =>
+      locationService.updateState(id, payload, languageCode),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: locationKeys.all });
       queryClient.invalidateQueries({ queryKey: locationKeys.state(variables.id) });
@@ -72,8 +73,8 @@ export function useDistricts(params?: LocationListParams) {
   return useQuery({ queryKey: locationKeys.districts(params), queryFn: () => locationService.listDistricts(params), retry: false });
 }
 
-export function useDistrict(id: string) {
-  return useQuery({ queryKey: locationKeys.district(id), queryFn: () => locationService.getDistrict(id), enabled: Boolean(id), retry: false });
+export function useDistrict(id: string, languageCode?: string) {
+  return useQuery({ queryKey: locationKeys.district(id), queryFn: () => locationService.getDistrict(id, languageCode), enabled: Boolean(id), retry: false });
 }
 
 export function useCreateDistrict() {
@@ -87,7 +88,8 @@ export function useCreateDistrict() {
 export function useUpdateDistrict() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateDistrictPayload }) => locationService.updateDistrict(id, payload),
+    mutationFn: ({ id, payload, languageCode }: { id: string; payload: UpdateDistrictPayload; languageCode?: string }) =>
+      locationService.updateDistrict(id, payload, languageCode),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: locationKeys.all });
       queryClient.invalidateQueries({ queryKey: locationKeys.district(variables.id) });
@@ -115,8 +117,8 @@ export function useAreas(params?: LocationListParams) {
   return useQuery({ queryKey: locationKeys.areas(params), queryFn: () => locationService.listAreas(params), retry: false });
 }
 
-export function useArea(id: string) {
-  return useQuery({ queryKey: locationKeys.area(id), queryFn: () => locationService.getArea(id), enabled: Boolean(id), retry: false });
+export function useArea(id: string, languageCode?: string) {
+  return useQuery({ queryKey: locationKeys.area(id), queryFn: () => locationService.getArea(id, languageCode), enabled: Boolean(id), retry: false });
 }
 
 export function useCreateArea() {
@@ -130,7 +132,8 @@ export function useCreateArea() {
 export function useUpdateArea() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateAreaPayload }) => locationService.updateArea(id, payload),
+    mutationFn: ({ id, payload, languageCode }: { id: string; payload: UpdateAreaPayload; languageCode?: string }) =>
+      locationService.updateArea(id, payload, languageCode),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: locationKeys.all });
       queryClient.invalidateQueries({ queryKey: locationKeys.area(variables.id) });

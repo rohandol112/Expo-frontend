@@ -27,6 +27,7 @@ import { Route as AppComplaintsRouteImport } from './routes/_app/complaints'
 import { Route as AppCmsRouteImport } from './routes/_app/cms'
 import { Route as AppChannelsRouteImport } from './routes/_app/channels'
 import { Route as AppCategoriesRouteImport } from './routes/_app/categories'
+import { Route as AppCompetitionIndexRouteImport } from './routes/_app/competition/index'
 import { Route as AppSystemTranslationsRouteImport } from './routes/_app/system/translations'
 import { Route as AppSystemRolesRouteImport } from './routes/_app/system/roles'
 import { Route as AppSystemLocationRouteImport } from './routes/_app/system/location'
@@ -43,6 +44,11 @@ import { Route as AppListingsAddRouteImport } from './routes/_app/listings/add'
 import { Route as AppComplaintsCategoriesRouteImport } from './routes/_app/complaints/categories'
 import { Route as AppComplaintsAssignRulesRouteImport } from './routes/_app/complaints/assign-rules'
 import { Route as AppComplaintsComplaintIdRouteImport } from './routes/_app/complaints/$complaintId'
+import { Route as AppCompetitionSettingsRouteImport } from './routes/_app/competition/settings'
+import { Route as AppCompetitionParticipantsRouteImport } from './routes/_app/competition/participants'
+import { Route as AppCompetitionLeaderboardRouteImport } from './routes/_app/competition/leaderboard'
+import { Route as AppCompetitionBannerReviewRouteImport } from './routes/_app/competition/banner-review'
+import { Route as AppCompetitionAiCallingRouteImport } from './routes/_app/competition/ai-calling'
 import { Route as AppChannelsAddRouteImport } from './routes/_app/channels/add'
 import { Route as AppCategoriesAddRouteImport } from './routes/_app/categories/add'
 import { Route as AppNotificationsNotificationIdIndexRouteImport } from './routes/_app/notifications/$notificationId/index'
@@ -58,6 +64,7 @@ import { Route as AppSystemLanguageAddRouteImport } from './routes/_app/system/l
 import { Route as AppNotificationsNotificationIdEditRouteImport } from './routes/_app/notifications/$notificationId/edit'
 import { Route as AppNewsNewsIdEditRouteImport } from './routes/_app/news/$newsId/edit'
 import { Route as AppFeedbackFeedbackIdEditRouteImport } from './routes/_app/feedback/$feedbackId/edit'
+import { Route as AppCompetitionParticipantsParticipantIdRouteImport } from './routes/_app/competition/participants/$participantId'
 import { Route as AppChannelsChannelIdEditRouteImport } from './routes/_app/channels/$channelId/edit'
 import { Route as AppCategoriesCategoryIdEditRouteImport } from './routes/_app/categories/$categoryId/edit'
 import { Route as AppSystemTranslationsTranslationIdIndexRouteImport } from './routes/_app/system/translations/$translationId/index'
@@ -162,6 +169,11 @@ const AppCategoriesRoute = AppCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCompetitionIndexRoute = AppCompetitionIndexRouteImport.update({
+  id: '/competition/',
+  path: '/competition/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSystemTranslationsRoute = AppSystemTranslationsRouteImport.update({
   id: '/system/translations',
   path: '/system/translations',
@@ -244,6 +256,34 @@ const AppComplaintsComplaintIdRoute =
     path: '/$complaintId',
     getParentRoute: () => AppComplaintsRoute,
   } as any)
+const AppCompetitionSettingsRoute = AppCompetitionSettingsRouteImport.update({
+  id: '/competition/settings',
+  path: '/competition/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCompetitionParticipantsRoute =
+  AppCompetitionParticipantsRouteImport.update({
+    id: '/competition/participants',
+    path: '/competition/participants',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppCompetitionLeaderboardRoute =
+  AppCompetitionLeaderboardRouteImport.update({
+    id: '/competition/leaderboard',
+    path: '/competition/leaderboard',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppCompetitionBannerReviewRoute =
+  AppCompetitionBannerReviewRouteImport.update({
+    id: '/competition/banner-review',
+    path: '/competition/banner-review',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppCompetitionAiCallingRoute = AppCompetitionAiCallingRouteImport.update({
+  id: '/competition/ai-calling',
+  path: '/competition/ai-calling',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppChannelsAddRoute = AppChannelsAddRouteImport.update({
   id: '/add',
   path: '/add',
@@ -325,6 +365,12 @@ const AppFeedbackFeedbackIdEditRoute =
     id: '/$feedbackId/edit',
     path: '/$feedbackId/edit',
     getParentRoute: () => AppFeedbackRoute,
+  } as any)
+const AppCompetitionParticipantsParticipantIdRoute =
+  AppCompetitionParticipantsParticipantIdRouteImport.update({
+    id: '/$participantId',
+    path: '/$participantId',
+    getParentRoute: () => AppCompetitionParticipantsRoute,
   } as any)
 const AppChannelsChannelIdEditRoute =
   AppChannelsChannelIdEditRouteImport.update({
@@ -431,6 +477,11 @@ export interface FileRoutesByFullPath {
   '/users': typeof AppUsersRoute
   '/categories/add': typeof AppCategoriesAddRoute
   '/channels/add': typeof AppChannelsAddRoute
+  '/competition/ai-calling': typeof AppCompetitionAiCallingRoute
+  '/competition/banner-review': typeof AppCompetitionBannerReviewRoute
+  '/competition/leaderboard': typeof AppCompetitionLeaderboardRoute
+  '/competition/participants': typeof AppCompetitionParticipantsRouteWithChildren
+  '/competition/settings': typeof AppCompetitionSettingsRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
   '/complaints/categories': typeof AppComplaintsCategoriesRoute
@@ -447,8 +498,10 @@ export interface FileRoutesByFullPath {
   '/system/location': typeof AppSystemLocationRouteWithChildren
   '/system/roles': typeof AppSystemRolesRouteWithChildren
   '/system/translations': typeof AppSystemTranslationsRouteWithChildren
+  '/competition/': typeof AppCompetitionIndexRoute
   '/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
   '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/competition/participants/$participantId': typeof AppCompetitionParticipantsParticipantIdRoute
   '/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
   '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/notifications/$notificationId/edit': typeof AppNotificationsNotificationIdEditRoute
@@ -495,6 +548,11 @@ export interface FileRoutesByTo {
   '/users': typeof AppUsersRoute
   '/categories/add': typeof AppCategoriesAddRoute
   '/channels/add': typeof AppChannelsAddRoute
+  '/competition/ai-calling': typeof AppCompetitionAiCallingRoute
+  '/competition/banner-review': typeof AppCompetitionBannerReviewRoute
+  '/competition/leaderboard': typeof AppCompetitionLeaderboardRoute
+  '/competition/participants': typeof AppCompetitionParticipantsRouteWithChildren
+  '/competition/settings': typeof AppCompetitionSettingsRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
   '/complaints/categories': typeof AppComplaintsCategoriesRoute
@@ -511,8 +569,10 @@ export interface FileRoutesByTo {
   '/system/location': typeof AppSystemLocationRouteWithChildren
   '/system/roles': typeof AppSystemRolesRouteWithChildren
   '/system/translations': typeof AppSystemTranslationsRouteWithChildren
+  '/competition': typeof AppCompetitionIndexRoute
   '/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
   '/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/competition/participants/$participantId': typeof AppCompetitionParticipantsParticipantIdRoute
   '/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
   '/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/notifications/$notificationId/edit': typeof AppNotificationsNotificationIdEditRoute
@@ -561,6 +621,11 @@ export interface FileRoutesById {
   '/_app/users': typeof AppUsersRoute
   '/_app/categories/add': typeof AppCategoriesAddRoute
   '/_app/channels/add': typeof AppChannelsAddRoute
+  '/_app/competition/ai-calling': typeof AppCompetitionAiCallingRoute
+  '/_app/competition/banner-review': typeof AppCompetitionBannerReviewRoute
+  '/_app/competition/leaderboard': typeof AppCompetitionLeaderboardRoute
+  '/_app/competition/participants': typeof AppCompetitionParticipantsRouteWithChildren
+  '/_app/competition/settings': typeof AppCompetitionSettingsRoute
   '/_app/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/_app/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
   '/_app/complaints/categories': typeof AppComplaintsCategoriesRoute
@@ -577,8 +642,10 @@ export interface FileRoutesById {
   '/_app/system/location': typeof AppSystemLocationRouteWithChildren
   '/_app/system/roles': typeof AppSystemRolesRouteWithChildren
   '/_app/system/translations': typeof AppSystemTranslationsRouteWithChildren
+  '/_app/competition/': typeof AppCompetitionIndexRoute
   '/_app/categories/$categoryId/edit': typeof AppCategoriesCategoryIdEditRoute
   '/_app/channels/$channelId/edit': typeof AppChannelsChannelIdEditRoute
+  '/_app/competition/participants/$participantId': typeof AppCompetitionParticipantsParticipantIdRoute
   '/_app/feedback/$feedbackId/edit': typeof AppFeedbackFeedbackIdEditRoute
   '/_app/news/$newsId/edit': typeof AppNewsNewsIdEditRoute
   '/_app/notifications/$notificationId/edit': typeof AppNotificationsNotificationIdEditRoute
@@ -627,6 +694,11 @@ export interface FileRouteTypes {
     | '/users'
     | '/categories/add'
     | '/channels/add'
+    | '/competition/ai-calling'
+    | '/competition/banner-review'
+    | '/competition/leaderboard'
+    | '/competition/participants'
+    | '/competition/settings'
     | '/complaints/$complaintId'
     | '/complaints/assign-rules'
     | '/complaints/categories'
@@ -643,8 +715,10 @@ export interface FileRouteTypes {
     | '/system/location'
     | '/system/roles'
     | '/system/translations'
+    | '/competition/'
     | '/categories/$categoryId/edit'
     | '/channels/$channelId/edit'
+    | '/competition/participants/$participantId'
     | '/feedback/$feedbackId/edit'
     | '/news/$newsId/edit'
     | '/notifications/$notificationId/edit'
@@ -691,6 +765,11 @@ export interface FileRouteTypes {
     | '/users'
     | '/categories/add'
     | '/channels/add'
+    | '/competition/ai-calling'
+    | '/competition/banner-review'
+    | '/competition/leaderboard'
+    | '/competition/participants'
+    | '/competition/settings'
     | '/complaints/$complaintId'
     | '/complaints/assign-rules'
     | '/complaints/categories'
@@ -707,8 +786,10 @@ export interface FileRouteTypes {
     | '/system/location'
     | '/system/roles'
     | '/system/translations'
+    | '/competition'
     | '/categories/$categoryId/edit'
     | '/channels/$channelId/edit'
+    | '/competition/participants/$participantId'
     | '/feedback/$feedbackId/edit'
     | '/news/$newsId/edit'
     | '/notifications/$notificationId/edit'
@@ -756,6 +837,11 @@ export interface FileRouteTypes {
     | '/_app/users'
     | '/_app/categories/add'
     | '/_app/channels/add'
+    | '/_app/competition/ai-calling'
+    | '/_app/competition/banner-review'
+    | '/_app/competition/leaderboard'
+    | '/_app/competition/participants'
+    | '/_app/competition/settings'
     | '/_app/complaints/$complaintId'
     | '/_app/complaints/assign-rules'
     | '/_app/complaints/categories'
@@ -772,8 +858,10 @@ export interface FileRouteTypes {
     | '/_app/system/location'
     | '/_app/system/roles'
     | '/_app/system/translations'
+    | '/_app/competition/'
     | '/_app/categories/$categoryId/edit'
     | '/_app/channels/$channelId/edit'
+    | '/_app/competition/participants/$participantId'
     | '/_app/feedback/$feedbackId/edit'
     | '/_app/news/$newsId/edit'
     | '/_app/notifications/$notificationId/edit'
@@ -935,6 +1023,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCategoriesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/competition/': {
+      id: '/_app/competition/'
+      path: '/competition'
+      fullPath: '/competition/'
+      preLoaderRoute: typeof AppCompetitionIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/system/translations': {
       id: '/_app/system/translations'
       path: '/system/translations'
@@ -1047,6 +1142,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppComplaintsComplaintIdRouteImport
       parentRoute: typeof AppComplaintsRoute
     }
+    '/_app/competition/settings': {
+      id: '/_app/competition/settings'
+      path: '/competition/settings'
+      fullPath: '/competition/settings'
+      preLoaderRoute: typeof AppCompetitionSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/competition/participants': {
+      id: '/_app/competition/participants'
+      path: '/competition/participants'
+      fullPath: '/competition/participants'
+      preLoaderRoute: typeof AppCompetitionParticipantsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/competition/leaderboard': {
+      id: '/_app/competition/leaderboard'
+      path: '/competition/leaderboard'
+      fullPath: '/competition/leaderboard'
+      preLoaderRoute: typeof AppCompetitionLeaderboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/competition/banner-review': {
+      id: '/_app/competition/banner-review'
+      path: '/competition/banner-review'
+      fullPath: '/competition/banner-review'
+      preLoaderRoute: typeof AppCompetitionBannerReviewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/competition/ai-calling': {
+      id: '/_app/competition/ai-calling'
+      path: '/competition/ai-calling'
+      fullPath: '/competition/ai-calling'
+      preLoaderRoute: typeof AppCompetitionAiCallingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/channels/add': {
       id: '/_app/channels/add'
       path: '/add'
@@ -1151,6 +1281,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/feedback/$feedbackId/edit'
       preLoaderRoute: typeof AppFeedbackFeedbackIdEditRouteImport
       parentRoute: typeof AppFeedbackRoute
+    }
+    '/_app/competition/participants/$participantId': {
+      id: '/_app/competition/participants/$participantId'
+      path: '/$participantId'
+      fullPath: '/competition/participants/$participantId'
+      preLoaderRoute: typeof AppCompetitionParticipantsParticipantIdRouteImport
+      parentRoute: typeof AppCompetitionParticipantsRoute
     }
     '/_app/channels/$channelId/edit': {
       id: '/_app/channels/$channelId/edit'
@@ -1368,6 +1505,21 @@ const AppOffersRouteWithChildren = AppOffersRoute._addFileChildren(
   AppOffersRouteChildren,
 )
 
+interface AppCompetitionParticipantsRouteChildren {
+  AppCompetitionParticipantsParticipantIdRoute: typeof AppCompetitionParticipantsParticipantIdRoute
+}
+
+const AppCompetitionParticipantsRouteChildren: AppCompetitionParticipantsRouteChildren =
+  {
+    AppCompetitionParticipantsParticipantIdRoute:
+      AppCompetitionParticipantsParticipantIdRoute,
+  }
+
+const AppCompetitionParticipantsRouteWithChildren =
+  AppCompetitionParticipantsRoute._addFileChildren(
+    AppCompetitionParticipantsRouteChildren,
+  )
+
 interface AppSystemLanguageRouteChildren {
   AppSystemLanguageAddRoute: typeof AppSystemLanguageAddRoute
   AppSystemLanguageLanguageIdEditRoute: typeof AppSystemLanguageLanguageIdEditRoute
@@ -1498,6 +1650,11 @@ interface AppRouteChildren {
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppUsersRoute: typeof AppUsersRoute
+  AppCompetitionAiCallingRoute: typeof AppCompetitionAiCallingRoute
+  AppCompetitionBannerReviewRoute: typeof AppCompetitionBannerReviewRoute
+  AppCompetitionLeaderboardRoute: typeof AppCompetitionLeaderboardRoute
+  AppCompetitionParticipantsRoute: typeof AppCompetitionParticipantsRouteWithChildren
+  AppCompetitionSettingsRoute: typeof AppCompetitionSettingsRoute
   AppNewsAddRoute: typeof AppNewsAddRoute
   AppNewsAdminRoute: typeof AppNewsAdminRoute
   AppNewsAllRoute: typeof AppNewsAllRoute
@@ -1507,6 +1664,7 @@ interface AppRouteChildren {
   AppSystemLocationRoute: typeof AppSystemLocationRouteWithChildren
   AppSystemRolesRoute: typeof AppSystemRolesRouteWithChildren
   AppSystemTranslationsRoute: typeof AppSystemTranslationsRouteWithChildren
+  AppCompetitionIndexRoute: typeof AppCompetitionIndexRoute
   AppNewsNewsIdEditRoute: typeof AppNewsNewsIdEditRoute
   AppNewsNewsIdIndexRoute: typeof AppNewsNewsIdIndexRoute
 }
@@ -1527,6 +1685,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppUsersRoute: AppUsersRoute,
+  AppCompetitionAiCallingRoute: AppCompetitionAiCallingRoute,
+  AppCompetitionBannerReviewRoute: AppCompetitionBannerReviewRoute,
+  AppCompetitionLeaderboardRoute: AppCompetitionLeaderboardRoute,
+  AppCompetitionParticipantsRoute: AppCompetitionParticipantsRouteWithChildren,
+  AppCompetitionSettingsRoute: AppCompetitionSettingsRoute,
   AppNewsAddRoute: AppNewsAddRoute,
   AppNewsAdminRoute: AppNewsAdminRoute,
   AppNewsAllRoute: AppNewsAllRoute,
@@ -1536,6 +1699,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSystemLocationRoute: AppSystemLocationRouteWithChildren,
   AppSystemRolesRoute: AppSystemRolesRouteWithChildren,
   AppSystemTranslationsRoute: AppSystemTranslationsRouteWithChildren,
+  AppCompetitionIndexRoute: AppCompetitionIndexRoute,
   AppNewsNewsIdEditRoute: AppNewsNewsIdEditRoute,
   AppNewsNewsIdIndexRoute: AppNewsNewsIdIndexRoute,
 }

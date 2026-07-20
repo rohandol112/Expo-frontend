@@ -46,7 +46,7 @@ function EditAreaPage() {
 
   const onSubmit = (values: FormValues) => {
     updateArea.mutate(
-      { id: areaId, payload: { name: values.name, sort_order: values.sortOrder, is_active: values.status === "Active" } },
+      { id: areaId, payload: { name: values.name, sort_order: values.sortOrder, is_active: values.status === "Active" }, languageCode: areaQuery.data?.language_code },
       {
         onSuccess: () => {
           toast.success("Area updated.");

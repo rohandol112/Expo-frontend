@@ -47,7 +47,7 @@ function EditDistrictPage() {
 
   const onSubmit = (values: FormValues) => {
     updateDistrict.mutate(
-      { id: districtId, payload: { name: values.name, code: values.code || null, sort_order: values.sortOrder, is_active: values.status === "Active" } },
+      { id: districtId, payload: { name: values.name, code: values.code || null, sort_order: values.sortOrder, is_active: values.status === "Active" }, languageCode: districtQuery.data?.language_code },
       {
         onSuccess: () => {
           toast.success("District updated.");

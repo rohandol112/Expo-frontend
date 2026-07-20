@@ -19,6 +19,7 @@ import {
   Settings,
   ChevronDown,
   Globe,
+  Trophy,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,18 @@ const MENU: Item[] = [
   { label: "News Tags", icon: Hash, to: ROUTES.NEWS_TAGS },
   { label: "Complaints", icon: MessageSquareWarning, to: ROUTES.COMPLAINTS },
   { label: "Users", icon: Users, to: ROUTES.USERS },
+  {
+    label: "Competition",
+    icon: Trophy,
+    children: [
+      { label: "Overview", to: ROUTES.COMPETITION },
+      { label: "Leaderboard", to: ROUTES.COMPETITION_LEADERBOARD },
+      { label: "Participants", to: ROUTES.COMPETITION_PARTICIPANTS },
+      { label: "Banner Review", to: ROUTES.COMPETITION_BANNER_REVIEW },
+      { label: "AI Calling Campaign", to: ROUTES.COMPETITION_AI_CALLING },
+      { label: "Settings", to: ROUTES.COMPETITION_SETTINGS },
+    ],
+  },
   { label: "Channels", icon: Tv, to: ROUTES.CHANNELS },
   { label: "Reports", icon: BarChart3, to: ROUTES.REPORTS },
   { label: "Notifications", icon: Bell, to: ROUTES.NOTIFICATIONS },
@@ -81,6 +94,7 @@ export function Sidebar() {
   const [open, setOpen] = useState<Record<string, boolean>>({
     "News Management": pathname.startsWith("/news"),
     "System Management": pathname.startsWith("/system"),
+    Competition: pathname.startsWith("/competition"),
   });
 
   return (

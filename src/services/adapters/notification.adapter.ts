@@ -130,6 +130,7 @@ export function toNotification(row: BackendNotification): NewsNotification {
     scheduledAt: row.scheduled_at,
     expiresAt: row.expires_at,
     sentOn: formatDate(row.sent_at || row.sent_on || row.published_at || row.scheduled_at || row.created_at),
+    sentAt: row.sent_at || row.sent_on || undefined,
     reach: row.reach ?? row.total_reach ?? row.recipients ?? 0,
     open: row.open ?? row.opens ?? row.open_count ?? 0,
     status: normalizeStatus(row.status),

@@ -23,6 +23,8 @@ export interface NewsNotification {
   scheduledAt?: string;
   expiresAt?: string;
   sentOn: string;
+  /** Raw sent timestamp; present only once the push actually went out. */
+  sentAt?: string;
   reach: number;
   open: number;
   status: NotificationStatus;

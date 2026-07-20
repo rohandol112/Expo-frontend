@@ -39,18 +39,28 @@ function NotificationDetailPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button
-              onClick={() =>
-                sendMutation.mutate(notificationId, {
-                  onSuccess: () => toast.success("Notification sent."),
-                  onError: (error) => toast.error(getErrorMessage(error)),
-                })
-              }
-              disabled={sendMutation.isPending}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              Send
-            </Button>
+            {/* Publishing already auto-sends; "Send" is a retry only, and once
+                the push has gone out it must not be re-fired (duplicate pushes). */}
+            {notification?.status === "published" && !notification?.sentAt && (
+              <Button
+                onClick={() =>
+                  sendMutation.mutate(notificationId, {
+                    onSuccess: () => toast.success("Notification sent."),
+                    onError: (error) => toast.error(getErrorMessage(error)),
+                  })
+                }
+                disabled={sendMutation.isPending}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Send
+              </Button>
+            )}
+            {notification?.sentAt && (
+              <Button variant="outline" disabled>
+                <Send className="mr-2 h-4 w-4" />
+                Sent
+              </Button>
+            )}
           </div>
         }
       />

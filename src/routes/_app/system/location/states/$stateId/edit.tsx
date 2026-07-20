@@ -57,7 +57,7 @@ function EditStatePage() {
 
   const onSubmit = (values: FormValues) => {
     updateState.mutate(
-      { id: stateId, payload: { name: values.name, sort_order: values.sortOrder, is_active: values.status === "Active" } },
+      { id: stateId, payload: { name: values.name, sort_order: values.sortOrder, is_active: values.status === "Active" }, languageCode: stateQuery.data?.language_code },
       {
         onSuccess: () => {
           if (imageFile) {
