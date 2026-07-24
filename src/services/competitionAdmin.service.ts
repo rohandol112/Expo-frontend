@@ -6,8 +6,11 @@ import type {
   AdminEntryListItem,
   CompetitionAdminStats,
   CompetitionConfig,
+  CreateFormFieldInput,
+  FormField,
   LeaderboardData,
   Paged,
+  UpdateEntryInput,
 } from "@/types/competitionAdmin";
 
 export type EntryListParams = {
@@ -59,6 +62,14 @@ export const competitionAdminService = {
     });
   },
 
+  updateEntry(id: string | number, patch: UpdateEntryInput) {
+    return httpClient.put<AdminEntryDetail>(API.competition.adminUpdateEntry(id), patch);
+  },
+
+  saveEntryNote(id: string | number, note: string) {
+    return httpClient.put<{ id: number; admin_notes: string }>(API.competition.adminEntryNotes(id), { note });
+  },
+
   banners(params?: BannerListParams) {
     return httpClient.get<AdminBannerListData>(API.competition.adminBanners, { params });
   },
@@ -84,7 +95,42 @@ export const competitionAdminService = {
     return httpClient.get<CompetitionConfig>(API.competition.publicConfig);
   },
 
-  updateConfig(patch: Partial<Pick<CompetitionConfig, "title" | "subtitle" | "is_active" | "banner_points" | "voting_starts_at" | "voting_ends_at">>) {
+  updateConfig(patch: Partial<CompetitionConfig>) {
     return httpClient.put<CompetitionConfig>(API.competition.adminConfig, patch);
+  },
+
+  assetUploadUrl(fileName: string, contentType: string, asset: "share_template" | "banner") {
+    return httpClient.post<{ upload_url: string; file_key: string; expires_in: number }>(
+      API.competition.adminAssetUploadUrl,
+      { file_name: fileName, content_type: contentType, asset },
+    );
+  },
+
+  /** Presign, PUT the file to R2, and return the stored key. */
+  async uploadAsset(file: File, asset: "share_template" | "banner"): Promise<string> {
+    const { upload_url, file_key } = await this.assetUploadUrl(file.name, file.type, asset);
+    const put = await fetch(upload_url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+    if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+    return file_key;
+  },
+
+  formFields() {
+    return httpClient.get<FormField[]>(API.competition.adminFormFields);
+  },
+
+  createFormField(input: CreateFormFieldInput) {
+    return httpClient.post<FormField>(API.competition.adminFormFields, input);
+  },
+
+  updateFormField(id: number, patch: Partial<CreateFormFieldInput>) {
+    return httpClient.put<FormField>(API.competition.adminFormField(id), patch);
+  },
+
+  deleteFormField(id: number) {
+    return httpClient.delete<{ id: number }>(API.competition.adminFormField(id));
+  },
+
+  reorderFormFields(ids: number[]) {
+    return httpClient.put<FormField[]>(API.competition.adminFormFieldsReorder, { ids });
   },
 };

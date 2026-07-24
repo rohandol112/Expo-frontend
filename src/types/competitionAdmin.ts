@@ -4,18 +4,28 @@ export type PandalStatus = "submitted" | "approved" | "rejected";
 export type BannerStatus = "in_review" | "approved" | "rejected";
 export type BannerAiStatus = "pending" | "approved" | "rejected" | "uncertain" | "failed";
 
+export interface AreaStatItem {
+  area_id: number | null;
+  area_name: string | null;
+  district_name: string | null;
+  participants: number;
+  votes: number;
+}
+
 export interface CompetitionAdminStats {
   total_participants: number;
   approved_participants: number;
   pending_participants: number;
   rejected_participants: number;
   total_votes: number;
+  total_views: number;
   votes_today: number;
   banners_in_review: number;
   banners_ai_uncertain: number;
   voting_starts_at: string | null;
   voting_ends_at: string | null;
   is_active: boolean;
+  area_stats: AreaStatItem[];
 }
 
 export interface CompetitionConfig {
@@ -25,6 +35,36 @@ export interface CompetitionConfig {
   voting_ends_at: string | null;
   is_active: boolean;
   banner_points: number;
+  participation_starts_at: string | null;
+  participation_ends_at: string | null;
+  banner_upload_starts_at: string | null;
+  banner_upload_ends_at: string | null;
+  max_banners: number;
+  max_banner_file_size_mb: number;
+  allowed_banner_formats: string;
+  share_template_key: string | null;
+  share_template_url: string | null;
+  banner_image_key: string | null;
+  banner_image_url: string | null;
+  interstitial_frequency: number;
+  interstitial_unit_id_android: string | null;
+  interstitial_unit_id_ios: string | null;
+  share_vote_text: string;
+  share_support_text: string;
+  share_footer_text: string;
+  participant_note: string;
+  show_on_app: boolean;
+  allow_multiple_entries: boolean;
+  auto_publish_approved: boolean;
+  leaderboard_display: "always" | "after_voting_starts" | "after_voting_ends";
+  target_scope: "all" | "specific";
+  target_state_ids: number[];
+  target_district_ids: number[];
+  target_area_ids: number[];
+  button_scope: "all" | "specific";
+  button_state_ids: number[];
+  button_district_ids: number[];
+  button_area_ids: number[];
   total_pandals: number;
 }
 
@@ -66,6 +106,14 @@ export interface AdminEntryListItem {
   created_at: string;
 }
 
+export interface EntryActivity {
+  id: number;
+  type: string;
+  message: string;
+  actor_name: string | null;
+  created_at: string;
+}
+
 export interface AdminEntryDetail {
   id: number;
   name: string;
@@ -73,6 +121,9 @@ export interface AdminEntryDetail {
   established_year: number | null;
   committee_name: string;
   address: string;
+  state_id: number | null;
+  district_id: number | null;
+  area_id: number | null;
   state_name: string | null;
   district_name: string | null;
   area_name: string | null;
@@ -81,8 +132,31 @@ export interface AdminEntryDetail {
   total_votes: number;
   rank: number | null;
   status: PandalStatus;
+  rejection_reason: string | null;
+  entry_code: string;
+  admin_notes: string | null;
+  submitted_on: string | null;
+  submitted_by: string | null;
+  submitted_by_phone: string | null;
   contact: { name: string; phone: string; email: string | null; participant_type: string };
+  custom_fields: Record<string, string>;
   banners: AdminBanner[];
+  activity: EntryActivity[];
+}
+
+export interface UpdateEntryInput {
+  name?: string;
+  description?: string;
+  established_year?: number;
+  committee_name?: string;
+  address?: string;
+  state_id?: number;
+  district_id?: number;
+  area_id?: number;
+  participant_type?: "individual" | "organization";
+  contact_name?: string;
+  contact_phone?: string;
+  contact_email?: string | null;
 }
 
 export interface AdminBanner {
@@ -105,6 +179,7 @@ export interface AdminBannerListItem {
   image_url: string | null;
   file_name: string | null;
   status: BannerStatus;
+  rejection_reason: string | null;
   ai_status: BannerAiStatus;
   ai_confidence: number | null;
   ai_reasons: string[];
@@ -119,6 +194,26 @@ export interface AdminBannerListData {
   total: number;
   has_more: boolean;
   counts: { total: number; ai_approved: number; ai_uncertain: number; ai_rejected: number; manually_reviewed: number };
+}
+
+export type FormFieldType = "text" | "textarea" | "select" | "multiselect" | "date" | "phone" | "email" | "image";
+
+export interface FormField {
+  id: number;
+  field_key: string;
+  label: string;
+  field_type: FormFieldType;
+  is_required: boolean;
+  is_enabled: boolean;
+  is_system: boolean;
+  sort_order: number;
+}
+
+export interface CreateFormFieldInput {
+  label: string;
+  field_type: FormFieldType;
+  is_required: boolean;
+  is_enabled: boolean;
 }
 
 export interface Paged<T> {

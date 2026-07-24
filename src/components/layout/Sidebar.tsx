@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Globe,
   Trophy,
+  Megaphone,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -56,9 +57,17 @@ const MENU: Item[] = [
       { label: "Overview", to: ROUTES.COMPETITION },
       { label: "Leaderboard", to: ROUTES.COMPETITION_LEADERBOARD },
       { label: "Participants", to: ROUTES.COMPETITION_PARTICIPANTS },
-      { label: "Banner Review", to: ROUTES.COMPETITION_BANNER_REVIEW },
+      { label: "Banners", to: ROUTES.COMPETITION_BANNER_REVIEW },
       { label: "AI Calling Campaign", to: ROUTES.COMPETITION_AI_CALLING },
       { label: "Settings", to: ROUTES.COMPETITION_SETTINGS },
+    ],
+  },
+  {
+    label: "Advertisement",
+    icon: Megaphone,
+    children: [
+      { label: "Banner List", to: ROUTES.ADS_BANNERS },
+      { label: "Add New Banner", to: ROUTES.ADS_BANNERS_ADD },
     ],
   },
   { label: "Channels", icon: Tv, to: ROUTES.CHANNELS },

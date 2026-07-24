@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { CalendarCheck, CalendarClock, Image, ThumbsUp, Users, Vote } from "lucide-react";
+import { CalendarCheck, CalendarClock, Eye, Image, MapPin, ThumbsUp, Users, Vote } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatsGrid } from "@/components/admin/StatsGrid";
 import { SectionCard } from "@/components/admin/SectionCard";
@@ -51,6 +51,7 @@ function CompetitionOverviewPage() {
         items={[
           { title: "Total Participants", value: stats?.total_participants ?? 0, subtitle: `${stats?.approved_participants ?? 0} approved`, icon: Users, variant: "blue" },
           { title: "Total Votes", value: stats?.total_votes ?? 0, subtitle: `${stats?.votes_today ?? 0} today`, icon: ThumbsUp, variant: "green" },
+          { title: "Total Views", value: stats?.total_views ?? 0, subtitle: "pandal page views", icon: Eye, variant: "pink" },
           { title: "Pending Approvals", value: stats?.pending_participants ?? 0, subtitle: `${stats?.rejected_participants ?? 0} rejected`, icon: Vote, variant: "amber" },
           { title: "Banners In Review", value: stats?.banners_in_review ?? 0, subtitle: `${stats?.banners_ai_uncertain ?? 0} need manual review`, icon: Image, variant: "violet" },
         ]}
@@ -143,6 +144,37 @@ function CompetitionOverviewPage() {
           </div>
         )}
       </SectionCard>
+
+      <div className="mt-6">
+        <SectionCard title="Area-wise Statistics" action={<MapPin className="h-4 w-4 text-muted-foreground" />}>
+          {(stats?.area_stats?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">No approved participants yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                    <th className="py-2 pr-4">Area</th>
+                    <th className="py-2 pr-4">District</th>
+                    <th className="py-2 pr-4">Participants</th>
+                    <th className="py-2">Votes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats?.area_stats.map((a) => (
+                    <tr key={`${a.area_id}-${a.area_name}`} className="border-b last:border-0">
+                      <td className="py-2.5 pr-4 font-medium">{a.area_name ?? "—"}</td>
+                      <td className="py-2.5 pr-4 text-muted-foreground">{a.district_name ?? "—"}</td>
+                      <td className="py-2.5 pr-4">{a.participants.toLocaleString("en-IN")}</td>
+                      <td className="py-2.5 font-medium">{a.votes.toLocaleString("en-IN")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SectionCard>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import {
   type LeaderboardParams,
 } from "@/services/competitionAdmin.service";
 import { campaignService, type ContactListParams } from "@/services/campaign.service";
-import type { CampaignContactInput, CampaignSettings, CompetitionConfig } from "@/types/competitionAdmin";
+import type { CampaignContactInput, CampaignSettings, CompetitionConfig, CreateFormFieldInput, UpdateEntryInput } from "@/types/competitionAdmin";
 
 export const competitionKeys = {
   all: ["admin-competition"] as const,
@@ -16,6 +16,7 @@ export const competitionKeys = {
   entries: (params?: EntryListParams) => [...competitionKeys.all, "entries", params] as const,
   entry: (id: string) => [...competitionKeys.all, "entry", id] as const,
   banners: (params?: BannerListParams) => [...competitionKeys.all, "banners", params] as const,
+  formFields: () => [...competitionKeys.all, "form-fields"] as const,
 };
 
 export const campaignKeys = {
@@ -44,6 +45,43 @@ export function useUpdateCompetitionConfig() {
   });
 }
 
+export function useFormFields() {
+  return useQuery({ queryKey: competitionKeys.formFields(), queryFn: () => competitionAdminService.formFields() });
+}
+
+export function useCreateFormField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateFormFieldInput) => competitionAdminService.createFormField(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.formFields() }),
+  });
+}
+
+export function useUpdateFormField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: Partial<CreateFormFieldInput> }) =>
+      competitionAdminService.updateFormField(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.formFields() }),
+  });
+}
+
+export function useDeleteFormField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => competitionAdminService.deleteFormField(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.formFields() }),
+  });
+}
+
+export function useReorderFormFields() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) => competitionAdminService.reorderFormFields(ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.formFields() }),
+  });
+}
+
 export function useLeaderboard(params?: LeaderboardParams) {
   return useQuery({ queryKey: competitionKeys.leaderboard(params), queryFn: () => competitionAdminService.leaderboard(params) });
 }
@@ -66,6 +104,22 @@ export function useReviewEntry() {
     mutationFn: ({ id, status, reason }: { id: number; status: "approved" | "rejected"; reason?: string }) =>
       competitionAdminService.reviewEntry(id, status, reason),
     onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
+  });
+}
+
+export function useUpdateEntry(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: UpdateEntryInput) => competitionAdminService.updateEntry(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
+  });
+}
+
+export function useSaveEntryNote(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (note: string) => competitionAdminService.saveEntryNote(id, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.entry(id) }),
   });
 }
 

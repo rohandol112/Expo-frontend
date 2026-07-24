@@ -103,7 +103,18 @@ function BannerReviewPage() {
         </div>
       ),
     },
-    { key: "status", header: "Status", cell: (r) => <StatusBadge status={STATUS_LABELS[r.status] ?? r.status} /> },
+    {
+      key: "status",
+      header: "Status",
+      cell: (r) => (
+        <div>
+          <StatusBadge status={STATUS_LABELS[r.status] ?? r.status} />
+          {r.status === "rejected" && r.rejection_reason && (
+            <p className="mt-1 max-w-[200px] text-xs text-destructive">{r.rejection_reason}</p>
+          )}
+        </div>
+      ),
+    },
     {
       key: "uploaded",
       header: "Uploaded On",
@@ -137,15 +148,18 @@ function BannerReviewPage() {
                 variant="outline"
                 className="text-destructive"
                 disabled={reviewBanner.isPending}
-                onClick={() =>
+                onClick={() => {
+                  const reason = window.prompt("Reason for rejecting this banner (shown to the participant):", "");
+                  if (reason === null) return; // cancelled
+                  if (!reason.trim()) return toast.error("A rejection reason is required");
                   reviewBanner.mutate(
-                    { id: r.id, status: "rejected", reason: "Rejected in manual review" },
+                    { id: r.id, status: "rejected", reason: reason.trim() },
                     {
                       onSuccess: () => toast.success("Banner rejected"),
                       onError: (err) => toast.error(err instanceof Error ? err.message : "Failed"),
                     },
-                  )
-                }
+                  );
+                }}
               >
                 Reject
               </Button>
