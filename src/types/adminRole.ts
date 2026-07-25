@@ -41,6 +41,8 @@ export interface AdminRole {
 export interface AdminRoleInput {
   name: string;
   description?: string;
+  email?: string;
+  password?: string;
   icon?: string;
   color?: string;
   is_active?: boolean;
