@@ -125,6 +125,14 @@ export function useUpdateEntry(id: string) {
   });
 }
 
+export function useDeleteEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => competitionAdminService.deleteEntry(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
+  });
+}
+
 export function useSaveEntryNote(id: string) {
   const qc = useQueryClient();
   return useMutation({

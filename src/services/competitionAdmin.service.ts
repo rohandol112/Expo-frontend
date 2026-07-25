@@ -87,6 +87,10 @@ export const competitionAdminService = {
     return httpClient.put<AdminEntryDetail>(API.competition.adminUpdateEntry(id), patch);
   },
 
+  deleteEntry(id: string | number) {
+    return httpClient.delete<{ id: number }>(API.competition.adminDeleteEntry(id));
+  },
+
   saveEntryNote(id: string | number, note: string) {
     return httpClient.put<{ id: number; admin_notes: string }>(API.competition.adminEntryNotes(id), { note });
   },

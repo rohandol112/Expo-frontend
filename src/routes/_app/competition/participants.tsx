@@ -31,8 +31,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { useCompetitionEntries, useCompetitionStats } from "@/hooks/api/useCompetition";
+import { useCompetitionEntries, useCompetitionStats, useDeleteEntry } from "@/hooks/api/useCompetition";
 import { useRegions } from "@/hooks/api/useRegions";
 import type { AdminEntryListItem } from "@/types/competitionAdmin";
 import { ROUTES } from "@/constants/routes.constants";
@@ -74,8 +75,10 @@ function ParticipantsPage() {
   const [selectedArea, setSelectedArea] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"recent" | "oldest" | null>(null);
   const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<AdminEntryListItem | null>(null);
 
   const statsQuery = useCompetitionStats();
+  const deleteEntry = useDeleteEntry();
   const regionsQuery = useRegions();
   const states = regionsQuery.data ?? [];
   const districts = useMemo(
@@ -380,6 +383,9 @@ function ParticipantsPage() {
                             <DropdownMenuItem onClick={() => navigate({ to: "/competition/participants/$participantId", params: { participantId: String(row.id) } })}>
                               Edit Participant
                             </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => setDeleteTarget(row)}>
+                              Delete Participant
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -429,6 +435,25 @@ function ParticipantsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Participant?"
+        description={`This will permanently delete the participant "${deleteTarget?.name}".`}
+        confirmLabel={deleteEntry.isPending ? "Deleting..." : "Delete"}
+        destructive
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            await deleteEntry.mutateAsync(deleteTarget.id);
+            toast.success("Participant deleted");
+            setDeleteTarget(null);
+          } catch (err) {
+            toast.error("Unable to delete participant");
+          }
+        }}
+      />
     </div>
   );
 }
