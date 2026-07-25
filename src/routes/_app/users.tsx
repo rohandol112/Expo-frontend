@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Ban, CheckCircle2, FileText, UserCheck, UserPlus, Users as UsersIcon, UserX } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { AdminListPage, type AdminListQuery } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -52,10 +52,10 @@ function UsersPage() {
   const stats = statsQuery.data;
   const error = usersQuery.error ? "Unable to load users from backend." : undefined;
 
-  const handleQueryChange = (next: AdminListQuery) => {
+  const handleQueryChange = useCallback((next: AdminListQuery) => {
     setQuery({ search: next.search, dropdownValues: next.dropdownValues });
     setPage(next.page);
-  };
+  }, []);
 
   const columns: Column<AdminUser>[] = [
     {

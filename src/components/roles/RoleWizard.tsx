@@ -232,30 +232,28 @@ export function RoleWizard({
                 <p className="mt-1 text-[11px] text-muted-foreground">Characters: {form.description?.length ?? 0}/300</p>
               </div>
               
-              {!initial && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Email Address</Label>
-                    <Input 
-                      type="email" 
-                      className="mt-1" 
-                      value={form.email ?? ""} 
-                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} 
-                      placeholder="editor@newsplatform.com" 
-                    />
-                  </div>
-                  <div>
-                    <Label>Password</Label>
-                    <Input 
-                      type="password" 
-                      className="mt-1" 
-                      value={form.password ?? ""} 
-                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} 
-                      placeholder="Minimum 8 characters" 
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Email Address</Label>
+                  <Input 
+                    type="email" 
+                    className="mt-1" 
+                    value={form.email ?? ""} 
+                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} 
+                    placeholder="editor@newsplatform.com" 
+                  />
                 </div>
-              )}
+                <div>
+                  <Label>Password</Label>
+                  <Input 
+                    type="password" 
+                    className="mt-1" 
+                    value={form.password ?? ""} 
+                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} 
+                    placeholder="Minimum 8 characters" 
+                  />
+                </div>
+              </div>
 
               <div>
                 <Label>Role Icon</Label>
