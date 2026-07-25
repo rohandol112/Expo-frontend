@@ -53,6 +53,8 @@ export const ROUTES = {
   COMPETITION_PARTICIPANTS: "/competition/participants",
   COMPETITION_PARTICIPANT: (id: string) => `/competition/participants/${id}`,
   COMPETITION_BANNER_REVIEW: "/competition/banner-review",
+  COMPETITION_REPORTS: "/competition/reports",
+  COMPETITION_RULES: "/competition/rules",
   COMPETITION_AI_CALLING: "/competition/ai-calling",
   COMPETITION_SETTINGS: "/competition/settings",
   COMPETITION_FORM_SETTINGS: "/competition/form-settings",

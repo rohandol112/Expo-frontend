@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { UploadCloud } from "lucide-react";
+import { Info, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { MultiSelect } from "@/components/common/MultiSelect";
@@ -53,15 +53,30 @@ export function BannerForm({
   const regionsQuery = useRegions();
   const states = regionsQuery.data ?? [];
   const stateOpts = useMemo(() => states.map((s) => ({ label: s.name, value: s.id })), [states]);
-  const districtOpts = useMemo(() => states.flatMap((s) => s.districts).map((d) => ({ label: d.name, value: d.id })), [states]);
-  const areaOpts = useMemo(
-    () => states.flatMap((s) => s.districts).flatMap((d) => d.areas).map((a) => ({ label: a.name, value: a.id })),
-    [states],
-  );
+  // Districts follow the selected states; areas are only selectable for a single district.
+  const districtOpts = useMemo(() => {
+    const source = form.state_ids.length ? states.filter((s) => form.state_ids.includes(s.id)) : states;
+    return source.flatMap((s) => s.districts).map((d) => ({ label: d.name, value: d.id }));
+  }, [states, form.state_ids]);
+  const areaOpts = useMemo(() => {
+    if (form.district_ids.length !== 1) return [];
+    return states
+      .flatMap((s) => s.districts)
+      .filter((d) => d.id === form.district_ids[0])
+      .flatMap((d) => d.areas)
+      .map((a) => ({ label: a.name, value: a.id }));
+  }, [states, form.district_ids]);
 
   const set = <K extends keyof AdBannerInput>(key: K, value: AdBannerInput[K]) => setForm((f) => ({ ...f, [key]: value }));
 
+  const setDistricts = (ids: number[]) =>
+    setForm((f) => ({ ...f, district_ids: ids, area_ids: ids.length === 1 ? f.area_ids : [] }));
+
   const handleFile = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be 2 MB or smaller");
+      return;
+    }
     setUploading(true);
     try {
       const { upload_url, file_key } = await advertisementService.uploadUrl(file.name, file.type);
@@ -103,7 +118,10 @@ export function BannerForm({
             </Select>
           </div>
           <div>
-            <Label>External Link</Label>
+            <Label className="flex items-center gap-1.5">
+              External Link
+              <Info className="h-3.5 w-3.5 text-muted-foreground" aria-label="Opens the Link URL in the browser when the banner is tapped" />
+            </Label>
             <Select value={form.external_link ? "yes" : "no"} onValueChange={(v) => set("external_link", v === "yes")}>
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -114,7 +132,13 @@ export function BannerForm({
           </div>
           <div>
             <Label>Link URL (Optional)</Label>
-            <Input className="mt-1" value={form.link_url ?? ""} onChange={(e) => set("link_url", e.target.value || null)} placeholder="https://example.com" />
+            <Input
+              className="mt-1"
+              value={form.link_url ?? ""}
+              onChange={(e) => set("link_url", e.target.value || null)}
+              placeholder="https://example.com"
+              disabled={!form.external_link}
+            />
             <p className="mt-1 text-xs text-muted-foreground">Required if External Link is Yes</p>
           </div>
           <div>
@@ -144,7 +168,8 @@ export function BannerForm({
             >
               <UploadCloud className="mb-2 h-6 w-6" />
               {uploading ? "Uploading…" : "Click to upload or drag and drop"}
-              <span className="mt-1 text-xs">JPG, JPEG, PNG, WebP (Max 2 MB)</span>
+              <span className="mt-1 text-xs">Allowed formats: JPG, JPEG, PNG, WebP</span>
+              <span className="text-xs">Recommended Size: 1200 x 400 px (Max 2 MB)</span>
             </button>
             <input
               ref={fileRef}
@@ -163,20 +188,31 @@ export function BannerForm({
         </div>
       </SectionCard>
 
-      <SectionCard title="2. Visibility Area" description="Leave empty to show in all locations.">
+      <SectionCard title="2. Visibility Area" description="Choose where this banner is shown.">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <Label>Select State(s)</Label>
+            <Label>Select State(s) *</Label>
             <MultiSelect className="mt-1" options={stateOpts} value={form.state_ids} onChange={(v) => set("state_ids", v)} placeholder="Select State(s)" />
+            <p className="mt-1 text-xs text-muted-foreground">Leave empty to show in All States</p>
           </div>
           <div>
-            <Label>Select District(s)</Label>
-            <MultiSelect className="mt-1" options={districtOpts} value={form.district_ids} onChange={(v) => set("district_ids", v)} placeholder="Select District(s)" />
+            <Label>Select District(s) *</Label>
+            <MultiSelect className="mt-1" options={districtOpts} value={form.district_ids} onChange={setDistricts} placeholder="Select District(s)" />
+            <p className="mt-1 text-xs text-muted-foreground">Select one or more districts</p>
           </div>
           <div>
             <Label>Select Area(s)</Label>
-            <MultiSelect className="mt-1" options={areaOpts} value={form.area_ids} onChange={(v) => set("area_ids", v)} placeholder="Select Area(s)" />
-            <p className="mt-1 text-xs text-muted-foreground">If multiple districts are selected, area selection will not be applicable.</p>
+            <MultiSelect
+              className="mt-1"
+              options={areaOpts}
+              value={form.area_ids}
+              onChange={(v) => set("area_ids", v)}
+              placeholder={form.district_ids.length === 1 ? "Select Area(s)" : "Not applicable"}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Select areas for the selected district(s). (If multiple districts are selected, area selection will not be
+              applicable.)
+            </p>
           </div>
         </div>
       </SectionCard>

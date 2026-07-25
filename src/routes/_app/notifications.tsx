@@ -181,7 +181,7 @@ function NotificationsPage() {
         pageSize={notificationsQuery.data?.perPage ?? 10}
         total={notificationsQuery.data?.total ?? 0}
         onPageChange={setPage}
-        manualPagination
+        serverSide
         onFiltersChange={handleFiltersChange}
         dropdowns={[
           { key: "status", placeholder: "Status", options: statusOptions },

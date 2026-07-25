@@ -7,9 +7,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-export interface MultiSelectOption {
+export interface MultiSelectOption<V extends string | number = number> {
   label: string;
-  value: number;
+  value: V;
 }
 
 /**
@@ -17,7 +17,7 @@ export interface MultiSelectOption {
  * as removable chips and a dropdown of checkboxes. Built on the existing
  * dropdown-menu primitive (no extra deps).
  */
-export function MultiSelect({
+export function MultiSelect<V extends string | number = number>({
   options,
   value,
   onChange,
@@ -25,15 +25,15 @@ export function MultiSelect({
   disabled,
   className,
 }: {
-  options: MultiSelectOption[];
-  value: number[];
-  onChange: (next: number[]) => void;
+  options: MultiSelectOption<V>[];
+  value: V[];
+  onChange: (next: V[]) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
 }) {
   const selected = options.filter((o) => value.includes(o.value));
-  const toggle = (v: number) =>
+  const toggle = (v: V) =>
     onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
 
   return (

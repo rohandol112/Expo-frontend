@@ -55,11 +55,11 @@ function NewsDetailPage() {
             <div><dt className="text-xs font-medium uppercase text-muted-foreground">Status</dt><dd className="mt-1">{news && <StatusBadge status={news.status} />}</dd></div>
             <Detail label="Status Label" value={news?.statusLabel} />
             <Detail label="Published On" value={news?.publishedOn} />
-            <Detail label="Scheduled For" value={news?.scheduledFor} />
+            <Detail label="Scheduled For" value={news?.scheduledFor ?? undefined} />
             <Detail label="Created By" value={news?.createdBy} />
             <Detail label="Created At" value={news?.createdAt} />
             <Detail label="Updated At" value={news?.updatedAt} />
-            <Detail label="Source Name" value={news?.sourceName} />
+            <Detail label="Source Name" value={news?.sourceName ?? undefined} />
             <Detail label="News Source ID" value={news?.newsSourceId ?? undefined} />
             <Detail label="Visibility" value={visibility?.type} />
             <Detail label="Location Visibility" value={visibilityLocation || "All India"} />

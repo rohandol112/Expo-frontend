@@ -94,6 +94,7 @@ export interface LeaderboardData {
 export interface AdminEntryListItem {
   id: number;
   name: string;
+  state_name?: string | null;
   district_name: string | null;
   area_name: string | null;
   cover_photo_url: string | null;
@@ -103,7 +104,11 @@ export interface AdminEntryListItem {
   committee_name: string;
   contact_name: string;
   contact_phone: string;
+  contact_email?: string | null;
+  submitted_by?: string | null;
+  submitted_by_phone?: string | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface EntryActivity {
@@ -138,6 +143,7 @@ export interface AdminEntryDetail {
   submitted_on: string | null;
   submitted_by: string | null;
   submitted_by_phone: string | null;
+  visarjan_days?: string | null;
   contact: { name: string; phone: string; email: string | null; participant_type: string };
   custom_fields: Record<string, string>;
   banners: AdminBanner[];
@@ -157,6 +163,7 @@ export interface UpdateEntryInput {
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string | null;
+  visarjan_days?: string | null;
 }
 
 export interface AdminBanner {
@@ -187,13 +194,76 @@ export interface AdminBannerListItem {
   uploaded_at: string;
 }
 
+export interface BannerReviewCounts {
+  total: number;
+  ai_approved: number;
+  ai_uncertain: number;
+  ai_rejected: number;
+  manually_reviewed: number;
+  in_review: number;
+  priority_high: number;
+  priority_medium: number;
+  priority_low: number;
+  overdue: number;
+  reviewed_today: number;
+}
+
 export interface AdminBannerListData {
   items: AdminBannerListItem[];
   page: number;
   per_page: number;
   total: number;
   has_more: boolean;
-  counts: { total: number; ai_approved: number; ai_uncertain: number; ai_rejected: number; manually_reviewed: number };
+  counts: BannerReviewCounts;
+}
+
+// ---- User reports (Report an Issue) ----
+
+export type CompetitionReportStatus = "wrong" | "resolved";
+
+export interface CompetitionReport {
+  id: number;
+  title: string;
+  contact_number: string;
+  email: string;
+  description: string;
+  status: CompetitionReportStatus;
+  pandal_id: number | null;
+  pandal_name: string | null;
+  submitted_at: string;
+  resolved_at: string | null;
+}
+
+export interface AdminReportListData {
+  items: CompetitionReport[];
+  page: number;
+  per_page: number;
+  total: number;
+  has_more: boolean;
+  counts: { total: number; wrong: number; resolved: number };
+}
+
+// ---- Competition rules ----
+
+export interface CompetitionRule {
+  id: number;
+  title: string;
+  icon: string | null;
+  short_note: string;
+  details: string[];
+  is_important: boolean;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface CompetitionRuleInput {
+  title: string;
+  icon?: string | null;
+  short_note?: string;
+  details?: string[];
+  is_important?: boolean;
+  is_active?: boolean;
+  sort_order?: number;
 }
 
 export type FormFieldType = "text" | "textarea" | "select" | "multiselect" | "date" | "phone" | "email" | "image";

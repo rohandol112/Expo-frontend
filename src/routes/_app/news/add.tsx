@@ -47,15 +47,15 @@ const schema = z.object({
   type: z.enum(["article", "video", "short", "story"]),
   languageCode: z.string().min(1, "Language is required"),
   categoryId: z.string().min(1, "Category is required"),
-  subcategoryIds: z.array(z.string()).default([]),
+  subcategoryIds: z.array(z.string()),
   stateId: z.string().optional(),
   districtId: z.string().optional(),
   areaId: z.string().optional(),
   visibilityScope: z.enum(["all_india", "state", "district", "area", "private"]),
-  visibilityStateIds: z.array(z.string()).default([]),
-  visibilityDistrictIds: z.array(z.string()).default([]),
-  visibilityAreaIds: z.array(z.string()).default([]),
-  visibilityUserIds: z.array(z.string()).default([]),
+  visibilityStateIds: z.array(z.string()),
+  visibilityDistrictIds: z.array(z.string()),
+  visibilityAreaIds: z.array(z.string()),
+  visibilityUserIds: z.array(z.string()),
   title: z.string().min(3, "Title must be at least 3 characters").max(255),
   description: z.string().min(1, "Description is required").max(10000),
   bottomDescription: z.string().max(2000).optional(),
@@ -64,9 +64,9 @@ const schema = z.object({
   translationDescription: z.string().optional(),
   status: z.enum(["draft", "schedule"]),
   scheduledFor: z.string().optional(),
-  enablePoll: z.boolean().default(false),
+  enablePoll: z.boolean(),
   pollQuestion: z.string().optional(),
-  pollOptions: z.array(z.string()).default([]),
+  pollOptions: z.array(z.string()),
 }).superRefine((value, ctx) => {
   if (value.visibilityScope === "state" && value.visibilityStateIds.length === 0) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["visibilityStateIds"], message: "Select at least one state for visibility" });
@@ -180,9 +180,10 @@ function AddNewsPage() {
   const selectedUsers = userSearchQuery.data?.items ?? [];
 
   const updateTranslationDraft = (code: string, patch: Partial<{ title: string; description: string; bottomDescription: string }>) => {
+    const empty = { title: "", description: "", bottomDescription: "" };
     setTranslationDrafts((prev) => ({
       ...prev,
-      [code]: { title: "", description: "", bottomDescription: "", ...(prev[code] ?? {}), ...patch },
+      [code]: { ...empty, ...(prev[code] ?? {}), ...patch },
     }));
   };
 

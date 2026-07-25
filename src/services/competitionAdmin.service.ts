@@ -4,8 +4,12 @@ import type {
   AdminBannerListData,
   AdminEntryDetail,
   AdminEntryListItem,
+  AdminReportListData,
   CompetitionAdminStats,
   CompetitionConfig,
+  CompetitionReport,
+  CompetitionRule,
+  CompetitionRuleInput,
   CreateFormFieldInput,
   FormField,
   LeaderboardData,
@@ -36,6 +40,23 @@ export type BannerListParams = {
   status?: string;
   ai_status?: string;
   search?: string;
+  slot?: number;
+  district_id?: number;
+  area_id?: number;
+  priority?: "high" | "medium" | "low";
+  overdue?: boolean;
+  reviewed?: boolean;
+  date_from?: string;
+  date_to?: string;
+};
+
+export type ReportListParams = {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
 };
 
 export const competitionAdminService = {
@@ -74,7 +95,7 @@ export const competitionAdminService = {
     return httpClient.get<AdminBannerListData>(API.competition.adminBanners, { params });
   },
 
-  reviewBanner(id: string | number, status: "approved" | "rejected", rejectionReason?: string) {
+  reviewBanner(id: string | number, status: "approved" | "rejected" | "in_review", rejectionReason?: string) {
     return httpClient.put<{ id: number; status: string }>(API.competition.adminReviewBanner(id), {
       status,
       rejection_reason: rejectionReason,
@@ -132,5 +153,37 @@ export const competitionAdminService = {
 
   reorderFormFields(ids: number[]) {
     return httpClient.put<FormField[]>(API.competition.adminFormFieldsReorder, { ids });
+  },
+
+  // ---- User reports ----
+
+  reports(params?: ReportListParams) {
+    return httpClient.get<AdminReportListData>(API.competition.adminReports, { params });
+  },
+
+  updateReport(id: number, status: "wrong" | "resolved") {
+    return httpClient.put<CompetitionReport>(API.competition.adminReport(id), { status });
+  },
+
+  deleteReport(id: number) {
+    return httpClient.delete<{ id: number }>(API.competition.adminReport(id));
+  },
+
+  // ---- Competition rules ----
+
+  rules() {
+    return httpClient.get<CompetitionRule[]>(API.competition.adminRules);
+  },
+
+  createRule(input: CompetitionRuleInput) {
+    return httpClient.post<CompetitionRule>(API.competition.adminRules, input);
+  },
+
+  updateRule(id: number, patch: Partial<CompetitionRuleInput>) {
+    return httpClient.put<CompetitionRule>(API.competition.adminRule(id), patch);
+  },
+
+  deleteRule(id: number) {
+    return httpClient.delete<{ id: number }>(API.competition.adminRule(id));
   },
 };

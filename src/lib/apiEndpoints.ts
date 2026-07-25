@@ -151,6 +151,22 @@ export const API = {
     adminFormFieldsReorder: "/admin/competition/form-fields/reorder",
     publicConfig: "/competition/config",
     filters: "/competition/filters",
+    adminReports: "/admin/competition/reports",
+    adminReport: (id: string | number) => `/admin/competition/reports/${id}`,
+    adminRules: "/admin/competition/rules",
+    adminRule: (id: string | number) => `/admin/competition/rules/${id}`,
+  },
+  roles: {
+    list: "/admin/roles",
+    detail: (id: string | number) => `/admin/roles/${id}`,
+    assign: (userId: string | number) => `/admin/roles/assign/${userId}`,
+  },
+  monetization: {
+    settings: "/admin/monetization/settings",
+    ads: "/admin/monetization/ads",
+    ad: (id: string | number) => `/admin/monetization/ads/${id}`,
+    reorder: "/admin/monetization/ads/reorder",
+    uploadUrl: "/admin/monetization/ads/upload-url",
   },
   advertisement: {
     banners: "/admin/advertisement/banners",

@@ -45,6 +45,8 @@ import { Route as AppComplaintsCategoriesRouteImport } from './routes/_app/compl
 import { Route as AppComplaintsAssignRulesRouteImport } from './routes/_app/complaints/assign-rules'
 import { Route as AppComplaintsComplaintIdRouteImport } from './routes/_app/complaints/$complaintId'
 import { Route as AppCompetitionSettingsRouteImport } from './routes/_app/competition/settings'
+import { Route as AppCompetitionRulesRouteImport } from './routes/_app/competition/rules'
+import { Route as AppCompetitionReportsRouteImport } from './routes/_app/competition/reports'
 import { Route as AppCompetitionParticipantsRouteImport } from './routes/_app/competition/participants'
 import { Route as AppCompetitionLeaderboardRouteImport } from './routes/_app/competition/leaderboard'
 import { Route as AppCompetitionFormSettingsRouteImport } from './routes/_app/competition/form-settings'
@@ -263,6 +265,16 @@ const AppComplaintsComplaintIdRoute =
 const AppCompetitionSettingsRoute = AppCompetitionSettingsRouteImport.update({
   id: '/competition/settings',
   path: '/competition/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCompetitionRulesRoute = AppCompetitionRulesRouteImport.update({
+  id: '/competition/rules',
+  path: '/competition/rules',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCompetitionReportsRoute = AppCompetitionReportsRouteImport.update({
+  id: '/competition/reports',
+  path: '/competition/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCompetitionParticipantsRoute =
@@ -510,6 +522,8 @@ export interface FileRoutesByFullPath {
   '/competition/form-settings': typeof AppCompetitionFormSettingsRoute
   '/competition/leaderboard': typeof AppCompetitionLeaderboardRoute
   '/competition/participants': typeof AppCompetitionParticipantsRouteWithChildren
+  '/competition/reports': typeof AppCompetitionReportsRoute
+  '/competition/rules': typeof AppCompetitionRulesRoute
   '/competition/settings': typeof AppCompetitionSettingsRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
@@ -585,6 +599,8 @@ export interface FileRoutesByTo {
   '/competition/form-settings': typeof AppCompetitionFormSettingsRoute
   '/competition/leaderboard': typeof AppCompetitionLeaderboardRoute
   '/competition/participants': typeof AppCompetitionParticipantsRouteWithChildren
+  '/competition/reports': typeof AppCompetitionReportsRoute
+  '/competition/rules': typeof AppCompetitionRulesRoute
   '/competition/settings': typeof AppCompetitionSettingsRoute
   '/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
@@ -662,6 +678,8 @@ export interface FileRoutesById {
   '/_app/competition/form-settings': typeof AppCompetitionFormSettingsRoute
   '/_app/competition/leaderboard': typeof AppCompetitionLeaderboardRoute
   '/_app/competition/participants': typeof AppCompetitionParticipantsRouteWithChildren
+  '/_app/competition/reports': typeof AppCompetitionReportsRoute
+  '/_app/competition/rules': typeof AppCompetitionRulesRoute
   '/_app/competition/settings': typeof AppCompetitionSettingsRoute
   '/_app/complaints/$complaintId': typeof AppComplaintsComplaintIdRoute
   '/_app/complaints/assign-rules': typeof AppComplaintsAssignRulesRoute
@@ -739,6 +757,8 @@ export interface FileRouteTypes {
     | '/competition/form-settings'
     | '/competition/leaderboard'
     | '/competition/participants'
+    | '/competition/reports'
+    | '/competition/rules'
     | '/competition/settings'
     | '/complaints/$complaintId'
     | '/complaints/assign-rules'
@@ -814,6 +834,8 @@ export interface FileRouteTypes {
     | '/competition/form-settings'
     | '/competition/leaderboard'
     | '/competition/participants'
+    | '/competition/reports'
+    | '/competition/rules'
     | '/competition/settings'
     | '/complaints/$complaintId'
     | '/complaints/assign-rules'
@@ -890,6 +912,8 @@ export interface FileRouteTypes {
     | '/_app/competition/form-settings'
     | '/_app/competition/leaderboard'
     | '/_app/competition/participants'
+    | '/_app/competition/reports'
+    | '/_app/competition/rules'
     | '/_app/competition/settings'
     | '/_app/complaints/$complaintId'
     | '/_app/complaints/assign-rules'
@@ -1198,6 +1222,20 @@ declare module '@tanstack/react-router' {
       path: '/competition/settings'
       fullPath: '/competition/settings'
       preLoaderRoute: typeof AppCompetitionSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/competition/rules': {
+      id: '/_app/competition/rules'
+      path: '/competition/rules'
+      fullPath: '/competition/rules'
+      preLoaderRoute: typeof AppCompetitionRulesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/competition/reports': {
+      id: '/_app/competition/reports'
+      path: '/competition/reports'
+      fullPath: '/competition/reports'
+      preLoaderRoute: typeof AppCompetitionReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/competition/participants': {
@@ -1752,6 +1790,8 @@ interface AppRouteChildren {
   AppCompetitionFormSettingsRoute: typeof AppCompetitionFormSettingsRoute
   AppCompetitionLeaderboardRoute: typeof AppCompetitionLeaderboardRoute
   AppCompetitionParticipantsRoute: typeof AppCompetitionParticipantsRouteWithChildren
+  AppCompetitionReportsRoute: typeof AppCompetitionReportsRoute
+  AppCompetitionRulesRoute: typeof AppCompetitionRulesRoute
   AppCompetitionSettingsRoute: typeof AppCompetitionSettingsRoute
   AppNewsAddRoute: typeof AppNewsAddRoute
   AppNewsAdminRoute: typeof AppNewsAdminRoute
@@ -1789,6 +1829,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppCompetitionFormSettingsRoute: AppCompetitionFormSettingsRoute,
   AppCompetitionLeaderboardRoute: AppCompetitionLeaderboardRoute,
   AppCompetitionParticipantsRoute: AppCompetitionParticipantsRouteWithChildren,
+  AppCompetitionReportsRoute: AppCompetitionReportsRoute,
+  AppCompetitionRulesRoute: AppCompetitionRulesRoute,
   AppCompetitionSettingsRoute: AppCompetitionSettingsRoute,
   AppNewsAddRoute: AppNewsAddRoute,
   AppNewsAdminRoute: AppNewsAdminRoute,

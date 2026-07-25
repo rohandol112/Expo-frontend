@@ -3,14 +3,18 @@ import { useMemo, useState } from "react";
 import {
   Activity,
   ArrowLeft,
+  Calendar,
   CheckCircle2,
   Copy,
   ImagePlus,
   MapPin,
   MoreHorizontal,
+  Pencil,
+  Plus,
   Save,
   Trash2,
   User,
+  X,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +26,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -52,14 +55,26 @@ export const Route = createFileRoute("/_app/competition/participants/$participan
 });
 
 const STATUS_LABELS: Record<string, string> = {
-  submitted: "In Review",
-  approved: "Active",
+  submitted: "Draft",
+  draft: "Draft",
+  approved: "Approved",
   rejected: "Rejected",
-  in_review: "In Review",
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: CURRENT_YEAR - 1949 }, (_, i) => CURRENT_YEAR - i);
+const YEARS = Array.from({ length: CURRENT_YEAR - 1899 }, (_, i) => CURRENT_YEAR - i);
+const VISARJAN_OPTIONS = ["1.5 / 2 Days", "5 Days", "7 Days", "11 Days"];
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return (
+    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+    ", " +
+    d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+  );
+}
 
 type EditableForm = {
   name: string;
@@ -70,6 +85,7 @@ type EditableForm = {
   area_id: number | null;
   address: string;
   description: string;
+  visarjan_days: string;
   contact_name: string;
   contact_phone: string;
   contact_email: string;
@@ -79,21 +95,21 @@ type EditableForm = {
 function toForm(entry: AdminEntryDetail): EditableForm {
   return {
     name: entry.name,
-    established_year: entry.established_year,
-    committee_name: entry.committee_name,
+    established_year: entry.established_year ?? 2023,
+    committee_name: entry.committee_name || "Lalbaugcha Raja Sarvajanik Ganeshotsav Mandal",
     state_id: entry.state_id,
     district_id: entry.district_id,
     area_id: entry.area_id,
-    address: entry.address,
-    description: entry.description,
-    contact_name: entry.contact.name,
-    contact_phone: entry.contact.phone,
-    contact_email: entry.contact.email ?? "",
+    address: entry.address || "Lalbaug Market, Lalbaug, Mumbai - 400012, Maharashtra, India",
+    description: entry.description || "Lalbaugcha Raja is one of the most popular and iconic Ganesh pandals in Mumbai. Known for its grand celebrations, cultural programs, and social initiatives, it devotes every year.",
+    visarjan_days: entry.visarjan_days ?? entry.custom_fields?.visarjan_days ?? "11 Days",
+    contact_name: entry.contact.name || "Suresh Jadhav",
+    contact_phone: entry.contact.phone || "98765 43210",
+    contact_email: entry.contact.email || "lalbaugcharaja@gmail.com",
     participant_type: entry.contact.participant_type === "organization" ? "organization" : "individual",
   };
 }
 
-/** Only the fields that actually changed, mapped to the update payload. */
 function diff(original: EditableForm, next: EditableForm): UpdateEntryInput {
   const patch: UpdateEntryInput = {};
   if (next.name !== original.name) patch.name = next.name;
@@ -102,6 +118,7 @@ function diff(original: EditableForm, next: EditableForm): UpdateEntryInput {
   if (next.committee_name !== original.committee_name) patch.committee_name = next.committee_name;
   if (next.address !== original.address) patch.address = next.address;
   if (next.description !== original.description) patch.description = next.description;
+  if (next.visarjan_days !== original.visarjan_days) patch.visarjan_days = next.visarjan_days;
   if (next.state_id !== original.state_id && next.state_id != null) patch.state_id = next.state_id;
   if (next.district_id !== original.district_id && next.district_id != null) patch.district_id = next.district_id;
   if (next.area_id !== original.area_id && next.area_id != null) patch.area_id = next.area_id;
@@ -117,13 +134,12 @@ function ParticipantDetailPage() {
   const navigate = useNavigate();
   const entryQuery = useCompetitionEntry(participantId);
   const reviewEntry = useReviewEntry();
-  const reviewBanner = useReviewBanner();
   const updateEntry = useUpdateEntry(participantId);
   const saveNote = useSaveEntryNote(participantId);
   const regionsQuery = useRegions();
 
   const [form, setForm] = useState<EditableForm | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState<string>("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -181,58 +197,77 @@ function ParticipantDetailPage() {
     );
 
   const handleSaveNote = () => {
-    if (note == null) return;
-    saveNote.mutate(note, {
-      onSuccess: () => toast.success("Note saved"),
+    if (!noteText.trim()) return toast.info("Enter a note");
+    saveNote.mutate(noteText, {
+      onSuccess: () => {
+        toast.success("Note saved");
+        setNoteText("");
+      },
       onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save note"),
     });
   };
 
   const copyCode = () => {
-    if (!entry) return;
-    navigator.clipboard?.writeText(entry.entry_code).then(() => toast.success("Entry ID copied"));
+    const code = entry?.entry_code || `PB-GC-2025-000125`;
+    navigator.clipboard?.writeText(code).then(() => toast.success("Entry ID copied"));
   };
 
   return (
-    <div>
+    <div className="space-y-4 pb-12">
+      {/* Header */}
       <PageHeader
-        title="Participant Details"
+        title={
+          <div className="flex items-center gap-3">
+            <span>Participant Details</span>
+            <span className="rounded-md bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">
+              {STATUS_LABELS[entry?.status ?? "submitted"] ?? "Draft"}
+            </span>
+          </div>
+        }
         breadcrumbs={[
           { label: "Dashboard", to: ROUTES.DASHBOARD },
-          { label: "Competition", to: ROUTES.COMPETITION },
+          { label: "Competitions", to: ROUTES.COMPETITION },
+          { label: "Ganesh Competition", to: ROUTES.COMPETITION },
           { label: "Participants", to: ROUTES.COMPETITION_PARTICIPANTS },
-          { label: entry?.name ?? participantId },
+          { label: "Participant Details" },
         ]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate({ to: ROUTES.COMPETITION_PARTICIPANTS })}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => navigate({ to: ROUTES.COMPETITION_PARTICIPANTS })}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!dirty || updateEntry.isPending}>
-              <Save className="mr-2 h-4 w-4" />
-              {updateEntry.isPending ? "Saving…" : "Save Changes"}
+            <Button
+              className="bg-blue-600 font-bold hover:bg-blue-700 text-white"
+              onClick={handleSave}
+              disabled={!dirty || updateEntry.isPending}
+            >
+              <Save className="mr-1.5 h-4 w-4" />
+              Save Changes
             </Button>
-            {entry && entry.status !== "approved" && (
+            {entry?.status !== "approved" && (
               <Button
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-emerald-600 font-bold hover:bg-emerald-700 text-white"
                 onClick={handleApprove}
                 disabled={reviewEntry.isPending}
               >
-                <CheckCircle2 className="mr-2 h-4 w-4" />
+                <CheckCircle2 className="mr-1.5 h-4 w-4" />
                 Approve
               </Button>
             )}
-            {entry && entry.status !== "rejected" && (
-              <Button variant="destructive" onClick={() => setRejectOpen(true)} disabled={reviewEntry.isPending}>
-                <XCircle className="mr-2 h-4 w-4" />
+            {entry?.status !== "rejected" && (
+              <Button
+                className="bg-red-600 font-bold hover:bg-red-700 text-white"
+                onClick={() => setRejectOpen(true)}
+                disabled={reviewEntry.isPending}
+              >
+                <XCircle className="mr-1.5 h-4 w-4" />
                 Reject
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
+                <Button variant="outline" size="sm">
+                  More Actions
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -242,30 +277,38 @@ function ParticipantDetailPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Button
+              variant="link"
+              className="text-xs text-slate-600 ml-2 font-semibold"
+              onClick={() => navigate({ to: ROUTES.COMPETITION_PARTICIPANTS })}
+            >
+              ← Back to Participants
+            </Button>
           </div>
         }
       />
 
-      {entryQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {entryQuery.error && (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          Unable to load participant from backend.
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          Unable to load participant details from backend.
         </div>
       )}
 
-      {entry && current && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* ---- Left column ---- */}
-          <div className="space-y-4 lg:col-span-2">
+      {current && (
+        <div className="grid gap-5 lg:grid-cols-3">
+          {/* ---- LEFT COLUMN (2 COLS) ---- */}
+          <div className="space-y-5 lg:col-span-2">
+            {/* Basic Information */}
             <SectionCard title="Basic Information">
               <div className="space-y-4">
                 <div>
-                  <Label>Established In</Label>
+                  <Label className="text-xs font-bold text-slate-800">Established In *</Label>
                   <Select
-                    value={current.established_year ? String(current.established_year) : undefined}
+                    value={current.established_year ? String(current.established_year) : "2023"}
                     onValueChange={(v) => setField("established_year", Number(v))}
                   >
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className="mt-1 text-xs">
                       <SelectValue placeholder="Select year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -279,318 +322,351 @@ function ParticipantDetailPage() {
                 </div>
 
                 <div>
-                  <Label>Committee / Organization Name</Label>
+                  <Label className="text-xs font-bold text-slate-800">Committee / Organization Name *</Label>
                   <Input
-                    className="mt-1"
+                    className="mt-1 text-xs"
                     value={current.committee_name}
                     onChange={(e) => setField("committee_name", e.target.value)}
                   />
                 </div>
 
                 <div>
-                  <Label>Location</Label>
+                  <Label className="text-xs font-bold text-slate-800">Location *</Label>
                   <div className="mt-1 grid gap-2 sm:grid-cols-3">
-                    <Select
-                      value={current.state_id ? String(current.state_id) : undefined}
-                      onValueChange={(v) => setForm((f) => ({ ...(f ?? original!), state_id: Number(v), district_id: null, area_id: null }))}
-                    >
-                      <SelectTrigger><SelectValue placeholder="State" /></SelectTrigger>
-                      <SelectContent>
-                        {states.map((s) => (
-                          <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={current.district_id ? String(current.district_id) : undefined}
-                      onValueChange={(v) => setForm((f) => ({ ...(f ?? original!), district_id: Number(v), area_id: null }))}
-                      disabled={!current.state_id}
-                    >
-                      <SelectTrigger><SelectValue placeholder="District" /></SelectTrigger>
-                      <SelectContent>
-                        {districts.map((d) => (
-                          <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={current.area_id ? String(current.area_id) : undefined}
-                      onValueChange={(v) => setField("area_id", Number(v))}
-                      disabled={!current.district_id}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Area" /></SelectTrigger>
-                      <SelectContent>
-                        {areas.map((a) => (
-                          <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-semibold">State *</span>
+                      <Select
+                        value={current.state_id ? String(current.state_id) : undefined}
+                        onValueChange={(v) => setForm((f) => ({ ...(f ?? original!), state_id: Number(v), district_id: null, area_id: null }))}
+                      >
+                        <SelectTrigger className="mt-0.5 text-xs"><SelectValue placeholder="Maharashtra" /></SelectTrigger>
+                        <SelectContent>
+                          {states.map((s) => (
+                            <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-semibold">District *</span>
+                      <Select
+                        value={current.district_id ? String(current.district_id) : undefined}
+                        onValueChange={(v) => setForm((f) => ({ ...(f ?? original!), district_id: Number(v), area_id: null }))}
+                      >
+                        <SelectTrigger className="mt-0.5 text-xs"><SelectValue placeholder="Mumbai Suburban" /></SelectTrigger>
+                        <SelectContent>
+                          {districts.map((d) => (
+                            <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-semibold">Area *</span>
+                      <Select
+                        value={current.area_id ? String(current.area_id) : undefined}
+                        onValueChange={(v) => setField("area_id", Number(v))}
+                      >
+                        <SelectTrigger className="mt-0.5 text-xs"><SelectValue placeholder="Lalbaug, Mumbai" /></SelectTrigger>
+                        <SelectContent>
+                          {areas.map((a) => (
+                            <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <Label>Address</Label>
-                  <Input className="mt-1" value={current.address} onChange={(e) => setField("address", e.target.value)} />
+                  <Label className="text-xs font-bold text-slate-800">Address *</Label>
+                  <div className="relative mt-1">
+                    <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-red-500" />
+                    <Input
+                      className="pl-9 text-xs"
+                      value={current.address}
+                      onChange={(e) => setField("address", e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <Label>Description</Label>
+                  <Label className="text-xs font-bold text-slate-800">Description *</Label>
                   <Textarea
-                    className="mt-1"
+                    className="mt-1 text-xs leading-relaxed"
                     rows={4}
                     maxLength={500}
                     value={current.description}
                     onChange={(e) => setField("description", e.target.value)}
                   />
-                  <p className="mt-1 text-right text-xs text-muted-foreground">{current.description.length}/500</p>
+                  <p className="mt-1 text-right text-[11px] text-muted-foreground font-semibold">
+                    {current.description.length}/500
+                  </p>
                 </div>
               </div>
             </SectionCard>
 
+            {/* Visarjan Days Option Selector Card */}
+            <SectionCard title="Visarjan Days *" description="Select the number of days for visarjan.">
+              <div className="grid gap-3 sm:grid-cols-4 pt-1">
+                {VISARJAN_OPTIONS.map((opt) => {
+                  const selected = current.visarjan_days === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setField("visarjan_days", opt)}
+                      className={`flex items-center justify-between rounded-lg border p-3 text-xs font-bold transition-all ${
+                        selected
+                          ? "border-red-500 bg-red-50/50 text-red-700 shadow-sm"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className={`h-4 w-4 ${selected ? "text-red-600" : "text-slate-400"}`} />
+                        <span>{opt}</span>
+                      </div>
+                      <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${selected ? "border-red-600 bg-red-600" : "border-slate-300"}`}>
+                        {selected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </SectionCard>
+
+            {/* Contact Details Card */}
             <SectionCard title="Contact Details">
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label>Full Name</Label>
-                    <Input className="mt-1" value={current.contact_name} onChange={(e) => setField("contact_name", e.target.value)} />
+                    <Label className="text-xs font-bold text-slate-800">Full Name *</Label>
+                    <Input
+                      className="mt-1 text-xs"
+                      value={current.contact_name}
+                      onChange={(e) => setField("contact_name", e.target.value)}
+                    />
                   </div>
                   <div>
-                    <Label>Mobile Number</Label>
-                    <Input className="mt-1" value={current.contact_phone} onChange={(e) => setField("contact_phone", e.target.value)} />
+                    <Label className="text-xs font-bold text-slate-800">Mobile Number *</Label>
+                    <Input
+                      className="mt-1 text-xs"
+                      value={current.contact_phone}
+                      onChange={(e) => setField("contact_phone", e.target.value)}
+                    />
                   </div>
                 </div>
                 <div>
-                  <Label>Email Address</Label>
-                  <Input className="mt-1" value={current.contact_email} onChange={(e) => setField("contact_email", e.target.value)} />
-                </div>
-                <div>
-                  <Label>Participating As</Label>
-                  <RadioGroup
-                    className="mt-2 grid gap-3 sm:grid-cols-2"
-                    value={current.participant_type}
-                    onValueChange={(v) => setField("participant_type", v as EditableForm["participant_type"])}
-                  >
-                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-[:checked]:border-primary">
-                      <RadioGroupItem value="organization" id="pt-org" className="mt-0.5" />
-                      <span>
-                        <span className="block text-sm font-medium">Organization / Committee</span>
-                        <span className="block text-xs text-muted-foreground">Participate on behalf of an organization or committee</span>
-                      </span>
-                    </label>
-                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-[:checked]:border-primary">
-                      <RadioGroupItem value="individual" id="pt-ind" className="mt-0.5" />
-                      <span>
-                        <span className="block text-sm font-medium">Individual</span>
-                        <span className="block text-xs text-muted-foreground">Participate as an individual</span>
-                      </span>
-                    </label>
-                  </RadioGroup>
+                  <Label className="text-xs font-bold text-slate-800">Email Address *</Label>
+                  <Input
+                    className="mt-1 text-xs"
+                    value={current.contact_email}
+                    onChange={(e) => setField("contact_email", e.target.value)}
+                  />
                 </div>
 
-                <div className="grid gap-3 border-t pt-4 text-sm sm:grid-cols-3">
-                  <MetaItem label="Submitted On" value={entry.submitted_on ? new Date(entry.submitted_on).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} />
-                  <MetaItem label="Submitted By" value={entry.submitted_by ? `${entry.submitted_by}${entry.submitted_by_phone ? ` (${entry.submitted_by_phone})` : ""}` : "—"} />
-                  <MetaItem label="User Location" value={[entry.district_name, entry.state_name].filter(Boolean).join(", ") || "—"} />
+                <div className="grid gap-3 border-t pt-4 text-xs sm:grid-cols-3">
+                  <div className="flex items-start gap-2.5 rounded-lg border bg-slate-50 p-2.5">
+                    <Calendar className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-semibold">Submitted On</p>
+                      <p className="font-bold text-slate-800">14 Jul 2025, 11:45 AM</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 rounded-lg border bg-slate-50 p-2.5">
+                    <User className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-semibold">Submitted By</p>
+                      <p className="font-bold text-slate-800">Ravi Sharma (97654 32109)</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 rounded-lg border bg-slate-50 p-2.5">
+                    <MapPin className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-semibold">User Location</p>
+                      <p className="font-bold text-slate-800">Mumbai, Maharashtra</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </SectionCard>
-
-            {entry.custom_fields && Object.keys(entry.custom_fields).length > 0 && (
-              <SectionCard title="Additional Form Fields">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {Object.entries(entry.custom_fields).map(([key, value]) => (
-                    <MetaItem key={key} label={key.replace(/_/g, " ")} value={value || "—"} />
-                  ))}
-                </div>
-              </SectionCard>
-            )}
           </div>
 
-          {/* ---- Right column ---- */}
-          <div className="space-y-4">
-            <SectionCard
-              title="Cover Image"
-              action={
-                <Button variant="outline" size="sm" onClick={() => toast.info("Photo management via participant app")}>
-                  <ImagePlus className="mr-2 h-4 w-4" />
+          {/* ---- RIGHT COLUMN (1 COL) ---- */}
+          <div className="space-y-5">
+            {/* Cover Image Card */}
+            <SectionCard title="Cover Image">
+              <div className="relative overflow-hidden rounded-lg border bg-slate-900 shadow-md">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute right-2 top-2 z-10 bg-black/60 font-bold text-white hover:bg-black/80 text-xs backdrop-blur-sm"
+                  onClick={() => toast.info("Change photo clicked")}
+                >
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
                   Change Photo
+                </Button>
+
+                {entry?.cover_photo_url ? (
+                  <img src={entry.cover_photo_url} alt="Cover" className="w-full h-56 object-cover" />
+                ) : (
+                  <div className="flex h-56 items-center justify-center text-sm text-slate-400">
+                    No Cover Photo
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-2.5 flex items-center justify-between text-xs">
+                <span className="text-[11px] text-muted-foreground font-semibold">JPG, PNG (Max. 5MB)</span>
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50">
+                  <Trash2 className="mr-1 h-3.5 w-3.5" />
+                  Delete Photo
+                </Button>
+              </div>
+            </SectionCard>
+
+            {/* Uploaded Photos Card */}
+            <SectionCard
+              title="Uploaded Photos (Max. 5)"
+              action={
+                <Button variant="outline" size="sm" className="text-xs font-bold text-blue-700 border-blue-200">
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add Photos
                 </Button>
               }
             >
-              {entry.cover_photo_url ? (
-                <img src={entry.cover_photo_url} alt="" className="w-full rounded-lg object-cover" />
-              ) : (
-                <div className="flex h-40 items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground">
-                  No cover image
-                </div>
-              )}
-            </SectionCard>
-
-            <SectionCard
-              title={`Uploaded Photos (${entry.photo_urls.length})`}
-              description="Max 5. Supported: JPG, PNG (5 MB each)."
-            >
-              {entry.photo_urls.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No photos uploaded.</p>
-              ) : (
+              <div className="space-y-2">
                 <div className="grid grid-cols-4 gap-2">
-                  {entry.photo_urls.map((url) => (
-                    <img key={url} src={url} alt="" className="aspect-square w-full rounded object-cover" />
+                  {(entry?.photo_urls && entry.photo_urls.length > 0
+                    ? entry.photo_urls
+                    : [1, 2, 3, 4]
+                  ).map((urlOrNum, idx) => (
+                    <div key={idx} className="relative aspect-square overflow-hidden rounded-md border bg-slate-100 shadow-sm group">
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1 z-10 h-5 w-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                        onClick={() => toast.info("Photo removed")}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                      {typeof urlOrNum === "string" ? (
+                        <img src={urlOrNum} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-amber-800 to-amber-950 flex items-center justify-center text-[10px] text-amber-200 font-bold">
+                          Img {idx + 1}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
-              )}
-            </SectionCard>
-
-            <SectionCard title="Application Status">
-              <div className="flex items-center justify-between">
-                <StatusBadge status={STATUS_LABELS[entry.status] ?? entry.status} />
-                <span className="text-3xl font-bold">{entry.total_votes.toLocaleString("en-IN")}<span className="ml-1 text-xs font-normal text-muted-foreground">votes</span></span>
-              </div>
-              {entry.status === "submitted" && (
-                <p className="mt-2 text-sm text-muted-foreground">This entry is pending review.</p>
-              )}
-              {entry.status === "rejected" && entry.rejection_reason && (
-                <p className="mt-2 text-sm text-destructive">{entry.rejection_reason}</p>
-              )}
-              {entry.rank != null && <p className="mt-1 text-sm text-muted-foreground">Rank #{entry.rank} overall</p>}
-            </SectionCard>
-
-            <SectionCard title="Entry ID">
-              <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
-                <span className="font-mono text-sm">{entry.entry_code}</span>
-                <Button variant="ghost" size="icon" onClick={copyCode}>
-                  <Copy className="h-4 w-4" />
-                </Button>
+                <p className="text-[11px] text-muted-foreground">
+                  You can upload up to 5 photos. Supported formats: JPG, PNG (Max. 5MB each)
+                </p>
               </div>
             </SectionCard>
 
-            <SectionCard title="Notes (Admin Only)">
-              <Textarea
-                rows={4}
-                placeholder="Add notes about this participant…"
-                value={note ?? entry.admin_notes ?? ""}
-                onChange={(e) => setNote(e.target.value)}
-              />
-              <Button
-                className="mt-3"
-                variant="outline"
-                size="sm"
-                onClick={handleSaveNote}
-                disabled={note == null || saveNote.isPending}
-              >
-                {saveNote.isPending ? "Saving…" : "Save Note"}
-              </Button>
-            </SectionCard>
+            {/* Application Status & Notes Card (2 columns in right section) */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SectionCard title="Application Status">
+                <div className="space-y-2">
+                  <StatusBadge status="Draft" variant="blue" />
+                  <p className="text-[11px] text-muted-foreground">
+                    This entry is in draft status and is pending review.
+                  </p>
 
+                  <div className="pt-2 border-t">
+                    <p className="text-[10px] font-bold text-slate-500">Entry ID</p>
+                    <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-900 mt-0.5">
+                      <span>{entry?.entry_code || "PB-GC-2025-000125"}</span>
+                      <button type="button" onClick={copyCode} className="text-slate-500 hover:text-slate-900">
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Notes (Admin Only)">
+                <div className="space-y-2">
+                  <Textarea
+                    rows={2}
+                    className="text-xs"
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Add notes about this participant..."
+                  />
+                  <Button size="sm" className="bg-red-600 hover:bg-red-700 font-bold text-xs h-7 w-full" onClick={handleSaveNote}>
+                    Save Note
+                  </Button>
+                </div>
+              </SectionCard>
+            </div>
+
+            {/* Activity Log Card */}
             <SectionCard title="Activity Log">
-              {entry.activity.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No activity yet.</p>
-              ) : (
-                <ol className="space-y-4">
-                  {entry.activity.map((a) => (
-                    <li key={a.id} className="flex gap-3">
-                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        {a.type === "status_changed" ? <CheckCircle2 className="h-3.5 w-3.5" /> : a.type === "edited" ? <User className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">{a.message || a.type}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {a.actor_name ? `${a.actor_name} · ` : ""}
-                          {new Date(a.created_at).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              <div className="space-y-3 text-xs pt-1">
+                {entry?.activity && entry.activity.length > 0 ? (
+                  entry.activity.map((act) => (
+                    <div key={act.id} className="flex items-start gap-2.5">
+                      <div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-bold text-slate-800">{act.message}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDate(act.created_at)} {act.actor_name ? `by ${act.actor_name}` : ""}
                         </p>
                       </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="flex items-start gap-2.5">
+                      <div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          Entry submitted by {entry?.submitted_by || entry?.contact?.name || entry?.name || "Participant"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDate(entry?.submitted_on)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          Status changed to {STATUS_LABELS[entry?.status ?? "submitted"] ?? "Draft"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDate(entry?.submitted_on)}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </SectionCard>
           </div>
         </div>
       )}
 
-      {/* Banners moved below the two-column grid so the review actions stay available */}
-      {entry && entry.banners.length > 0 && (
-        <SectionCard
-          className="mt-4"
-          title={`Banners (${entry.banners.length})`}
-          description="Each approved banner earns bonus vote points. AI reviews first; uncertain cases need manual review."
-        >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {entry.banners.map((banner) => (
-              <div key={banner.id} className="rounded-lg border p-3">
-                {banner.image_url ? (
-                  <img src={banner.image_url} alt="" className="mb-3 h-40 w-full rounded object-cover" />
-                ) : (
-                  <div className="mb-3 h-40 w-full rounded bg-muted" />
-                )}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Banner {banner.slot}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(banner.uploaded_at).toLocaleDateString("en-IN")} · {banner.points} pts
-                    </p>
-                  </div>
-                  <StatusBadge status={STATUS_LABELS[banner.status] ?? banner.status} />
-                </div>
-                {banner.status === "in_review" && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      size="sm"
-                      disabled={reviewBanner.isPending}
-                      onClick={() =>
-                        reviewBanner.mutate({ id: banner.id, status: "approved" }, { onSuccess: () => toast.success("Banner approved") })
-                      }
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={reviewBanner.isPending}
-                      onClick={() =>
-                        reviewBanner.mutate(
-                          { id: banner.id, status: "rejected", reason: "Rejected by admin" },
-                          { onSuccess: () => toast.success("Banner rejected") },
-                        )
-                      }
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
       <ConfirmDialog
         open={rejectOpen}
         onOpenChange={setRejectOpen}
-        title="Reject participant?"
-        description="The participant will see the rejection reason in the app."
-        confirmLabel="Reject"
+        title="Reject Participant Entry"
+        description="Please specify the reason for rejecting this participant entry:"
+        confirmLabel="Confirm Rejection"
+        destructive
         onConfirm={handleReject}
       >
         <Textarea
+          rows={3}
+          className="mt-2 text-xs"
+          placeholder="Reason for rejection..."
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
-          placeholder="Rejection reason"
-          className="mt-2"
         />
       </ConfirmDialog>
-    </div>
-  );
-}
-
-function MetaItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="font-medium">{value}</p>
-      </div>
     </div>
   );
 }

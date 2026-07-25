@@ -8,10 +8,12 @@ export interface Crumb {
 
 export function PageHeader({
   title,
+  description,
   breadcrumbs = [],
   actions,
 }: {
-  title: string;
+  title: React.ReactNode;
+  description?: string;
   breadcrumbs?: Crumb[];
   actions?: React.ReactNode;
 }) {
@@ -19,6 +21,7 @@ export function PageHeader({
     <div className="flex items-start justify-between mb-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         {breadcrumbs.length > 0 && (
           <nav className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             {breadcrumbs.map((c, i) => (
