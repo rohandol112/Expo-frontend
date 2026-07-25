@@ -44,7 +44,7 @@ export function hasPersistedAuthSession() {
     if (!raw) return false;
 
     const parsed = JSON.parse(raw) as {
-      state?: Pick<AuthState, "isAuthenticated" | "token">;
+      state?: Pick<AuthState, "isAuthenticated" | "token" | "user">;
     };
 
     const adminToken = window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
