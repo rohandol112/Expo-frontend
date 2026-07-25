@@ -51,6 +51,7 @@ export interface CreateAdminNewsPayload {
   source_link?: string;
   category_ids: number[];
   subcategory_ids?: number[];
+  tags?: string[];
   location?: {
     state_id?: number | null;
     district_id?: number | null;

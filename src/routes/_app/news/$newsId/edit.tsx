@@ -47,6 +47,7 @@ const schema = z.object({
   districtId: z.string().optional(),
   areaId: z.string().optional(),
   visibilityScope: z.enum(["all_india", "state", "district", "area", "private"]),
+<<<<<<< HEAD
   visibilityStateIds: z.array(z.string()).default([]),
   visibilityDistrictIds: z.array(z.string()).default([]),
   visibilityAreaIds: z.array(z.string()).default([]),
@@ -84,6 +85,18 @@ const schema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pollOptions"], message: "Add at least two poll options" });
     }
   }
+=======
+  visibilityStateIds: z.array(z.string()),
+  visibilityDistrictIds: z.array(z.string()),
+  visibilityAreaIds: z.array(z.string()),
+  visibilityUserIds: z.array(z.string()),
+  sourceLink: z.string().url().or(z.literal("")).optional(),
+  thumbnailUrl: z.string().url().or(z.literal("")).optional(),
+  tagsText: z.string().optional(),
+  enablePoll: z.boolean(),
+  pollQuestion: z.string().optional(),
+  pollOptions: z.array(z.string()),
+>>>>>>> 49b00521fc221b60fba67cd66393986f29286f41
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -365,7 +378,6 @@ function EditNewsPage() {
       news_source_id: Number(data.newsSourceId),
       category_ids: [Number(data.categoryId)],
       source_link: data.sourceLink || undefined,
-      thumbnail_url: data.thumbnailUrl || undefined,
       tags: data.tagsText?.split(",").map((tag) => tag.trim()).filter(Boolean),
       visibility,
       location: {

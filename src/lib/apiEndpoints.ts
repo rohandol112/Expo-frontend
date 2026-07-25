@@ -1,4 +1,4 @@
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://janu1g3okwroefybl3f4tvmw.195.35.7.46.sslip.io";
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://api.pehlibaat.com";
 
 function resolveApiOrigin(baseUrl: string) {
   const normalized = baseUrl.replace(/\/$/, "");
@@ -138,14 +138,41 @@ export const API = {
     adminLeaderboard: "/admin/competition/leaderboard",
     adminEntries: "/admin/competition/entries",
     adminEntry: (id: string | number) => `/admin/competition/entries/${id}`,
+    adminUpdateEntry: (id: string | number) => `/admin/competition/entries/${id}`,
     adminReviewEntry: (id: string | number) => `/admin/competition/entries/${id}/review`,
+    adminEntryNotes: (id: string | number) => `/admin/competition/entries/${id}/notes`,
     adminBanners: "/admin/competition/banners",
     adminReviewBanner: (id: string | number) => `/admin/competition/banners/${id}/review`,
     adminAiReviewBanner: (id: string | number) => `/admin/competition/banners/${id}/ai-review`,
     adminAiReviewPending: "/admin/competition/banners/ai-review",
     adminConfig: "/admin/competition/config",
+    adminAssetUploadUrl: "/admin/competition/assets/upload-url",
+    adminFormFields: "/admin/competition/form-fields",
+    adminFormField: (id: string | number) => `/admin/competition/form-fields/${id}`,
+    adminFormFieldsReorder: "/admin/competition/form-fields/reorder",
     publicConfig: "/competition/config",
     filters: "/competition/filters",
+    adminReports: "/admin/competition/reports",
+    adminReport: (id: string | number) => `/admin/competition/reports/${id}`,
+    adminRules: "/admin/competition/rules",
+    adminRule: (id: string | number) => `/admin/competition/rules/${id}`,
+  },
+  roles: {
+    list: "/admin/roles",
+    detail: (id: string | number) => `/admin/roles/${id}`,
+    assign: (userId: string | number) => `/admin/roles/assign/${userId}`,
+  },
+  monetization: {
+    settings: "/admin/monetization/settings",
+    ads: "/admin/monetization/ads",
+    ad: (id: string | number) => `/admin/monetization/ads/${id}`,
+    reorder: "/admin/monetization/ads/reorder",
+    uploadUrl: "/admin/monetization/ads/upload-url",
+  },
+  advertisement: {
+    banners: "/admin/advertisement/banners",
+    banner: (id: string | number) => `/admin/advertisement/banners/${id}`,
+    bannersUploadUrl: "/admin/advertisement/banners/upload-url",
   },
   campaign: {
     settings: "/admin/campaign/settings",

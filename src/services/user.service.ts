@@ -17,6 +17,7 @@ export interface UserListParams {
   search?: string;
   status?: "active" | "inactive";
   is_guest?: boolean;
+  role?: "user" | "admin" | "subadmin" | "guest";
   language_code?: string;
   state_id?: number;
   district_id?: number;

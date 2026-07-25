@@ -20,10 +20,12 @@ import {
   ChevronDown,
   Globe,
   Trophy,
+  Megaphone,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useCompetitionBanners } from "@/hooks/api/useCompetition";
 import { ROUTES } from "@/constants/routes.constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -31,6 +33,8 @@ type Item = {
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
   to?: string;
+  badge?: string;
+  badgeKey?: "ai_queue" | "manual_queue";
   children?: Item[];
 };
 
@@ -57,8 +61,21 @@ const MENU: Item[] = [
       { label: "Leaderboard", to: ROUTES.COMPETITION_LEADERBOARD },
       { label: "Participants", to: ROUTES.COMPETITION_PARTICIPANTS },
       { label: "Banner Review", to: ROUTES.COMPETITION_BANNER_REVIEW },
+      { label: "AI Review Queue", to: `${ROUTES.COMPETITION_BANNER_REVIEW}?tab=ai-queue`, badgeKey: "ai_queue" },
+      { label: "Manual Review Queue", to: `${ROUTES.COMPETITION_BANNER_REVIEW}?tab=manual-queue`, badgeKey: "manual_queue" },
+      { label: "Reviewed Banners", to: `${ROUTES.COMPETITION_BANNER_REVIEW}?tab=reviewed` },
+      { label: "Reports", to: ROUTES.COMPETITION_REPORTS },
+      { label: "Competition Rules", to: ROUTES.COMPETITION_RULES },
       { label: "AI Calling Campaign", to: ROUTES.COMPETITION_AI_CALLING },
       { label: "Settings", to: ROUTES.COMPETITION_SETTINGS },
+    ],
+  },
+  {
+    label: "Advertisement",
+    icon: Megaphone,
+    children: [
+      { label: "Banner List", to: ROUTES.ADS_BANNERS },
+      { label: "Add New Banner", to: ROUTES.ADS_BANNERS_ADD },
     ],
   },
   { label: "Channels", icon: Tv, to: ROUTES.CHANNELS },
@@ -89,8 +106,19 @@ const MENU: Item[] = [
 ];
 
 export function Sidebar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const user = useAuthStore((s) => s.user);
+  const searchStr = typeof search === "string" ? search : JSON.stringify(search);
+
+  // Live queue counts for the Competition badges; one tiny cached query.
+  const badgeQuery = useCompetitionBanners({ page: 1, per_page: 1 });
+  const badgeCounts = badgeQuery.data?.counts;
+  const badgeFor = (key?: Item["badgeKey"]): string | undefined => {
+    if (!key || !badgeCounts) return undefined;
+    const n = key === "ai_queue" ? badgeCounts.ai_uncertain : badgeCounts.in_review;
+    return n > 0 ? String(n) : undefined;
+  };
+
   const [open, setOpen] = useState<Record<string, boolean>>({
     "News Management": pathname.startsWith("/news"),
     "System Management": pathname.startsWith("/system"),
@@ -103,7 +131,7 @@ export function Sidebar() {
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary">
           <Globe className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-semibold max-lg:hidden">News Admin</span>
+        <span className="text-lg font-semibold max-lg:hidden">Pehli Baat Admin</span>
       </div>
 
       <div className="px-5 pt-4 pb-2 text-[11px] font-semibold tracking-wider text-sidebar-foreground/50 max-lg:px-3 max-lg:text-center">
@@ -114,17 +142,18 @@ export function Sidebar() {
         {MENU.map((item) => {
           const Icon = item.icon;
           if (item.children) {
-            const isOpen = open[item.label];
-            const isActive = item.children.some((c) => pathname === c.to);
+            const isOpen = open[item.label] ?? (item.label === "Competition" && pathname.startsWith("/competition"));
+            const isActive = item.children.some((c) => c.to && pathname === c.to.split("?")[0]);
+
             return (
               <div key={item.label} className="mb-1">
                 <button
-                  onClick={() => setOpen((s) => ({ ...s, [item.label]: !s[item.label] }))}
+                  onClick={() => setOpen((s) => ({ ...s, [item.label]: !isOpen }))}
                   className={cn(
                     "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium transition-colors max-lg:justify-center",
                     isActive
                       ? "bg-primary text-primary-foreground"
-                      : "hover:bg-white/5 text-sidebar-foreground/85",
+                      : "hover:bg-white/5 text-sidebar-foreground/85"
                   )}
                 >
                   <span className="flex items-center gap-3">
@@ -136,22 +165,34 @@ export function Sidebar() {
                   />
                 </button>
                 {isOpen && (
-                  <div className="mt-1 ml-3 border-l border-sidebar-border/60 pl-3 max-lg:hidden">
+                  <div className="mt-1 ml-3 border-l border-sidebar-border/60 pl-3 max-lg:hidden space-y-0.5">
                     {item.children.map((c) => {
-                      const active = pathname === c.to;
+                      const targetPath = c.to?.split("?")[0];
+                      const targetQuery = c.to?.includes("?") ? c.to.split("?")[1] : undefined;
+                      const active = targetQuery
+                        ? pathname === targetPath && searchStr.includes(targetQuery)
+                        : pathname === targetPath && !searchStr.includes("tab=");
+
                       return (
                         <Link
                           key={c.label}
                           to={c.to!}
                           className={cn(
-                            "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                            "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
                             active
-                              ? "bg-primary/15 text-primary-foreground border-l-2 -ml-3 pl-3 border-primary"
-                              : "text-sidebar-foreground/70 hover:bg-white/5",
+                              ? "bg-primary/15 text-primary-foreground border-l-2 -ml-3 pl-3 border-primary font-medium"
+                              : "text-sidebar-foreground/70 hover:bg-white/5"
                           )}
                         >
-                          <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
-                          {c.label}
+                          <span className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
+                            {c.label}
+                          </span>
+                          {(c.badge ?? badgeFor(c.badgeKey)) && (
+                            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                              {c.badge ?? badgeFor(c.badgeKey)}
+                            </span>
+                          )}
                         </Link>
                       );
                     })}
@@ -169,7 +210,7 @@ export function Sidebar() {
                 "mb-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors max-lg:justify-center",
                 active
                   ? "bg-primary text-primary-foreground"
-                  : "text-sidebar-foreground/85 hover:bg-white/5",
+                  : "text-sidebar-foreground/85 hover:bg-white/5"
               )}
             >
               {Icon && <Icon className="h-[18px] w-[18px]" />}
@@ -179,15 +220,15 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-3 rounded-md p-2">
+      <div className="border-t border-sidebar-border p-4 max-lg:p-2">
+        <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user?.avatarUrl} />
-            <AvatarFallback>AU</AvatarFallback>
+            <AvatarImage src={user?.avatarUrl || ""} />
+            <AvatarFallback>{user?.name?.[0] || "A"}</AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1 max-lg:hidden">
-            <p className="text-sm font-medium truncate">{user?.name ?? "Admin User"}</p>
-            <p className="text-xs text-emerald-400">● Super Admin</p>
+          <div className="overflow-hidden max-lg:hidden">
+            <p className="truncate text-sm font-medium">{user?.name || "Admin User"}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">Super Admin</p>
           </div>
         </div>
       </div>

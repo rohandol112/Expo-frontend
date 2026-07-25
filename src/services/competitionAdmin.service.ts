@@ -4,10 +4,17 @@ import type {
   AdminBannerListData,
   AdminEntryDetail,
   AdminEntryListItem,
+  AdminReportListData,
   CompetitionAdminStats,
   CompetitionConfig,
+  CompetitionReport,
+  CompetitionRule,
+  CompetitionRuleInput,
+  CreateFormFieldInput,
+  FormField,
   LeaderboardData,
   Paged,
+  UpdateEntryInput,
 } from "@/types/competitionAdmin";
 
 export type EntryListParams = {
@@ -33,6 +40,23 @@ export type BannerListParams = {
   status?: string;
   ai_status?: string;
   search?: string;
+  slot?: number;
+  district_id?: number;
+  area_id?: number;
+  priority?: "high" | "medium" | "low";
+  overdue?: boolean;
+  reviewed?: boolean;
+  date_from?: string;
+  date_to?: string;
+};
+
+export type ReportListParams = {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
 };
 
 export const competitionAdminService = {
@@ -59,11 +83,19 @@ export const competitionAdminService = {
     });
   },
 
+  updateEntry(id: string | number, patch: UpdateEntryInput) {
+    return httpClient.put<AdminEntryDetail>(API.competition.adminUpdateEntry(id), patch);
+  },
+
+  saveEntryNote(id: string | number, note: string) {
+    return httpClient.put<{ id: number; admin_notes: string }>(API.competition.adminEntryNotes(id), { note });
+  },
+
   banners(params?: BannerListParams) {
     return httpClient.get<AdminBannerListData>(API.competition.adminBanners, { params });
   },
 
-  reviewBanner(id: string | number, status: "approved" | "rejected", rejectionReason?: string) {
+  reviewBanner(id: string | number, status: "approved" | "rejected" | "in_review", rejectionReason?: string) {
     return httpClient.put<{ id: number; status: string }>(API.competition.adminReviewBanner(id), {
       status,
       rejection_reason: rejectionReason,
@@ -84,7 +116,74 @@ export const competitionAdminService = {
     return httpClient.get<CompetitionConfig>(API.competition.publicConfig);
   },
 
-  updateConfig(patch: Partial<Pick<CompetitionConfig, "title" | "subtitle" | "is_active" | "banner_points" | "voting_starts_at" | "voting_ends_at">>) {
+  updateConfig(patch: Partial<CompetitionConfig>) {
     return httpClient.put<CompetitionConfig>(API.competition.adminConfig, patch);
+  },
+
+  assetUploadUrl(fileName: string, contentType: string, asset: "share_template" | "banner") {
+    return httpClient.post<{ upload_url: string; file_key: string; expires_in: number }>(
+      API.competition.adminAssetUploadUrl,
+      { file_name: fileName, content_type: contentType, asset },
+    );
+  },
+
+  /** Presign, PUT the file to R2, and return the stored key. */
+  async uploadAsset(file: File, asset: "share_template" | "banner"): Promise<string> {
+    const { upload_url, file_key } = await this.assetUploadUrl(file.name, file.type, asset);
+    const put = await fetch(upload_url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+    if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+    return file_key;
+  },
+
+  formFields() {
+    return httpClient.get<FormField[]>(API.competition.adminFormFields);
+  },
+
+  createFormField(input: CreateFormFieldInput) {
+    return httpClient.post<FormField>(API.competition.adminFormFields, input);
+  },
+
+  updateFormField(id: number, patch: Partial<CreateFormFieldInput>) {
+    return httpClient.put<FormField>(API.competition.adminFormField(id), patch);
+  },
+
+  deleteFormField(id: number) {
+    return httpClient.delete<{ id: number }>(API.competition.adminFormField(id));
+  },
+
+  reorderFormFields(ids: number[]) {
+    return httpClient.put<FormField[]>(API.competition.adminFormFieldsReorder, { ids });
+  },
+
+  // ---- User reports ----
+
+  reports(params?: ReportListParams) {
+    return httpClient.get<AdminReportListData>(API.competition.adminReports, { params });
+  },
+
+  updateReport(id: number, status: "wrong" | "resolved") {
+    return httpClient.put<CompetitionReport>(API.competition.adminReport(id), { status });
+  },
+
+  deleteReport(id: number) {
+    return httpClient.delete<{ id: number }>(API.competition.adminReport(id));
+  },
+
+  // ---- Competition rules ----
+
+  rules() {
+    return httpClient.get<CompetitionRule[]>(API.competition.adminRules);
+  },
+
+  createRule(input: CompetitionRuleInput) {
+    return httpClient.post<CompetitionRule>(API.competition.adminRules, input);
+  },
+
+  updateRule(id: number, patch: Partial<CompetitionRuleInput>) {
+    return httpClient.put<CompetitionRule>(API.competition.adminRule(id), patch);
+  },
+
+  deleteRule(id: number) {
+    return httpClient.delete<{ id: number }>(API.competition.adminRule(id));
   },
 };
