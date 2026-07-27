@@ -55,6 +55,13 @@ export function useUpdateCompetitionConfig() {
   });
 }
 
+export function useUploadCompetitionAsset() {
+  return useMutation({
+    mutationFn: ({ file, asset }: { file: File; asset: "share_template" | "banner" | "cover_photo" | "pandal_photo" }) =>
+      competitionAdminService.uploadAsset(file, asset),
+  });
+}
+
 export function useFormFields() {
   return useQuery({ queryKey: competitionKeys.formFields(), queryFn: () => competitionAdminService.formFields() });
 }

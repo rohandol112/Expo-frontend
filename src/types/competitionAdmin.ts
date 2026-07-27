@@ -65,6 +65,9 @@ export interface CompetitionConfig {
   button_state_ids: number[];
   button_district_ids: number[];
   button_area_ids: number[];
+  /** YYYY-MM-DD. Visarjan dates on the app are derived from this + visarjan days. */
+  festival_start_date: string | null;
+  max_reports_per_user: number;
   total_pandals: number;
 }
 

@@ -124,7 +124,7 @@ export const competitionAdminService = {
     return httpClient.put<CompetitionConfig>(API.competition.adminConfig, patch);
   },
 
-  assetUploadUrl(fileName: string, contentType: string, asset: "share_template" | "banner") {
+  assetUploadUrl(fileName: string, contentType: string, asset: "share_template" | "banner" | "cover_photo" | "pandal_photo") {
     return httpClient.post<{ upload_url: string; file_key: string; expires_in: number }>(
       API.competition.adminAssetUploadUrl,
       { file_name: fileName, content_type: contentType, asset },
@@ -132,7 +132,7 @@ export const competitionAdminService = {
   },
 
   /** Presign, PUT the file to R2, and return the stored key. */
-  async uploadAsset(file: File, asset: "share_template" | "banner"): Promise<string> {
+  async uploadAsset(file: File, asset: "share_template" | "banner" | "cover_photo" | "pandal_photo"): Promise<string> {
     const { upload_url, file_key } = await this.assetUploadUrl(file.name, file.type, asset);
     const put = await fetch(upload_url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
     if (!put.ok) throw new Error(`Upload failed (${put.status})`);

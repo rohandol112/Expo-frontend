@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -45,6 +45,7 @@ import {
   useReviewEntry,
   useSaveEntryNote,
   useUpdateEntry,
+  useUploadCompetitionAsset,
 } from "@/hooks/api/useCompetition";
 import { useRegions } from "@/hooks/api/useRegions";
 import type { AdminEntryDetail, UpdateEntryInput } from "@/types/competitionAdmin";
@@ -142,6 +143,12 @@ function ParticipantDetailPage() {
   const [noteText, setNoteText] = useState<string>("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const coverPhotoInputRef = useRef<HTMLInputElement>(null);
+  const pandalPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadAsset = useUploadCompetitionAsset();
 
   const entry = entryQuery.data;
   const original = useMemo(() => (entry ? toForm(entry) : null), [entry]);
@@ -470,21 +477,25 @@ function ParticipantDetailPage() {
                     <Calendar className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] text-muted-foreground font-semibold">Submitted On</p>
-                      <p className="font-bold text-slate-800">14 Jul 2025, 11:45 AM</p>
+                      <p className="font-bold text-slate-800">{formatDate(entry?.submitted_on)}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5 rounded-lg border bg-slate-50 p-2.5">
                     <User className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] text-muted-foreground font-semibold">Submitted By</p>
-                      <p className="font-bold text-slate-800">Ravi Sharma (97654 32109)</p>
+                      <p className="font-bold text-slate-800">
+                        {entry?.submitted_by || 'Unknown'} {entry?.submitted_by_phone ? `(${entry.submitted_by_phone})` : ''}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5 rounded-lg border bg-slate-50 p-2.5">
                     <MapPin className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] text-muted-foreground font-semibold">User Location</p>
-                      <p className="font-bold text-slate-800">Mumbai, Maharashtra</p>
+                      <p className="font-bold text-slate-800">
+                        {[entry?.area_name, entry?.district_name, entry?.state_name].filter(Boolean).join(', ') || 'N/A'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -496,15 +507,23 @@ function ParticipantDetailPage() {
           <div className="space-y-5">
             {/* Cover Image Card */}
             <SectionCard title="Cover Image">
+              <input
+                type="file"
+                ref={coverPhotoInputRef}
+                className="hidden"
+                accept="image/jpeg, image/png, image/webp"
+                onChange={handleCoverPhotoUpload}
+              />
               <div className="relative overflow-hidden rounded-lg border bg-slate-900 shadow-md">
                 <Button
                   variant="secondary"
                   size="sm"
                   className="absolute right-2 top-2 z-10 bg-black/60 font-bold text-white hover:bg-black/80 text-xs backdrop-blur-sm"
-                  onClick={() => toast.info("Change photo clicked")}
+                  onClick={() => coverPhotoInputRef.current?.click()}
+                  disabled={isUploadingCover}
                 >
                   <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                  Change Photo
+                  {isUploadingCover ? "Uploading..." : "Change Photo"}
                 </Button>
 
                 {entry?.cover_photo_url ? (
@@ -518,10 +537,17 @@ function ParticipantDetailPage() {
 
               <div className="mt-2.5 flex items-center justify-between text-xs">
                 <span className="text-[11px] text-muted-foreground font-semibold">JPG, PNG (Max. 5MB)</span>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50">
-                  <Trash2 className="mr-1 h-3.5 w-3.5" />
-                  Delete Photo
-                </Button>
+                {entry?.cover_photo_url && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    onClick={handleDeleteCoverPhoto}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                    Delete Photo
+                  </Button>
+                )}
               </div>
             </SectionCard>
 
@@ -529,23 +555,39 @@ function ParticipantDetailPage() {
             <SectionCard
               title="Uploaded Photos (Max. 5)"
               action={
-                <Button variant="outline" size="sm" className="text-xs font-bold text-blue-700 border-blue-200">
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add Photos
-                </Button>
+                <>
+                  <input
+                    type="file"
+                    ref={pandalPhotoInputRef}
+                    className="hidden"
+                    accept="image/jpeg, image/png, image/webp"
+                    multiple
+                    onChange={handlePandalPhotoUpload}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs font-bold text-blue-700 border-blue-200"
+                    onClick={() => pandalPhotoInputRef.current?.click()}
+                    disabled={isUploadingPhotos || (entry?.photo_urls?.length ?? 0) >= 5}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    {isUploadingPhotos ? "Uploading..." : "Add Photos"}
+                  </Button>
+                </>
               }
             >
               <div className="space-y-2">
                 <div className="grid grid-cols-4 gap-2">
                   {(entry?.photo_urls && entry.photo_urls.length > 0
                     ? entry.photo_urls
-                    : [1, 2, 3, 4]
+                    : []
                   ).map((urlOrNum, idx) => (
                     <div key={idx} className="relative aspect-square overflow-hidden rounded-md border bg-slate-100 shadow-sm group">
                       <button
                         type="button"
                         className="absolute right-1 top-1 z-10 h-5 w-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-                        onClick={() => toast.info("Photo removed")}
+                        onClick={() => handleDeletePandalPhoto(idx)}
                       >
                         <X className="h-3 w-3" />
                       </button>
