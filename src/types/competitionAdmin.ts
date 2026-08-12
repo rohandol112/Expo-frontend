@@ -108,6 +108,10 @@ export interface AdminEntryListItem {
   contact_name: string;
   contact_phone: string;
   contact_email?: string | null;
+  /** PB0001-style public code, shown as a column in the participants table. */
+  entry_code?: string | null;
+  established_year?: number | null;
+  visarjan_days?: string | null;
   submitted_by?: string | null;
   submitted_by_phone?: string | null;
   created_at: string;
