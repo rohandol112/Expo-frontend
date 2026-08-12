@@ -171,6 +171,13 @@ export interface UpdateEntryInput {
   contact_phone?: string;
   contact_email?: string | null;
   visarjan_days?: string | null;
+  /**
+   * Photo edits. The API has accepted both since admin photo editing was added;
+   * they were missing here, so the detail page could not send them.
+   * cover_photo_key null clears the cover; photo_keys replaces the whole set.
+   */
+  cover_photo_key?: string | null;
+  photo_keys?: string[];
 }
 
 export interface AdminBanner {
