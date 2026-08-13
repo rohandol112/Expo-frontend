@@ -55,6 +55,13 @@ export function useUpdateCompetitionConfig() {
   });
 }
 
+export function useUploadCompetitionAsset() {
+  return useMutation({
+    mutationFn: ({ file, asset }: { file: File; asset: "share_template" | "banner" | "cover_photo" | "pandal_photo" }) =>
+      competitionAdminService.uploadAsset(file, asset),
+  });
+}
+
 export function useFormFields() {
   return useQuery({ queryKey: competitionKeys.formFields(), queryFn: () => competitionAdminService.formFields() });
 }
@@ -121,6 +128,14 @@ export function useUpdateEntry(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (patch: UpdateEntryInput) => competitionAdminService.updateEntry(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
+  });
+}
+
+export function useDeleteEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => competitionAdminService.deleteEntry(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
   });
 }

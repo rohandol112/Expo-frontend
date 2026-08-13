@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownUp,
   ArrowUpDown,
@@ -31,8 +31,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { useCompetitionEntries, useCompetitionStats } from "@/hooks/api/useCompetition";
+import { useCompetitionEntries, useCompetitionStats, useDeleteEntry } from "@/hooks/api/useCompetition";
+import { competitionAdminService } from "@/services/competitionAdmin.service";
 import { useRegions } from "@/hooks/api/useRegions";
 import type { AdminEntryListItem } from "@/types/competitionAdmin";
 import { ROUTES } from "@/constants/routes.constants";
@@ -40,6 +42,14 @@ import { ROUTES } from "@/constants/routes.constants";
 export const Route = createFileRoute("/_app/competition/participants")({ component: ParticipantsPage });
 
 const PAGE_SIZE = 10;
+
+/** CSV line ending. Excel on Windows expects CRLF. */
+const CRLF = String.fromCharCode(13, 10);
+/**
+ * UTF-8 byte order mark. Without it Excel reads the file as the local codepage
+ * and every Devanagari name arrives as mojibake — which is most of this data.
+ */
+const BOM = String.fromCharCode(0xfeff);
 
 const STATUS_VARIANTS: Record<string, "blue" | "green" | "rose"> = {
   submitted: "blue",
@@ -73,9 +83,15 @@ function ParticipantsPage() {
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
   const [selectedArea, setSelectedArea] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"recent" | "oldest" | null>(null);
+  /** Free-text search. Debounced into `search` so every keystroke is not a request. */
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<AdminEntryListItem | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const statsQuery = useCompetitionStats();
+  const deleteEntry = useDeleteEntry();
   const regionsQuery = useRegions();
   const states = regionsQuery.data ?? [];
   const districts = useMemo(
@@ -87,14 +103,24 @@ function ParticipantsPage() {
     [districts, selectedDistrict],
   );
 
+  // 350ms after typing stops. The API searches name, committee, phone and code.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const params = useMemo(
     () => ({
       page,
       per_page: PAGE_SIZE,
+      search: search || undefined,
       district_id: selectedDistrict !== "all" ? Number(selectedDistrict) : undefined,
       area_id: selectedArea !== "all" ? Number(selectedArea) : undefined,
     }),
-    [page, selectedDistrict, selectedArea],
+    [page, search, selectedDistrict, selectedArea],
   );
 
   const entriesQuery = useCompetitionEntries(params);
@@ -120,6 +146,8 @@ function ParticipantsPage() {
     setSelectedDistrict("all");
     setSelectedArea("all");
     setSortOrder(null);
+    setSearchInput("");
+    setSearch("");
     setPage(1);
   };
 
@@ -127,8 +155,79 @@ function ParticipantsPage() {
     toast.success("Publish request submitted for all draft entries");
   };
 
-  const handleExport = () => {
-    toast.info("Exporting participants data as CSV...");
+  /**
+   * Exports every entry matching the current filters, not just the page on
+   * screen. The button previously only raised a toast and downloaded nothing.
+   *
+   * Paginated server-side, so this walks the pages rather than assuming one
+   * request returns everything. CSV rather than xlsx: Excel opens it natively
+   * and it needs no dependency.
+   */
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    const toastId = toast.loading("Preparing export…");
+    try {
+      const EXPORT_PAGE_SIZE = 200;
+      const all: AdminEntryListItem[] = [];
+      for (let p = 1; ; p += 1) {
+        const chunk = await competitionAdminService.entries({
+          ...params,
+          page: p,
+          per_page: EXPORT_PAGE_SIZE,
+        });
+        all.push(...(chunk.items ?? []));
+        if (!chunk.has_more || (chunk.items ?? []).length === 0) break;
+        if (p > 100) break; // hard stop; 20k rows is far past a sane export
+      }
+
+      const columns: { header: string; value: (r: AdminEntryListItem) => string }[] = [
+        { header: "Code", value: (r) => r.entry_code ?? "" },
+        { header: "Pandal Name", value: (r) => r.name ?? "" },
+        { header: "Mandal / Society", value: (r) => r.committee_name ?? "" },
+        { header: "Established Year", value: (r) => (r.established_year != null ? String(r.established_year) : "") },
+        { header: "Visarjan Days", value: (r) => r.visarjan_days ?? "" },
+        { header: "State", value: (r) => r.state_name ?? "" },
+        { header: "District", value: (r) => r.district_name ?? "" },
+        { header: "Area", value: (r) => r.area_name ?? "" },
+        { header: "Contact Name", value: (r) => r.contact_name ?? "" },
+        { header: "Contact Phone", value: (r) => r.contact_phone ?? "" },
+        { header: "Contact Email", value: (r) => r.contact_email ?? "" },
+        { header: "Submitted By", value: (r) => r.submitted_by ?? "" },
+        { header: "Submitted By Phone", value: (r) => r.submitted_by_phone ?? "" },
+        { header: "Total Votes", value: (r) => String(r.total_votes ?? 0) },
+        { header: "Rank", value: (r) => (r.rank != null ? String(r.rank) : "") },
+        { header: "Status", value: (r) => STATUS_LABELS[r.status] ?? r.status ?? "" },
+        { header: "Registered On", value: (r) => (r.created_at ? new Date(r.created_at).toLocaleString("en-IN") : "") },
+        { header: "Last Updated", value: (r) => (r.updated_at ? new Date(r.updated_at).toLocaleString("en-IN") : "") },
+      ];
+
+      // Quote everything and double inner quotes: names and addresses contain
+      // commas, and one unescaped quote shifts every later column.
+      const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
+      const csv = [
+        columns.map((c) => escape(c.header)).join(","),
+        ...all.map((row) => columns.map((c) => escape(c.value(row))).join(",")),
+      ].join(CRLF);
+
+      const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `participants-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${all.length} participant${all.length === 1 ? "" : "s"}`, { id: toastId });
+    } catch (error) {
+      toast.error("Export failed. Please try again.", { id: toastId });
+      // eslint-disable-next-line no-console
+      console.error("[Participants] export failed", error);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -380,6 +479,9 @@ function ParticipantsPage() {
                             <DropdownMenuItem onClick={() => navigate({ to: "/competition/participants/$participantId", params: { participantId: String(row.id) } })}>
                               Edit Participant
                             </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => setDeleteTarget(row)}>
+                              Delete Participant
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -429,6 +531,25 @@ function ParticipantsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Participant?"
+        description={`This will permanently delete the participant "${deleteTarget?.name}".`}
+        confirmLabel={deleteEntry.isPending ? "Deleting..." : "Delete"}
+        destructive
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            await deleteEntry.mutateAsync(deleteTarget.id);
+            toast.success("Participant deleted");
+            setDeleteTarget(null);
+          } catch (err) {
+            toast.error("Unable to delete participant");
+          }
+        }}
+      />
     </div>
   );
 }

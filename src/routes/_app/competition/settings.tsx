@@ -201,18 +201,38 @@ function CompetitionSettingsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div>
-                  <Label className="text-xs font-semibold">Select States *</Label>
-                  <MultiSelect className="mt-1" options={stateOpts} value={config.target_state_ids ?? []} onChange={(v) => setField("target_state_ids", v)} placeholder="Select States" />
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold">Select Districts *</Label>
-                  <MultiSelect className="mt-1" options={districtOpts} value={config.target_district_ids ?? []} onChange={(v) => setField("target_district_ids", v)} placeholder="Select Districts" />
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold">Select Areas *</Label>
-                  <MultiSelect className="mt-1" options={areaOpts} value={config.target_area_ids ?? []} onChange={(v) => setField("target_area_ids", v)} placeholder="Select Areas" />
+              <div>
+                <Label className="font-bold">Festival Start Date</Label>
+                <Input
+                  type="date"
+                  className="mt-1.5 w-56"
+                  value={config.festival_start_date ?? ""}
+                  onChange={(e) => setField("festival_start_date", e.target.value || null)}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Each entry's Visarjan date shown in the app is calculated from this date plus the Visarjan days the
+                  participant selected (e.g. start + 11 days).
+                </p>
+              </div>
+
+              <div>
+                <Label className="font-bold">{"Competition Detail's Location"}</Label>
+                <p className="mb-1.5 mt-0.5 text-[11px] text-muted-foreground">
+                  In the selected location the competition button will be visible in the app's top bar menu.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Select States *</Label>
+                    <MultiSelect className="mt-1" options={stateOpts} value={config.target_state_ids ?? []} onChange={(v) => setField("target_state_ids", v)} placeholder="Select States" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Select Districts *</Label>
+                    <MultiSelect className="mt-1" options={districtOpts} value={config.target_district_ids ?? []} onChange={(v) => setField("target_district_ids", v)} placeholder="Select Districts" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Select Areas *</Label>
+                    <MultiSelect className="mt-1" options={areaOpts} value={config.target_area_ids ?? []} onChange={(v) => setField("target_area_ids", v)} placeholder="Select Areas" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -438,7 +458,10 @@ function CompetitionSettingsPage() {
           </div>
 
           {/* 6. Participant Button Visibility */}
-          <SectionCard title="6. Participant Button Visibility (Show Competition)" description="Select where this competition button will be visible on the app for participants.">
+          <SectionCard
+            title="6. Participant Button Visibility (Show Competition)"
+            description="In the selected locations the Participate button is shown in the app. The same list also drives the location filter on the competition home page and the Location dropdowns on the participation form."
+          >
             <div className="space-y-3">
               <RadioGroup
                 className="flex items-center gap-6"
@@ -544,6 +567,23 @@ function CompetitionSettingsPage() {
                     <SelectItem value="after_voting_ends">After voting ends</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-t pt-3">
+                <div>
+                  <p className="text-xs font-bold text-slate-800">Report Limit Per User</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    How many "Report an Issue" submissions one user can send. Set 0 for no limit.
+                  </p>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="w-24 text-xs"
+                  value={String(config.max_reports_per_user ?? 5)}
+                  onChange={(e) => setField("max_reports_per_user", Number(e.target.value))}
+                />
               </div>
 
               <div className="flex items-center gap-2 rounded-md bg-blue-50 p-2 text-xs text-blue-800">

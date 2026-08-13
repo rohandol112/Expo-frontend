@@ -65,6 +65,9 @@ export interface CompetitionConfig {
   button_state_ids: number[];
   button_district_ids: number[];
   button_area_ids: number[];
+  /** YYYY-MM-DD. Visarjan dates on the app are derived from this + visarjan days. */
+  festival_start_date: string | null;
+  max_reports_per_user: number;
   total_pandals: number;
 }
 
@@ -105,6 +108,10 @@ export interface AdminEntryListItem {
   contact_name: string;
   contact_phone: string;
   contact_email?: string | null;
+  /** PB0001-style public code, shown as a column in the participants table. */
+  entry_code?: string | null;
+  established_year?: number | null;
+  visarjan_days?: string | null;
   submitted_by?: string | null;
   submitted_by_phone?: string | null;
   created_at: string;
@@ -164,6 +171,13 @@ export interface UpdateEntryInput {
   contact_phone?: string;
   contact_email?: string | null;
   visarjan_days?: string | null;
+  /**
+   * Photo edits. The API has accepted both since admin photo editing was added;
+   * they were missing here, so the detail page could not send them.
+   * cover_photo_key null clears the cover; photo_keys replaces the whole set.
+   */
+  cover_photo_key?: string | null;
+  photo_keys?: string[];
 }
 
 export interface AdminBanner {
