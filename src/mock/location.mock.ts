@@ -8,10 +8,10 @@ export const locationOverview: LocationOverview[] = [
 ];
 
 export const states: StateItem[] = [
-  { id: "st-mh", language: "Marathi", name: "Maharashtra", code: "MH", status: "Active", addedOn: "12 Jan 2026" },
-  { id: "st-up", language: "Hindi", name: "Uttar Pradesh", code: "UP", status: "Active", addedOn: "15 Jan 2026" },
-  { id: "st-dl", language: "Hindi", name: "Delhi", code: "DL", status: "Active", addedOn: "20 Jan 2026" },
-  { id: "st-rj", language: "Hindi", name: "Rajasthan", code: "RJ", status: "Inactive", addedOn: "05 Feb 2026" },
+  { id: "st-mh", language: "Marathi", name: "Maharashtra", code: "MH", status: "Active", addedOn: "12 Jan 2026", imageUrl: null },
+  { id: "st-up", language: "Hindi", name: "Uttar Pradesh", code: "UP", status: "Active", addedOn: "15 Jan 2026", imageUrl: null },
+  { id: "st-dl", language: "Hindi", name: "Delhi", code: "DL", status: "Active", addedOn: "20 Jan 2026", imageUrl: null },
+  { id: "st-rj", language: "Hindi", name: "Rajasthan", code: "RJ", status: "Inactive", addedOn: "05 Feb 2026", imageUrl: null },
 ];
 
 export const districts: DistrictItem[] = [

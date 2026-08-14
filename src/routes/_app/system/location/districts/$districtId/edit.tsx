@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
 import { useDistrict, useStates, useUpdateDistrict } from "@/hooks/api/useLocations";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/districts/$districtId/edit")({ component: EditDistrictPage });
@@ -28,8 +29,9 @@ function EditDistrictPage() {
   const { districtId } = Route.useParams();
   const navigate = useNavigate();
   const districtQuery = useDistrict(districtId);
-  const statesQuery = useStates({ language_code: districtQuery.data?.language_code || "hi", per_page: 100 });
+  const statesQuery = useStates({ language_code: districtQuery.data?.language_code || "hi", per_page: 2000 });
   const updateDistrict = useUpdateDistrict();
+  const languagesQuery = useLanguages();
   const { register, setValue, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { code: "", sortOrder: 0, status: "Active" },
@@ -59,6 +61,9 @@ function EditDistrictPage() {
   };
 
   const stateName = (statesQuery.data?.items ?? []).find((state) => state.id === districtQuery.data?.state_id)?.name;
+  const languageName = languagesQuery.data?.items?.find((l) => l.code === districtQuery.data?.language_code)?.name
+    ?? districtQuery.data?.language_code?.toUpperCase()
+    ?? "";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -72,7 +77,7 @@ function EditDistrictPage() {
           <Field label="District Name" error={errors.name?.message}><Input {...register("name")} /></Field>
           <Field label="State"><Input value={stateName ?? (districtQuery.data ? `State #${districtQuery.data.state_id}` : "")} disabled /></Field>
           <Field label="District Code" error={errors.code?.message}><Input {...register("code")} /></Field>
-          <Field label="Language Code"><Input value={districtQuery.data?.language_code ?? ""} disabled /></Field>
+          <Field label="Language"><Input value={languageName} disabled /></Field>
           <Field label="Sort Order" error={errors.sortOrder?.message}><Input type="number" min={0} {...register("sortOrder")} /></Field>
           <Field label="Status"><Select value={watch("status")} onValueChange={(v) => setValue("status", v as FormValues["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
         </div>

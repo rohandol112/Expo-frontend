@@ -37,17 +37,31 @@ function toIsoDate(date: string, endOfDay = false) {
   return new Date(`${date}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}`).toISOString();
 }
 
-function getNewsLocation(row: NewsItem) {
-  if (row.location) {
-    const primary = [row.location.area, row.location.district].filter(Boolean).join(", ") || row.location.state || "—";
-    const secondary = [row.location.state].filter(Boolean).join(", ");
-    return { primary: String(primary), secondary: String(secondary || "") };
-  }
+function locationPartLabel(name: string | number | null | undefined, id: number | null | undefined, kind: string) {
+  if (name !== undefined && name !== null && String(name).trim()) return String(name);
+  if (id != null) return `${kind} #${id}`;
+  return null;
+}
 
-  const visibility = row.visibility;
-  if (!visibility) return null;
-  const detail = [visibility.area, visibility.district, visibility.state, visibility.users].filter(Boolean).join(", ");
-  return { primary: visibility.type, secondary: detail };
+function getNewsLocationLabel(row: NewsItem) {
+  const loc = row.location;
+  if (loc && (loc.state || loc.district || loc.area || loc.stateId || loc.districtId || loc.areaId)) {
+    const parts = [
+      locationPartLabel(loc.area, loc.areaId, "Area"),
+      locationPartLabel(loc.district, loc.districtId, "District"),
+      locationPartLabel(loc.state, loc.stateId, "State"),
+    ].filter((part): part is string => Boolean(part));
+    if (parts.length > 0) return parts.join(", ");
+  }
+  return "National";
+}
+
+const SCHEDULABLE_STATUSES: NewsItem["status"][] = ["Draft", "Pending", "Published"];
+
+function minScheduleDateTime() {
+  const d = new Date(Date.now() + 60_000);
+  d.setSeconds(0, 0);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
 function getVisibilityLabel(row: NewsItem) {
@@ -119,6 +133,13 @@ function UserNewsPage() {
   const rows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load news from backend." : undefined;
   const stats = statsQuery.data;
+
+  const selectedLanguageName = (languagesQuery.data?.items ?? []).find((l) => l.code === languageCode)?.name;
+  const filteredCategories = useMemo(() => {
+    const items = categoriesQuery.data?.items ?? [];
+    if (languageCode === "all" || !selectedLanguageName) return items;
+    return items.filter((c) => c.language === selectedLanguageName);
+  }, [categoriesQuery.data, languageCode, selectedLanguageName]);
 
   const handleShare = async (row: NewsItem) => {
     const link = getShareUrl(row.id);
@@ -212,10 +233,7 @@ function UserNewsPage() {
     {
       key: "location",
       header: "User Location",
-      cell: (r) => {
-        const locs = [r.location?.state, r.location?.district, r.location?.area].filter(Boolean);
-        return <span className="text-sm">{locs.length > 0 ? locs.join(" > ") : "National"}</span>;
-      },
+      cell: (r) => <span className="text-sm">{getNewsLocationLabel(r)}</span>,
     },
     {
       key: "visibility",
@@ -282,14 +300,16 @@ function UserNewsPage() {
             ...(["Pending", "Scheduled"].includes(r.status)
               ? [{ label: "Reject", icon: XCircle, onClick: () => { setRejectTarget(r); setRejectReason(""); } }]
               : []),
-            {
-              label: "Schedule",
-              icon: CalendarClock,
-              onClick: () => {
-                setScheduleTarget(r);
-                setScheduleDateTime("");
-              },
-            },
+            ...(SCHEDULABLE_STATUSES.includes(r.status)
+              ? [{
+                  label: "Schedule",
+                  icon: CalendarClock,
+                  onClick: () => {
+                    setScheduleTarget(r);
+                    setScheduleDateTime("");
+                  },
+                }]
+              : []),
           ]}
           onDelete={() => setDeleteTarget(r)}
         />
@@ -350,7 +370,7 @@ function UserNewsPage() {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+              {filteredCategories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
@@ -364,7 +384,7 @@ function UserNewsPage() {
               <SelectItem value="scheduled">Scheduled</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={languageCode} onValueChange={(value) => { setLanguageCode(value); setPage(1); }}>
+          <Select value={languageCode} onValueChange={(value) => { setLanguageCode(value); setCategoryId("all"); setPage(1); }}>
             <SelectTrigger className="w-[170px]"><SelectValue placeholder="Language" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Languages</SelectItem>
@@ -471,16 +491,26 @@ function UserNewsPage() {
             toast.error("Select a schedule date and time");
             return;
           }
+          if (new Date(scheduleDateTime).getTime() <= Date.now()) {
+            toast.error("Schedule date must be in the future");
+            return;
+          }
           try {
             await scheduleNews.mutateAsync({ id: scheduleTarget.id, scheduledFor: new Date(scheduleDateTime).toISOString() });
             toast.success("News scheduled");
             setScheduleTarget(null);
           } catch (err) {
-            toast.error(isAuthApiError(err) ? "Backend auth is required to schedule news." : "Unable to schedule news");
+            if (isAuthApiError(err)) {
+              toast.error("Backend auth is required to schedule news.");
+            } else if (err instanceof ApiError && err.message) {
+              toast.error(err.message);
+            } else {
+              toast.error("Unable to schedule news");
+            }
           }
         }}
       >
-        <Input type="datetime-local" value={scheduleDateTime} onChange={(event) => setScheduleDateTime(event.target.value)} />
+        <Input type="datetime-local" value={scheduleDateTime} min={minScheduleDateTime()} onChange={(event) => setScheduleDateTime(event.target.value)} />
       </ConfirmDialog>
     </>
   );

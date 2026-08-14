@@ -42,7 +42,7 @@ function AddDistrictPage() {
     defaultValues: { languageCode: language_code ?? "en", sortOrder: 0, status: "Active" },
   });
   const selectedLanguage = watch("languageCode");
-  const statesQuery = useStates({ language_code: selectedLanguage || "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: selectedLanguage || "en", per_page: 2000 });
 
   const onSubmit = (values: FormValues) => {
     createDistrict.mutate(

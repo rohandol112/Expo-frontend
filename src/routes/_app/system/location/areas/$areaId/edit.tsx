@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
 import { useArea, useDistricts, useStates, useUpdateArea } from "@/hooks/api/useLocations";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/areas/$areaId/edit")({ component: EditAreaPage });
@@ -27,9 +28,10 @@ function EditAreaPage() {
   const { areaId } = Route.useParams();
   const navigate = useNavigate();
   const areaQuery = useArea(areaId);
-  const statesQuery = useStates({ language_code: areaQuery.data?.language_code || "hi", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: areaQuery.data?.language_code || "hi", per_page: 100 });
+  const statesQuery = useStates({ language_code: areaQuery.data?.language_code || "hi", per_page: 2000 });
+  const districtsQuery = useDistricts({ language_code: areaQuery.data?.language_code || "hi", per_page: 2000 });
   const updateArea = useUpdateArea();
+  const languagesQuery = useLanguages();
   const { register, setValue, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { sortOrder: 0, status: "Active" },
@@ -59,6 +61,9 @@ function EditAreaPage() {
 
   const district = (districtsQuery.data?.items ?? []).find((item) => item.id === areaQuery.data?.district_id);
   const state = (statesQuery.data?.items ?? []).find((item) => item.id === district?.state_id);
+  const languageName = languagesQuery.data?.items?.find((l) => l.code === areaQuery.data?.language_code)?.name
+    ?? areaQuery.data?.language_code?.toUpperCase()
+    ?? "";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -72,7 +77,7 @@ function EditAreaPage() {
           <Field label="Area Name" error={errors.name?.message}><Input {...register("name")} /></Field>
           <Field label="State"><Input value={state?.name ?? "—"} disabled /></Field>
           <Field label="District"><Input value={district?.name ?? (areaQuery.data ? `District #${areaQuery.data.district_id}` : "")} disabled /></Field>
-          <Field label="Language Code"><Input value={areaQuery.data?.language_code ?? ""} disabled /></Field>
+          <Field label="Language"><Input value={languageName} disabled /></Field>
           <Field label="Sort Order" error={errors.sortOrder?.message}><Input type="number" min={0} {...register("sortOrder")} /></Field>
           <Field label="Status"><Select value={watch("status")} onValueChange={(v) => setValue("status", v as FormValues["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
         </div>

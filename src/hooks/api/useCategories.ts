@@ -103,3 +103,10 @@ export function useDeleteCategory() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: categoryKeys.all }),
   });
 }
+
+export function useCategoryIconUploadUrl() {
+  return useMutation({
+    mutationFn: (payload: { file_name: string; content_type: string }) =>
+      categoryService.getIconUploadUrl(payload),
+  });
+}

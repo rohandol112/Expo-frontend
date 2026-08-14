@@ -69,6 +69,13 @@ export function useDeleteState() {
   });
 }
 
+export function useStateImageUploadUrl() {
+  return useMutation({
+    mutationFn: (payload: { file_name: string; content_type: string }) =>
+      locationService.getStateImageUploadUrl(payload),
+  });
+}
+
 export function useDistricts(params?: LocationListParams) {
   return useQuery({ queryKey: locationKeys.districts(params), queryFn: () => locationService.listDistricts(params), retry: false });
 }

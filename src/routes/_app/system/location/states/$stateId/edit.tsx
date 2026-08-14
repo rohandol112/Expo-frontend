@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
-import { useStateItem, useUpdateState } from "@/hooks/api/useLocations";
+import { useStateItem, useStateImageUploadUrl, useUpdateState } from "@/hooks/api/useLocations";
+import { useLanguages } from "@/hooks/api/useLanguages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/system/location/states/$stateId/edit")({ component: EditStatePage });
@@ -20,6 +21,7 @@ const schema = z.object({
   name: z.string().min(2),
   sortOrder: z.coerce.number().min(0),
   status: z.enum(["Active", "Inactive"]),
+  imageKey: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -28,6 +30,8 @@ function EditStatePage() {
   const navigate = useNavigate();
   const stateQuery = useStateItem(stateId);
   const updateState = useUpdateState();
+  const uploadImageMutation = useStateImageUploadUrl();
+  const languagesQuery = useLanguages();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
 
@@ -41,10 +45,12 @@ function EditStatePage() {
       const url = URL.createObjectURL(imageFile);
       setLogoPreviewUrl(url);
       return () => URL.revokeObjectURL(url);
+    } else if (stateQuery.data?.image_url) {
+      setLogoPreviewUrl(stateQuery.data.image_url);
     } else {
       setLogoPreviewUrl(null);
     }
-  }, [imageFile]);
+  }, [imageFile, stateQuery.data?.image_url]);
 
   useEffect(() => {
     if (!stateQuery.data) return;
@@ -55,16 +61,25 @@ function EditStatePage() {
     });
   }, [reset, stateQuery.data]);
 
+  const languageName = languagesQuery.data?.items?.find((l) => l.code === stateQuery.data?.language_code)?.name
+    ?? stateQuery.data?.language_code?.toUpperCase()
+    ?? "";
+
   const onSubmit = (values: FormValues) => {
     updateState.mutate(
-      { id: stateId, payload: { name: values.name, sort_order: values.sortOrder, is_active: values.status === "Active" }, languageCode: stateQuery.data?.language_code },
+      {
+        id: stateId,
+        payload: {
+          name: values.name,
+          sort_order: values.sortOrder,
+          is_active: values.status === "Active",
+          ...(values.imageKey ? { image_key: values.imageKey } : {}),
+        },
+        languageCode: stateQuery.data?.language_code,
+      },
       {
         onSuccess: () => {
-          if (imageFile) {
-            toast.success("State flag uploaded and saved (simulated).");
-          } else {
-            toast.success("State updated.");
-          }
+          toast.success("State updated.");
           navigate({ to: ROUTES.SYS_STATES });
         },
         onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to update state."),
@@ -83,7 +98,7 @@ function EditStatePage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="State Name" error={errors.name?.message}><Input {...register("name")} /></Field>
           <Field label="State Code"><Input value={stateQuery.data?.code ?? ""} disabled /></Field>
-          <Field label="Language Code"><Input value={stateQuery.data?.language_code ?? ""} disabled /></Field>
+          <Field label="Language"><Input value={languageName} disabled /></Field>
           <Field label="Sort Order" error={errors.sortOrder?.message}><Input type="number" min={0} {...register("sortOrder")} /></Field>
           <Field label="Status"><Select value={watch("status")} onValueChange={(v) => setValue("status", v as FormValues["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent></Select></Field>
           <Field label="State Flag / Icon">
@@ -99,9 +114,33 @@ function EditStatePage() {
               )}
               <MediaInput
                 icon={<ImageIcon className="h-5 w-5" />}
-                label={imageFile ? imageFile.name : "Choose flag image"}
+                label={uploadImageMutation.isPending ? "Uploading flag..." : imageFile ? imageFile.name : "Choose flag image"}
                 accept="image/*"
-                onChange={setImageFile}
+                onChange={(file) => {
+                  if (!file) return;
+                  setImageFile(file);
+                  uploadImageMutation.mutate(
+                    { file_name: file.name, content_type: file.type || "image/png" },
+                    {
+                      onSuccess: async (result) => {
+                        try {
+                          await fetch(result.upload_url, {
+                            method: "PUT",
+                            body: file,
+                            headers: { "Content-Type": file.type || "image/png" },
+                          });
+                          setValue("imageKey", result.file_key, { shouldDirty: true });
+                          toast.success("Flag uploaded.");
+                        } catch {
+                          toast.error("Failed to upload flag to storage.");
+                        }
+                      },
+                      onError: (err) => {
+                        toast.error(err.message || "Failed to generate upload URL.");
+                      },
+                    }
+                  );
+                }}
               />
             </div>
           </Field>

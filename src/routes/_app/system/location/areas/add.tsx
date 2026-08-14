@@ -44,8 +44,8 @@ function AddAreaPage() {
   });
   const selectedLanguage = watch("languageCode");
   const selectedState = watch("state");
-  const statesQuery = useStates({ language_code: selectedLanguage || "en", per_page: 100 });
-  const districtsQuery = useDistricts({ language_code: selectedLanguage || "en", per_page: 100 });
+  const statesQuery = useStates({ language_code: selectedLanguage || "en", per_page: 2000 });
+  const districtsQuery = useDistricts({ language_code: selectedLanguage || "en", per_page: 2000 });
   const states = statesQuery.data?.items ?? [];
   const districts = districtsQuery.data?.items ?? [];
   const filteredDistricts = useMemo(

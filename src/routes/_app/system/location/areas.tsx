@@ -50,8 +50,8 @@ function AreasPage() {
 
   const statesQueries = useQueries({
     queries: languagesToQuery.map((lang) => ({
-      queryKey: locationKeys.states({ language_code: lang, per_page: 100 }),
-      queryFn: () => locationService.listStates({ language_code: lang, per_page: 100 }),
+      queryKey: locationKeys.states({ language_code: lang, per_page: 2000 }),
+      queryFn: () => locationService.listStates({ language_code: lang, per_page: 2000 }),
       retry: false,
       enabled: languagesQuery.isSuccess,
     })),
@@ -59,8 +59,8 @@ function AreasPage() {
 
   const districtsQueries = useQueries({
     queries: languagesToQuery.map((lang) => ({
-      queryKey: locationKeys.districts({ language_code: lang, per_page: 100 }),
-      queryFn: () => locationService.listDistricts({ language_code: lang, per_page: 100 }),
+      queryKey: locationKeys.districts({ language_code: lang, per_page: 2000 }),
+      queryFn: () => locationService.listDistricts({ language_code: lang, per_page: 2000 }),
       retry: false,
       enabled: languagesQuery.isSuccess,
     })),
@@ -68,8 +68,8 @@ function AreasPage() {
 
   const areasQueries = useQueries({
     queries: languagesToQuery.map((lang) => ({
-      queryKey: locationKeys.areas({ language_code: lang, search: debouncedSearch || undefined, per_page: 100 }),
-      queryFn: () => locationService.listAreas({ language_code: lang, search: debouncedSearch || undefined, per_page: 100 }),
+      queryKey: locationKeys.areas({ language_code: lang, search: debouncedSearch || undefined, per_page: 2000 }),
+      queryFn: () => locationService.listAreas({ language_code: lang, search: debouncedSearch || undefined, per_page: 2000 }),
       retry: false,
       enabled: languagesQuery.isSuccess,
     })),

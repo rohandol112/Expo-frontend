@@ -50,6 +50,7 @@ export const API = {
     detail: (id: string | number) => `/admin/categories/${id}`,
     status: (id: string | number) => `/admin/categories/${id}/status`,
     sort: "/admin/categories/sort",
+    iconUploadUrl: "/admin/categories/upload-url",
   },
   channels: {
     publicList: "/channels",
@@ -125,6 +126,7 @@ export const API = {
     states: "/admin/locations/states",
     stateDetail: (id: string | number) => `/admin/locations/states/${id}`,
     stateStatus: (id: string | number) => `/admin/locations/states/${id}/status`,
+    stateImageUploadUrl: "/admin/locations/states/upload-url",
     districts: "/admin/locations/districts",
     districtDetail: (id: string | number) => `/admin/locations/districts/${id}`,
     districtStatus: (id: string | number) => `/admin/locations/districts/${id}/status`,

@@ -23,6 +23,7 @@ export interface CreateCategoryPayload {
   slug?: string;
   parent_id?: number | null;
   icon_url?: string | null;
+  icon_key?: string | null;
   sort_order?: number;
   is_active?: boolean;
   is_featured?: boolean;
@@ -85,5 +86,12 @@ export const categoryService = {
 
   async delete(id: string) {
     return httpClient.delete<void>(API.categories.detail(id));
+  },
+
+  async getIconUploadUrl(payload: { file_name: string; content_type: string }) {
+    return httpClient.post<{ upload_url: string; file_key: string; expires_in: number }>(
+      API.categories.iconUploadUrl,
+      payload
+    );
   },
 };

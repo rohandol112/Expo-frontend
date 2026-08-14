@@ -45,8 +45,8 @@ function StatesPage() {
 
   const statesQueries = useQueries({
     queries: languagesToQuery.map((lang) => ({
-      queryKey: locationKeys.states({ language_code: lang, per_page: 100 }),
-      queryFn: () => locationService.listStates({ language_code: lang, per_page: 100 }),
+      queryKey: locationKeys.states({ language_code: lang, per_page: 2000 }),
+      queryFn: () => locationService.listStates({ language_code: lang, per_page: 2000 }),
       retry: false,
       enabled: languagesQuery.isSuccess,
     })),
@@ -61,6 +61,7 @@ function StatesPage() {
     code: state.code,
     status: state.is_active ? "Active" : "Inactive",
     addedOn: formatDateTime(state.created_at),
+    imageUrl: state.image_url ?? null,
   }));
   const isLoading = statesQueries.some((q) => q.isLoading) || languagesQuery.isLoading;
   const isError = statesQueries.some((q) => q.isError);
@@ -81,6 +82,16 @@ function StatesPage() {
         const langObj = languagesQuery.data?.items?.find((l) => l.code === r.language);
         return <span className="text-sm font-medium">{langObj?.name ?? r.language.toUpperCase()}</span>;
       },
+    },
+    {
+      key: "image",
+      header: "Flag",
+      cell: (r) =>
+        r.imageUrl ? (
+          <img src={r.imageUrl} alt="" className="h-8 w-8 rounded object-cover" />
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">—</div>
+        ),
     },
     { key: "name", header: "State Name", cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: "code", header: "State Code", cell: (r) => r.code },

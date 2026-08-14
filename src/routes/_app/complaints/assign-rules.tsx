@@ -3,9 +3,16 @@ import { Settings2, Plus } from "lucide-react";
 import { useState } from "react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { ActionMenu } from "@/components/common/ActionMenu";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
-import { useComplaintAssignRules, useCreateComplaintAssignRule, useComplaintCategories } from "@/hooks/api/useComplaints";
+import {
+  useComplaintAssignRules,
+  useCreateComplaintAssignRule,
+  useUpdateComplaintAssignRule,
+  useUpdateComplaintAssignRuleStatus,
+  useComplaintCategories,
+} from "@/hooks/api/useComplaints";
 import { useUsers } from "@/hooks/api/useUsers";
 import type { ComplaintAssignRule } from "@/services/complaintCategory.service";
 import { Button } from "@/components/ui/button";
@@ -24,8 +31,10 @@ function ComplaintAssignRulesPage() {
   const categoriesQuery = useComplaintCategories({ per_page: 100 });
   const usersQuery = useUsers({ per_page: 100 });
   const createRule = useCreateComplaintAssignRule();
+  const updateRule = useUpdateComplaintAssignRule();
+  const updateRuleStatus = useUpdateComplaintAssignRuleStatus();
 
-  const [addRuleOpen, setAddRuleOpen] = useState(false);
+  const [ruleDialog, setRuleDialog] = useState<{ mode: "add" | "edit"; target?: ComplaintAssignRule } | null>(null);
   const [ruleName, setRuleName] = useState("");
   const [ruleDesc, setRuleDesc] = useState("");
   const [ruleCatId, setRuleCatId] = useState("");
@@ -36,7 +45,25 @@ function ComplaintAssignRulesPage() {
   const categories = categoriesQuery.data?.items ?? [];
   const officers = (usersQuery.data?.items ?? []).filter((u) => u.role === "Admin" || u.role === "Super Admin" || u.role === "Officer");
 
-  const handleCreateRule = async () => {
+  const openAddRule = () => {
+    setRuleName("");
+    setRuleDesc("");
+    setRuleCatId("");
+    setAllSubCats(true);
+    setAssigneeId("");
+    setRuleDialog({ mode: "add" });
+  };
+
+  const openEditRule = (row: ComplaintAssignRule) => {
+    setRuleName(row.name);
+    setRuleDesc(row.description ?? "");
+    setRuleCatId(String(row.category.id));
+    setAllSubCats(row.all_sub_categories);
+    setAssigneeId(String(row.assign_to.id));
+    setRuleDialog({ mode: "edit", target: row });
+  };
+
+  const handleSaveRule = async () => {
     if (!ruleName.trim()) {
       toast.error("Rule name is required");
       return;
@@ -51,24 +78,24 @@ function ComplaintAssignRulesPage() {
     }
 
     try {
-      await createRule.mutateAsync({
+      const payload = {
         name: ruleName.trim(),
         description: ruleDesc.trim() || undefined,
         category_id: Number(ruleCatId),
         all_sub_categories: allSubCats,
         sub_category_ids: [],
         assign_to: Number(assigneeId),
-        is_active: true,
-      });
-      toast.success("Complaint assign rule created successfully");
-      setAddRuleOpen(false);
-      setRuleName("");
-      setRuleDesc("");
-      setRuleCatId("");
-      setAllSubCats(true);
-      setAssigneeId("");
+      };
+      if (ruleDialog?.mode === "edit" && ruleDialog.target) {
+        await updateRule.mutateAsync({ id: ruleDialog.target.id, payload });
+        toast.success("Complaint assign rule updated successfully");
+      } else {
+        await createRule.mutateAsync({ ...payload, is_active: true });
+        toast.success("Complaint assign rule created successfully");
+      }
+      setRuleDialog(null);
     } catch {
-      toast.error("Unable to create complaint assign rule");
+      toast.error("Unable to save complaint assign rule");
     }
   };
 
@@ -78,6 +105,28 @@ function ComplaintAssignRulesPage() {
     { key: "assignee", header: "Assigned Officer", cell: (row) => row.assign_to?.name || `User #${row.assign_to?.id ?? "—"}` },
     { key: "status", header: "Status", cell: (row) => <StatusBadge status={row.is_active ? "Active" : "Inactive"} /> },
     { key: "created", header: "Created On", cell: (row) => row.created_at ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(row.created_at)) : "—" },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (row) => (
+        <ActionMenu
+          onEdit={() => openEditRule(row)}
+          extraItems={[
+            {
+              label: row.is_active ? "Mark Inactive" : "Mark Active",
+              onClick: async () => {
+                try {
+                  await updateRuleStatus.mutateAsync({ id: row.id, isActive: !row.is_active });
+                  toast.success("Assign rule status updated");
+                } catch {
+                  toast.error("Unable to update assign rule status");
+                }
+              },
+            },
+          ]}
+        />
+      ),
+    },
   ];
 
   return (
@@ -86,7 +135,7 @@ function ComplaintAssignRulesPage() {
         title="Complaint Assign Rules"
         breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Complaints", to: ROUTES.COMPLAINTS }, { label: "Assign Rules" }]}
         stats={[{ title: "Total Rules", value: rows.length, icon: Settings2, variant: "violet" }]}
-        actions={<Button onClick={() => setAddRuleOpen(true)}><Plus className="mr-2 h-4 w-4" />Add Assign Rule</Button>}
+        actions={<Button onClick={openAddRule}><Plus className="mr-2 h-4 w-4" />Add Assign Rule</Button>}
         data={rows}
         columns={columns}
         rowKey={(row) => String(row.id)}
@@ -97,12 +146,12 @@ function ComplaintAssignRulesPage() {
       />
 
       <ConfirmDialog
-        open={addRuleOpen}
-        onOpenChange={setAddRuleOpen}
-        title="Add Assign Rule"
+        open={Boolean(ruleDialog)}
+        onOpenChange={(open) => !open && setRuleDialog(null)}
+        title={ruleDialog?.mode === "edit" ? "Edit Assign Rule" : "Add Assign Rule"}
         description="Configure routing rules to automatically assign complaints to specific officers."
-        confirmLabel={createRule.isPending ? "Creating..." : "Create"}
-        onConfirm={handleCreateRule}
+        confirmLabel={createRule.isPending || updateRule.isPending ? "Saving..." : "Save"}
+        onConfirm={handleSaveRule}
       >
         <div className="space-y-4 pt-4">
           <div className="space-y-1.5">

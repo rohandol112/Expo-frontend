@@ -13,8 +13,11 @@ import {
   useComplaint,
   useComplaintMessages,
   useComplaintTimeline,
+  useUpdateComplaint,
   useUpdateComplaintStatus,
   useAddComplaintMessage,
+  useComplaintCategories,
+  useComplaintSubCategories,
   useComplaintAssignRules,
 } from "@/hooks/api/useComplaints";
 import { useComplaintChatSocket } from "@/hooks/api/useComplaintChat";
@@ -33,13 +36,19 @@ function ComplaintDetailPage() {
   const { connected: chatConnected } = useComplaintChatSocket(complaintId);
   const timelineQuery = useComplaintTimeline(complaintId);
   const updateStatus = useUpdateComplaintStatus();
+  const updateComplaint = useUpdateComplaint();
   const addMessage = useAddComplaintMessage();
+  const categoriesQuery = useComplaintCategories({ per_page: 100 });
 
   const [statusDraft, setStatusDraft] = useState<ComplaintStatus | "">("");
   const [responseDraft, setResponseDraft] = useState("");
   const [messageDraft, setMessageDraft] = useState("");
+  const [categoryDraft, setCategoryDraft] = useState<string | undefined>(undefined);
+  const [subCategoryDraft, setSubCategoryDraft] = useState<string | undefined>(undefined);
 
   const complaint = complaintQuery.data;
+  const currentCategoryId = categoryDraft !== undefined ? (categoryDraft ? Number(categoryDraft) : undefined) : complaint?.categoryId;
+  const subCategoriesQuery = useComplaintSubCategories({ category_id: currentCategoryId, per_page: 100 });
   const rulesQuery = useComplaintAssignRules({ category_id: complaint?.categoryId });
   const rules = (rulesQuery.data?.items ?? []).filter((r) => r.is_active);
 
@@ -211,24 +220,80 @@ function ComplaintDetailPage() {
             </div>
           </div>
 
-          {complaint?.categoryId && (
-            <div className="rounded-lg border bg-card p-6">
-              <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Settings2 className="h-4 w-4" /> Assignment Rules</p>
-              <div className="space-y-3">
-                {rulesQuery.isLoading && <p className="text-sm text-muted-foreground">Loading rules...</p>}
-                {!rulesQuery.isLoading && rules.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No routing rules match this category.</p>
-                )}
-                {rules.map((rule) => (
-                  <div key={rule.id} className="rounded-md border p-3 text-xs space-y-1 bg-muted/40">
-                    <p className="font-semibold text-foreground">{rule.name}</p>
-                    {rule.description && <p className="text-muted-foreground">{rule.description}</p>}
-                    <p className="text-muted-foreground">Routes to: <span className="font-medium text-foreground">{rule.assign_to?.name || `Officer #${rule.assign_to?.id}`}</span></p>
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-lg border bg-card p-6">
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Tag className="h-4 w-4" /> Category</p>
+            <div className="space-y-3">
+              <Select
+                value={categoryDraft ?? (complaint?.categoryId ? String(complaint.categoryId) : undefined)}
+                onValueChange={(value) => {
+                  setCategoryDraft(value);
+                  setSubCategoryDraft("");
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {(categoriesQuery.data?.items ?? []).map((cat) => (
+                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={subCategoryDraft ?? (complaint?.subCategoryId ? String(complaint.subCategoryId) : undefined)}
+                onValueChange={setSubCategoryDraft}
+                disabled={!currentCategoryId}
+              >
+                <SelectTrigger><SelectValue placeholder={currentCategoryId ? "Select sub-category" : "Select a category first"} /></SelectTrigger>
+                <SelectContent>
+                  {(subCategoriesQuery.data?.items ?? []).map((sub) => (
+                    <SelectItem key={sub.id} value={String(sub.id)}>{sub.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                className="w-full"
+                variant="outline"
+                disabled={categoryDraft === undefined || updateComplaint.isPending}
+                onClick={async () => {
+                  try {
+                    await updateComplaint.mutateAsync({
+                      id: complaintId,
+                      payload: {
+                        category_id: categoryDraft ? Number(categoryDraft) : undefined,
+                        sub_category_id: subCategoryDraft ? Number(subCategoryDraft) : undefined,
+                      },
+                    });
+                    toast.success("Complaint category updated");
+                    setCategoryDraft(undefined);
+                    setSubCategoryDraft(undefined);
+                  } catch (err) {
+                    toast.error(isAuthApiError(err) ? "Backend admin auth is required to update complaint category." : "Unable to update complaint category");
+                  }
+                }}
+              >
+                Save Category
+              </Button>
             </div>
-          )}
+          </div>
+
+          <div className="rounded-lg border bg-card p-6">
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Settings2 className="h-4 w-4" /> Assignment Rules</p>
+            <div className="space-y-3">
+              {!complaint?.categoryId && (
+                <p className="text-sm text-muted-foreground">No category assigned to this complaint yet — set one above to see matching routing rules.</p>
+              )}
+              {complaint?.categoryId && rulesQuery.isLoading && <p className="text-sm text-muted-foreground">Loading rules...</p>}
+              {complaint?.categoryId && !rulesQuery.isLoading && rules.length === 0 && (
+                <p className="text-sm text-muted-foreground">No routing rules match this category.</p>
+              )}
+              {complaint?.categoryId && rules.map((rule) => (
+                <div key={rule.id} className="rounded-md border p-3 text-xs space-y-1 bg-muted/40">
+                  <p className="font-semibold text-foreground">{rule.name}</p>
+                  {rule.description && <p className="text-muted-foreground">{rule.description}</p>}
+                  <p className="text-muted-foreground">Routes to: <span className="font-medium text-foreground">{rule.assign_to?.name || `Officer #${rule.assign_to?.id}`}</span></p>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="rounded-lg border bg-card p-6">
             <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><MapPin className="h-4 w-4" /> Timeline</p>

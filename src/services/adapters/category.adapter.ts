@@ -13,6 +13,7 @@ export interface BackendCategory {
   created_at?: string;
   updated_at?: string;
   post_count?: number;
+  video_count?: number;
   is_featured?: boolean;
 }
 
@@ -32,7 +33,7 @@ export function toCategory(row: BackendCategory): Category {
     name: row.name || row.slug,
     slug: row.slug,
     language: languageName(row.language_code),
-    posts: row.post_count ?? 0,
+    posts: row.post_count ?? row.video_count ?? 0,
     featured: row.is_featured ?? false,
     status: row.is_active === false ? "Inactive" : "Active",
     // TODO: replace with backend mobile-user preference count when exposed by category APIs.

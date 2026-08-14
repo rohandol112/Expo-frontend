@@ -16,6 +16,7 @@ export interface StateItem {
   code: string;
   status: AdminStatus;
   addedOn: string;
+  imageUrl: string | null;
 }
 
 export interface DistrictItem {
@@ -54,6 +55,7 @@ export interface BackendState {
   sort_order?: number;
   created_at?: string;
   updated_at?: string;
+  image_url?: string | null;
 }
 
 export interface BackendDistrict {

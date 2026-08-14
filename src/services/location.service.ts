@@ -23,12 +23,14 @@ export interface CreateStatePayload {
   name: string;
   is_active?: boolean;
   sort_order?: number;
+  image_key?: string | null;
 }
 
 export interface UpdateStatePayload {
   name?: string;
   is_active?: boolean;
   sort_order?: number;
+  image_key?: string | null;
 }
 
 export interface CreateDistrictPayload {
@@ -107,6 +109,13 @@ export const locationService = {
 
   async deleteState(id: string) {
     return httpClient.delete<void>(API.locations.stateDetail(id));
+  },
+
+  async getStateImageUploadUrl(payload: { file_name: string; content_type: string }) {
+    return httpClient.post<{ upload_url: string; file_key: string; expires_in: number }>(
+      API.locations.stateImageUploadUrl,
+      payload
+    );
   },
 
   async listDistricts(params?: LocationListParams) {

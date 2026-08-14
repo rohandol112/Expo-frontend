@@ -5,11 +5,12 @@ import { useState } from "react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import type { Channel } from "@/types/channel";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
-import { useChannels, useDeleteChannel } from "@/hooks/api/useChannels";
+import { useChannels, useDeleteChannel, useUpdateChannel } from "@/hooks/api/useChannels";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { useRegions } from "@/hooks/api/useRegions";
 import { isAuthApiError } from "@/lib/apiError";
@@ -26,6 +27,7 @@ function ChannelsPage() {
   const languagesQuery = useLanguages();
   const regionsQuery = useRegions();
   const deleteChannel = useDeleteChannel();
+  const updateChannel = useUpdateChannel();
   const rows = channelsQuery.data?.items ?? [];
   const states = regionsQuery.data ?? [];
   const districts = useMemo(() => states.flatMap((state) => state.districts), [states]);
@@ -50,6 +52,7 @@ function ChannelsPage() {
     { key: "areas", header: "Area/Cities", cell: (r) => r.areas.join(", ") },
     { key: "posts", header: "No. of Posts", cell: (r) => r.posts.toLocaleString() },
     { key: "subscribers", header: "Subscribers", cell: (r) => r.subscribers.toLocaleString() },
+    { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
     { key: "added", header: "Added On", cell: (r) => r.addedOn },
     {
       key: "actions",
@@ -59,18 +62,32 @@ function ChannelsPage() {
           onView={() => navigate({ to: "/channels/$channelId", params: { channelId: r.id } })}
           onEdit={() => navigate({ to: "/channels/$channelId/edit", params: { channelId: r.id } })}
           onDelete={() => setDeleteTarget(r)}
+          extraItems={[
+            {
+              label: r.status === "Active" ? "Mark Inactive" : "Mark Active",
+              onClick: async () => {
+                try {
+                  await updateChannel.mutateAsync({ id: r.id, payload: { is_active: r.status !== "Active" } });
+                  toast.success("Channel status updated");
+                } catch (err) {
+                  toast.error(isAuthApiError(err) ? "Backend admin auth is required to update channel status." : "Unable to update channel status");
+                }
+              },
+            },
+          ]}
         />
       ),
     },
   ];
   return <>
-    <AdminListPage title="Channels" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Channels" }]} actions={<Button onClick={() => navigate({ to: ROUTES.CHANNELS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Channel</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={channelsQuery.isLoading} error={error} searchPlaceholder="Search channel..." dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "area", placeholder: "Area/City", options: areas.map((a) => ({ label: a.name, value: a.name })) }]} filter={(row, search, df) => {
+    <AdminListPage title="Channels" breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Channels" }]} actions={<Button onClick={() => navigate({ to: ROUTES.CHANNELS_ADD })}><Plus className="mr-2 h-4 w-4" />Add Channel</Button>} data={rows} columns={columns} rowKey={(r) => r.id} loading={channelsQuery.isLoading} error={error} searchPlaceholder="Search channel..." dropdowns={[{ key: "language", placeholder: "Language", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.name })) }, { key: "state", placeholder: "State", options: states.map((s) => ({ label: s.name, value: s.name })) }, { key: "district", placeholder: "District", options: districts.map((d) => ({ label: d.name, value: d.name })) }, { key: "area", placeholder: "Area/City", options: areas.map((a) => ({ label: a.name, value: a.name })) }, { key: "status", placeholder: "Status", options: ["Active", "Inactive"].map((s) => ({ label: s, value: s })) }]} filter={(row, search, df) => {
       const term = search.toLowerCase();
       if (term && !(row.name.toLowerCase().includes(term) || row.language.toLowerCase().includes(term))) return false;
       if (df.language && row.language !== df.language) return false;
       if (df.state && row.state !== df.state) return false;
       if (df.district && row.district !== df.district) return false;
       if (df.area && !row.areas.includes(df.area)) return false;
+      if (df.status && row.status !== df.status) return false;
       return true;
     }} />
     <ConfirmDialog

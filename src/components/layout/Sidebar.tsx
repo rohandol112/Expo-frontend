@@ -44,7 +44,7 @@ const MENU: Item[] = [
     label: "News Management",
     icon: Newspaper,
     children: [
-      { label: "All News", to: ROUTES.NEWS_ALL },
+      { label: "User News", to: ROUTES.NEWS_ALL },
       { label: "Admin News", to: ROUTES.NEWS_ADMIN },
       { label: "Add News", to: ROUTES.NEWS_ADD },
     ],

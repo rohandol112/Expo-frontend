@@ -47,6 +47,33 @@ function getShareUrl(newsId: string) {
   return `${origin.replace(/\/$/, "")}/news/${newsId}`;
 }
 
+function locationPartLabel(name: string | number | null | undefined, id: number | null | undefined, kind: string) {
+  if (name !== undefined && name !== null && String(name).trim()) return String(name);
+  if (id != null) return `${kind} #${id}`;
+  return null;
+}
+
+function getNewsLocationLabel(row: NewsItem) {
+  const loc = row.location;
+  if (loc && (loc.state || loc.district || loc.area || loc.stateId || loc.districtId || loc.areaId)) {
+    const parts = [
+      locationPartLabel(loc.area, loc.areaId, "Area"),
+      locationPartLabel(loc.district, loc.districtId, "District"),
+      locationPartLabel(loc.state, loc.stateId, "State"),
+    ].filter((part): part is string => Boolean(part));
+    if (parts.length > 0) return parts.join(", ");
+  }
+  return "National";
+}
+
+const SCHEDULABLE_STATUSES: NewsItem["status"][] = ["Draft", "Pending", "Published"];
+
+function minScheduleDateTime() {
+  const d = new Date(Date.now() + 60_000);
+  d.setSeconds(0, 0);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
 function AdminNewsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -95,6 +122,13 @@ function AdminNewsPage() {
   const sendNewsNotification = useSendNewsNotification();
   const sourceRows = newsQuery.data?.items ?? [];
   const error = newsQuery.error ? "Unable to load admin news from backend." : undefined;
+
+  const selectedLanguageName = (languagesQuery.data?.items ?? []).find((l) => l.code === languageCode)?.name;
+  const filteredCategories = useMemo(() => {
+    const items = categoriesQuery.data?.items ?? [];
+    if (languageCode === "all" || !selectedLanguageName) return items;
+    return items.filter((c) => c.language === selectedLanguageName);
+  }, [categoriesQuery.data, languageCode, selectedLanguageName]);
 
   const handleShare = async (row: NewsItem) => {
     const link = getShareUrl(row.id);
@@ -211,10 +245,7 @@ function AdminNewsPage() {
     {
       key: "location",
       header: "News Location",
-      cell: (r) => {
-        const locs = [r.location?.state, r.location?.district, r.location?.area].filter(Boolean);
-        return <span className="text-sm font-medium text-muted-foreground">{locs.length > 0 ? locs.join(" > ") : "National"}</span>;
-      },
+      cell: (r) => <span className="text-sm font-medium text-muted-foreground">{getNewsLocationLabel(r)}</span>,
     },
     {
       key: "views",
@@ -279,14 +310,16 @@ function AdminNewsPage() {
                 setRejectReason("");
               },
             },
-            {
-              label: "Schedule",
-              icon: CalendarClock,
-              onClick: () => {
-                setScheduleTarget(r);
-                setScheduleDateTime("");
-              },
-            },
+            ...(SCHEDULABLE_STATUSES.includes(r.status)
+              ? [{
+                  label: "Schedule",
+                  icon: CalendarClock,
+                  onClick: () => {
+                    setScheduleTarget(r);
+                    setScheduleDateTime("");
+                  },
+                }]
+              : []),
           ]}
         />
       ),
@@ -325,7 +358,7 @@ function AdminNewsPage() {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {(categoriesQuery.data?.items ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+              {filteredCategories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
@@ -339,7 +372,7 @@ function AdminNewsPage() {
               <SelectItem value="scheduled">Scheduled</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={languageCode} onValueChange={(value) => { setLanguageCode(value); setPage(1); }}>
+          <Select value={languageCode} onValueChange={(value) => { setLanguageCode(value); setCategoryId("all"); setPage(1); }}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Language" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Languages</SelectItem>
@@ -437,16 +470,26 @@ function AdminNewsPage() {
             toast.error("Select a schedule date and time");
             return;
           }
+          if (new Date(scheduleDateTime).getTime() <= Date.now()) {
+            toast.error("Schedule date must be in the future");
+            return;
+          }
           try {
             await scheduleNews.mutateAsync({ id: scheduleTarget.id, scheduledFor: new Date(scheduleDateTime).toISOString() });
             toast.success("News scheduled");
             setScheduleTarget(null);
           } catch (err) {
-            toast.error(isAuthApiError(err) ? "Backend auth is required to schedule news." : "Unable to schedule news");
+            if (isAuthApiError(err)) {
+              toast.error("Backend admin auth is required to schedule news.");
+            } else if (err instanceof ApiError && err.message) {
+              toast.error(err.message);
+            } else {
+              toast.error("Unable to schedule news");
+            }
           }
         }}
       >
-        <Input type="datetime-local" value={scheduleDateTime} onChange={(event) => setScheduleDateTime(event.target.value)} />
+        <Input type="datetime-local" value={scheduleDateTime} min={minScheduleDateTime()} onChange={(event) => setScheduleDateTime(event.target.value)} />
       </ConfirmDialog>
     </>
   );

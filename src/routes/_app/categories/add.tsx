@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROUTES } from "@/constants/routes.constants";
-import { useCategories, useCreateCategory } from "@/hooks/api/useCategories";
+import { useCategories, useCategoryIconUploadUrl, useCreateCategory } from "@/hooks/api/useCategories";
 import { useLanguages } from "@/hooks/api/useLanguages";
 import { isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ const schema = z.object({
   featured: z.boolean(),
   displayOrder: z.coerce.number().min(1),
   iconUrl: z.string().url().or(z.literal("")),
+  iconKey: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -38,6 +39,7 @@ function AddCategoryPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [iconPreviewUrl, setIconPreviewUrl] = useState<string | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const uploadIconMutation = useCategoryIconUploadUrl();
 
   useEffect(() => {
     if (iconFile) {
@@ -79,13 +81,14 @@ function AddCategoryPage() {
         slug: data.slug,
         parent_id: data.parentId && data.parentId !== "none" ? Number(data.parentId) : null,
         icon_url: data.iconUrl || null,
+        icon_key: data.iconKey || null,
         sort_order: data.displayOrder,
         is_active: data.status === "Active",
         is_featured: data.featured,
         translations: [{ language_code: data.language, name: data.name, description: data.description || null }],
       });
       toast.success("Category saved");
-      if (iconFile || videoFile) toast.info("Selected media will be uploaded after category upload endpoints are available.");
+      if (videoFile) toast.info("Category video will be uploaded once video upload endpoints are available.");
       navigate({ to: ROUTES.CATEGORIES });
     } catch (err) {
       toast.error(isAuthApiError(err) ? "Backend admin auth is required to save category." : "Unable to save category");
@@ -124,7 +127,36 @@ function AddCategoryPage() {
                   <img src={iconPreviewUrl} alt="Icon Preview" className="h-full w-full object-cover" />
                 </div>
               )}
-              <MediaInput icon={<ImageIcon className="h-5 w-5" />} label={iconFile?.name || "Choose image file"} accept="image/*" onChange={setIconFile} />
+              <MediaInput
+                icon={<ImageIcon className="h-5 w-5" />}
+                label={uploadIconMutation.isPending ? "Uploading icon..." : iconFile?.name || "Choose image file"}
+                accept="image/*"
+                onChange={(file) => {
+                  if (!file) return;
+                  setIconFile(file);
+                  uploadIconMutation.mutate(
+                    { file_name: file.name, content_type: file.type || "image/png" },
+                    {
+                      onSuccess: async (result) => {
+                        try {
+                          await fetch(result.upload_url, {
+                            method: "PUT",
+                            body: file,
+                            headers: { "Content-Type": file.type || "image/png" },
+                          });
+                          setValue("iconKey", result.file_key, { shouldDirty: true });
+                          toast.success("Icon uploaded.");
+                        } catch {
+                          toast.error("Failed to upload icon to storage.");
+                        }
+                      },
+                      onError: (err) => {
+                        toast.error(err.message || "Failed to generate upload URL.");
+                      },
+                    }
+                  );
+                }}
+              />
             </div>
           </Field>
           <Field label="Category Video">
@@ -140,7 +172,7 @@ function AddCategoryPage() {
           <label className="flex items-center justify-between rounded-lg border p-3 text-sm"><span>Featured Category</span><Switch onCheckedChange={(v) => setValue("featured", v)} /></label>
         </div>
         <Field label="Description"><Input {...register("description")} placeholder="Short category description" /></Field>
-        <p className="text-xs text-muted-foreground">TODO: Backend category media supports `icon_url` only. Real image/video upload will be wired after upload endpoints are available for categories.</p>
+        <p className="text-xs text-muted-foreground">Category video upload isn't available yet; the icon uploads immediately once selected.</p>
       </FormSection>
     </form>
   );

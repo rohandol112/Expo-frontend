@@ -71,6 +71,12 @@ function AddChannelPage() {
   );
 
   useEffect(() => {
+    if (!selectedLanguage && languagesQuery.data?.items?.[0]?.code) {
+      setValue("language", languagesQuery.data.items[0].code, { shouldValidate: true });
+    }
+  }, [languagesQuery.data?.items, selectedLanguage, setValue]);
+
+  useEffect(() => {
     if (imageFile) {
       const url = URL.createObjectURL(imageFile);
       setLogoPreviewUrl(url);
@@ -211,7 +217,7 @@ function AddChannelPage() {
             </label>
             {!nationalVisibility && (
               <>
-                <Field label="State" error={errors.state?.message}><Select value={selectedState} onValueChange={(v) => setValue("state", v, { shouldValidate: true })} disabled={!selectedLanguage || regionsQuery.isLoading}><SelectTrigger><SelectValue placeholder={regionsQuery.isLoading ? "Loading states..." : "Select state"} /></SelectTrigger><SelectContent>{states.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent></Select></Field>
+                <Field label="State" error={errors.state?.message}><Select value={selectedState} onValueChange={(v) => setValue("state", v, { shouldValidate: true })} disabled={regionsQuery.isLoading}><SelectTrigger><SelectValue placeholder={regionsQuery.isLoading ? "Loading states..." : "Select state"} /></SelectTrigger><SelectContent>{states.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent></Select></Field>
                 <Field label="District" error={errors.district?.message}><Select value={selectedDistrict} onValueChange={(v) => setValue("district", v, { shouldValidate: true })} disabled={!selectedState}><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger><SelectContent>{districts.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}</SelectContent></Select></Field>
                 <Field label="Area/City" error={errors.area?.message}><Select value={watch("area")} onValueChange={(v) => setValue("area", v, { shouldValidate: true })} disabled={!selectedDistrict}><SelectTrigger><SelectValue placeholder="Select area" /></SelectTrigger><SelectContent>{areas.map((a) => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent></Select></Field>
               </>
