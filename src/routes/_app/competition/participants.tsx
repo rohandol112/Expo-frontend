@@ -168,7 +168,9 @@ function ParticipantsPage() {
     setExporting(true);
     const toastId = toast.loading("Preparing export…");
     try {
-      const EXPORT_PAGE_SIZE = 200;
+      // Must not exceed the API's per_page cap (100) or every request 422s and
+      // the export fails before writing a single row.
+      const EXPORT_PAGE_SIZE = 100;
       const all: AdminEntryListItem[] = [];
       for (let p = 1; ; p += 1) {
         const chunk = await competitionAdminService.entries({
@@ -178,7 +180,7 @@ function ParticipantsPage() {
         });
         all.push(...(chunk.items ?? []));
         if (!chunk.has_more || (chunk.items ?? []).length === 0) break;
-        if (p > 100) break; // hard stop; 20k rows is far past a sane export
+        if (p > 100) break; // hard stop; 10k rows is far past a sane export
       }
 
       const columns: { header: string; value: (r: AdminEntryListItem) => string }[] = [

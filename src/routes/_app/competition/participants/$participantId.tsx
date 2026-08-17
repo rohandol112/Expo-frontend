@@ -203,6 +203,77 @@ function ParticipantDetailPage() {
       },
     );
 
+  /**
+   * Photo editing.
+   *
+   * These four were wired into the JSX but never written, so the module threw
+   * "handleCoverPhotoUpload is not defined" the moment the page rendered and
+   * every participant detail page died on the error boundary.
+   *
+   * Uploads go to R2 first and the returned KEY is what gets saved — photo_urls
+   * are resolved links and are not interchangeable with keys. photo_keys
+   * replaces the whole gallery, so deletes send the surviving keys rather than
+   * asking the API to remove one.
+   */
+  const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+  const savePhotos = (patch: UpdateEntryInput, success: string) =>
+    updateEntry.mutate(patch, {
+      onSuccess: () => toast.success(success),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Could not update photos"),
+    });
+
+  const handleCoverPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Cleared straight away so re-picking the same file still fires onChange.
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > MAX_PHOTO_BYTES) return toast.error("Cover photo must be 5MB or smaller");
+    setIsUploadingCover(true);
+    try {
+      const key = await uploadAsset.mutateAsync({ file, asset: "cover_photo" });
+      savePhotos({ cover_photo_key: key }, "Cover photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Cover photo upload failed");
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  const handleDeleteCoverPhoto = () => savePhotos({ cover_photo_key: null }, "Cover photo removed");
+
+  const handlePandalPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    const existing = entry?.photo_keys ?? [];
+    const room = 5 - existing.length;
+    if (room <= 0) return toast.error("This entry already has 5 photos");
+    if (files.some((f) => f.size > MAX_PHOTO_BYTES)) return toast.error("Each photo must be 5MB or smaller");
+    // Take what fits rather than rejecting the whole selection.
+    const accepted = files.slice(0, room);
+    if (accepted.length < files.length) toast.info(`Only ${room} more photo(s) can be added`);
+
+    setIsUploadingPhotos(true);
+    try {
+      const uploadedKeys = await Promise.all(
+        accepted.map((file) => uploadAsset.mutateAsync({ file, asset: "pandal_photo" })),
+      );
+      savePhotos({ photo_keys: [...existing, ...uploadedKeys] }, "Photos added");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Photo upload failed");
+    } finally {
+      setIsUploadingPhotos(false);
+    }
+  };
+
+  const handleDeletePandalPhoto = (index: number) => {
+    const existing = entry?.photo_keys ?? [];
+    if (index < 0 || index >= existing.length) return;
+    savePhotos({ photo_keys: existing.filter((_, i) => i !== index) }, "Photo removed");
+  };
+
   const handleSaveNote = () => {
     if (!noteText.trim()) return toast.info("Enter a note");
     saveNote.mutate(noteText, {

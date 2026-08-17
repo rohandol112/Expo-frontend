@@ -141,6 +141,12 @@ export interface AdminEntryDetail {
   area_name: string | null;
   cover_photo_url: string | null;
   photo_urls: string[];
+  /**
+   * Storage keys for the same photos as photo_urls, index for index. Photo
+   * edits are sent as keys — the resolved URLs cannot be used in their place.
+   */
+  photo_keys: string[];
+  cover_photo_key: string | null;
   total_votes: number;
   rank: number | null;
   status: PandalStatus;
