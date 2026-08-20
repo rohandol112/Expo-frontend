@@ -11,6 +11,7 @@ export interface BackendNews {
   slug?: string;
   thumbnail_url?: string | null;
   video_url?: string | null;
+  images?: Array<{ id: number; image_url: string | null; sort_order: number }>;
   duration_seconds?: number | null;
   language_code?: string;
   language_name?: string;
@@ -133,6 +134,7 @@ export function toNewsItem(row: BackendNews): NewsItem {
     thumbnail,
     thumbnailUrl: row.thumbnail_url ?? null,
     videoUrl: row.video_url ?? null,
+    images: row.images ?? [],
     durationSeconds: row.duration_seconds ?? null,
     category: row.categories?.[0]?.name || "General",
     categories: row.categories,

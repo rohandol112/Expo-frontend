@@ -24,6 +24,7 @@ export interface NewsItem {
   thumbnail: string;
   thumbnailUrl?: string | null;
   videoUrl?: string | null;
+  images?: Array<{ id: number; image_url: string | null; sort_order: number }>;
   durationSeconds?: number | null;
   category: string;
   categories?: Array<{ id: number; name: string }>;

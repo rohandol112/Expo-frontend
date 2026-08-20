@@ -143,11 +143,32 @@ function formatEta(seconds: number): string {
   return `${mins}m ${secs}s remaining`;
 }
 
+const MAX_STORY_IMAGES = 10;
+const STORY_IMAGE_RATIO = 9 / 16;
+const STORY_IMAGE_RATIO_TOLERANCE = 0.05;
+
+function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Unable to read image dimensions"));
+    };
+    img.src = url;
+  });
+}
+
 function AddNewsPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [storyImageFiles, setStoryImageFiles] = useState<File[]>([]);
   const [translationMode, setTranslationMode] = useState<"manual" | "ai">("manual");
   const [activeTranslationCode, setActiveTranslationCode] = useState<string>("");
   const [translationDrafts, setTranslationDrafts] = useState<Record<string, { title: string; description: string; bottomDescription: string }>>({});
@@ -156,6 +177,7 @@ function AddNewsPage() {
   const [uploadStatus, setUploadStatus] = useState<{
     thumbnail: { percent: number; eta: string } | null;
     video: { percent: number; eta: string } | null;
+    images: { done: number; total: number } | null;
   } | null>(null);
   const categoriesQuery = useCategories();
   const channelsQuery = useChannels();
@@ -354,11 +376,11 @@ function AddNewsPage() {
         // Deployed backend may already persist categories during create; this compatibility call is best-effort.
       }
 
-      setUploadStatus({ thumbnail: null, video: null });
+      setUploadStatus({ thumbnail: null, video: null, images: null });
 
       if (thumbnailFile) {
         setUploadStatus((prev) => ({
-          ...(prev ?? { video: null }),
+          ...(prev ?? { video: null, images: null }),
           thumbnail: { percent: 0, eta: "Estimating time..." },
         }));
         const upload = await newsService.requestThumbnailUploadUrl(created.id, {
@@ -383,7 +405,7 @@ function AddNewsPage() {
 
       if (videoFile) {
         setUploadStatus((prev) => ({
-          ...(prev ?? { thumbnail: null }),
+          ...(prev ?? { thumbnail: null, images: null }),
           video: { percent: 0, eta: "Estimating time..." },
         }));
         const upload = await newsService.requestVideoUploadUrl(created.id, {
@@ -406,6 +428,26 @@ function AddNewsPage() {
         await newsService.confirmVideoUpload(created.id, { file_key: upload.file_key });
       }
 
+      if (storyImageFiles.length > 0) {
+        setUploadStatus((prev) => ({
+          ...(prev ?? { thumbnail: null, video: null }),
+          images: { done: 0, total: storyImageFiles.length },
+        }));
+        for (let i = 0; i < storyImageFiles.length; i++) {
+          const file = storyImageFiles[i];
+          const upload = await newsService.requestImageUploadUrl(created.id, {
+            file_name: file.name,
+            content_type: file.type || "image/jpeg",
+          });
+          await uploadToPresignedUrl(upload.upload_url, file);
+          await newsService.confirmImageUpload(created.id, { file_key: upload.file_key });
+          setUploadStatus((prev) => {
+            if (!prev) return null;
+            return { ...prev, images: { done: i + 1, total: storyImageFiles.length } };
+          });
+        }
+      }
+
       setUploadStatus(null);
 
       if (finalStatus === "schedule" && data.scheduledFor) {
@@ -415,7 +457,7 @@ function AddNewsPage() {
       toast.success(
         finalStatus === "schedule"
           ? "News scheduled successfully"
-          : thumbnailFile || videoFile
+          : thumbnailFile || videoFile || storyImageFiles.length > 0
             ? "News and media uploaded"
             : "News saved as draft",
       );
@@ -429,6 +471,10 @@ function AddNewsPage() {
   const handleFormSubmit = handleSubmit((data, event) => {
     event?.preventDefault();
     if (step < STEPS.length - 1) {
+      if (step === 0 && data.type === "story" && storyImageFiles.length === 0) {
+        toast.error("Add at least one story image (9:16) before continuing");
+        return;
+      }
       setStep((current) => Math.min(current + 1, STEPS.length - 1));
       return;
     }
@@ -436,6 +482,10 @@ function AddNewsPage() {
   });
   const goNext = (event?: { preventDefault: () => void }) => {
     event?.preventDefault();
+    if (step === 0 && values.type === "story" && storyImageFiles.length === 0) {
+      toast.error("Add at least one story image (9:16) before continuing");
+      return;
+    }
     setStep((current) => Math.min(current + 1, STEPS.length - 1));
   };
   const goBack = () => (step === 0 ? navigate({ to: ROUTES.NEWS_ADMIN }) : setStep((current) => current - 1));
@@ -469,7 +519,7 @@ function AddNewsPage() {
         }
         return next;
       });
-      toast.success("AI auto-fill placeholder completed");
+      toast.success(result.source === "gemini" ? "AI auto-fill completed" : "AI auto-fill placeholder completed (Gemini API key not configured yet)");
     } catch {
       toast.error("Unable to auto-fill translations");
     }
@@ -716,6 +766,9 @@ function AddNewsPage() {
               />
             </div>
           </div>
+          {values.type === "story" && (
+            <StoryImageGallery files={storyImageFiles} onChange={setStoryImageFiles} />
+          )}
           <Field label="Bottom Description"><Input {...register("bottomDescription")} placeholder="Optional bottom description" maxLength={300} /></Field>
         </FormSection>
       )}
@@ -737,7 +790,7 @@ function AddNewsPage() {
             <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-blue-50/60 p-4">
               <div>
                 <p className="font-semibold text-blue-700">AI Auto Fill</p>
-                <p className="text-sm text-muted-foreground">The backend currently returns deterministic placeholder translations until a real AI provider is configured.</p>
+                <p className="text-sm text-muted-foreground">Uses Gemini to translate your default-language content into the other selected languages. Falls back to placeholder text if the Gemini API key isn't configured yet.</p>
               </div>
               <Button type="button" onClick={handleAutoFill} disabled={autoFillTranslations.isPending}><Sparkles className="mr-2 h-4 w-4" />{autoFillTranslations.isPending ? "Filling..." : "AI Fill in All Languages"}</Button>
             </div>
@@ -892,6 +945,18 @@ function AddNewsPage() {
                 <p className="text-[10px] text-muted-foreground text-right">{uploadStatus.video.eta}</p>
               </div>
             )}
+
+            {uploadStatus.images && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Story Images</span>
+                  <span>{uploadStatus.images.done}/{uploadStatus.images.total}</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all duration-300" style={{ width: `${(uploadStatus.images.done / uploadStatus.images.total) * 100}%` }} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -979,6 +1044,92 @@ function MediaPicker({
           </label>
         </>
       )}
+    </div>
+  );
+}
+
+function StoryImageGallery({ files, onChange }: { files: File[]; onChange: (files: File[]) => void }) {
+  const inputId = useId();
+  const [objectUrls, setObjectUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = files.map((file) => URL.createObjectURL(file));
+    setObjectUrls(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [files]);
+
+  const handleFilesSelected = async (selected: FileList | null) => {
+    if (!selected || selected.length === 0) return;
+    const remaining = MAX_STORY_IMAGES - files.length;
+    if (remaining <= 0) {
+      toast.error(`You can add up to ${MAX_STORY_IMAGES} story images`);
+      return;
+    }
+    const candidates = Array.from(selected).slice(0, remaining);
+    const accepted: File[] = [];
+    for (const file of candidates) {
+      try {
+        const { width, height } = await readImageDimensions(file);
+        const ratio = width / height;
+        if (Math.abs(ratio - STORY_IMAGE_RATIO) > STORY_IMAGE_RATIO_TOLERANCE) {
+          toast.error(`${file.name} isn't close to a 9:16 ratio (got ${width}x${height}) — skipped`);
+          continue;
+        }
+        accepted.push(file);
+      } catch {
+        toast.error(`Unable to read ${file.name} — skipped`);
+      }
+    }
+    if (accepted.length > 0) onChange([...files, ...accepted]);
+  };
+
+  const removeAt = (index: number) => {
+    onChange(files.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div>
+      <Label className="mb-1.5 block">Story Images * (9:16 ratio, up to {MAX_STORY_IMAGES})</Label>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+        {files.map((file, index) => (
+          <div key={`${file.name}-${index}`} className="group relative aspect-[9/16] overflow-hidden rounded-md border bg-muted">
+            {objectUrls[index] && <img src={objectUrls[index]} alt={`Story ${index + 1}`} className="h-full w-full object-cover" />}
+            <button
+              type="button"
+              onClick={() => removeAt(index)}
+              className="absolute top-1 right-1 rounded-full bg-red-600 p-1 text-white shadow-md hover:bg-red-700"
+              title="Remove image"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ))}
+        {files.length < MAX_STORY_IMAGES && (
+          <>
+            <input
+              id={inputId}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                void handleFilesSelected(event.target.files);
+                event.target.value = "";
+              }}
+            />
+            <label
+              htmlFor={inputId}
+              className="flex aspect-[9/16] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed bg-background px-2 text-center transition hover:border-primary/70 hover:bg-primary/5"
+            >
+              <Plus className="mb-1 h-6 w-6 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Add Image</span>
+            </label>
+          </>
+        )}
+      </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">Images that aren't close to a 9:16 ratio are rejected automatically.</p>
     </div>
   );
 }

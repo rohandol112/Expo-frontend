@@ -127,7 +127,7 @@ export interface AutoFillTranslationsPayload {
 }
 
 export interface AutoFillTranslationsResult {
-  source: "placeholder";
+  source: "gemini" | "placeholder";
   translations: NonNullable<CreateAdminNewsPayload["translations"]>;
 }
 
@@ -239,6 +239,18 @@ export const newsService = {
 
   async confirmThumbnailUpload(id: string, payload: { file_key: string }) {
     return httpClient.post<{ thumbnail_url: string }>(API.news.thumbnailConfirm(id), payload);
+  },
+
+  async requestImageUploadUrl(id: string, payload: UploadUrlPayload) {
+    return httpClient.post<UploadUrlResponse>(API.news.imageUploadUrl(id), payload);
+  },
+
+  async confirmImageUpload(id: string, payload: { file_key: string }) {
+    return httpClient.post<{ id: number; image_url: string | null; sort_order: number }>(API.news.imageConfirm(id), payload);
+  },
+
+  async deleteImage(id: string, imageId: number) {
+    return httpClient.delete<void>(API.news.imageDelete(id, imageId));
   },
 
   async recordView(id: string) {
