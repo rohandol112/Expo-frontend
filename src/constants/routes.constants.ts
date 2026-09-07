@@ -55,12 +55,13 @@ export const ROUTES = {
   COMPETITION_BANNER_REVIEW: "/competition/banner-review",
   COMPETITION_REPORTS: "/competition/reports",
   COMPETITION_RULES: "/competition/rules",
-  COMPETITION_AI_CALLING: "/competition/ai-calling",
   COMPETITION_SETTINGS: "/competition/settings",
   COMPETITION_FORM_SETTINGS: "/competition/form-settings",
-  ADS_BANNERS: "/advertisement/banners",
-  ADS_BANNERS_ADD: "/advertisement/banners/add",
-  ADS_BANNERS_EDIT: (id: string) => `/advertisement/banners/${id}/edit`,
+  // Advertisement banners live inside the Competition section as "Ad List" /
+  // "Add New Ad"; they used to be a top-level Advertisement menu of their own.
+  ADS_BANNERS: "/competition/ads",
+  ADS_BANNERS_ADD: "/competition/ads/add",
+  ADS_BANNERS_EDIT: (id: string) => `/competition/ads/${id}/edit`,
 } as const;
 
 export type AppRoute = Extract<(typeof ROUTES)[keyof typeof ROUTES], string>;

@@ -20,7 +20,6 @@ import {
   ChevronDown,
   Globe,
   Trophy,
-  Megaphone,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -66,16 +65,11 @@ const MENU: Item[] = [
       { label: "Reviewed Banners", to: `${ROUTES.COMPETITION_BANNER_REVIEW}?tab=reviewed` },
       { label: "Reports", to: ROUTES.COMPETITION_REPORTS },
       { label: "Competition Rules", to: ROUTES.COMPETITION_RULES },
-      { label: "AI Calling Campaign", to: ROUTES.COMPETITION_AI_CALLING },
+      // Advertisement used to be a top-level section of its own; the client
+      // asked for it to live inside Competition as Ad List / Add New Ad.
+      { label: "Ad List", to: ROUTES.ADS_BANNERS },
+      { label: "Add New Ad", to: ROUTES.ADS_BANNERS_ADD },
       { label: "Settings", to: ROUTES.COMPETITION_SETTINGS },
-    ],
-  },
-  {
-    label: "Advertisement",
-    icon: Megaphone,
-    children: [
-      { label: "Banner List", to: ROUTES.ADS_BANNERS },
-      { label: "Add New Banner", to: ROUTES.ADS_BANNERS_ADD },
     ],
   },
   { label: "Channels", icon: Tv, to: ROUTES.CHANNELS },

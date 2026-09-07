@@ -3,7 +3,7 @@ import { httpClient } from "@/lib/httpClient";
 import type {
   AdminBannerListData,
   AdminEntryDetail,
-  AdminEntryListItem,
+  AdminEntryListData,
   AdminReportListData,
   CompetitionAdminStats,
   CompetitionConfig,
@@ -13,7 +13,6 @@ import type {
   CreateFormFieldInput,
   FormField,
   LeaderboardData,
-  Paged,
   UpdateEntryInput,
 } from "@/types/competitionAdmin";
 
@@ -22,8 +21,11 @@ export type EntryListParams = {
   per_page?: number;
   search?: string;
   status?: string;
+  state_id?: number;
   district_id?: number;
   area_id?: number;
+  /** Only entries a participant edited since an admin last opened them. */
+  unviewed?: boolean;
 };
 
 export type LeaderboardParams = {
@@ -41,8 +43,10 @@ export type BannerListParams = {
   ai_status?: string;
   search?: string;
   slot?: number;
+  state_id?: number;
   district_id?: number;
   area_id?: number;
+  pending?: boolean;
   priority?: "high" | "medium" | "low";
   overdue?: boolean;
   reviewed?: boolean;
@@ -69,7 +73,17 @@ export const competitionAdminService = {
   },
 
   entries(params?: EntryListParams) {
-    return httpClient.get<Paged<AdminEntryListItem>>(API.competition.adminEntries, { params });
+    return httpClient.get<AdminEntryListData>(API.competition.adminEntries, { params });
+  },
+
+  /** Clears an entry's "edited, not looked at yet" highlight. */
+  markEntryViewed(id: string | number) {
+    return httpClient.put<{ id: number }>(API.competition.adminEntryViewed(id));
+  },
+
+  /** Accepts a photo change on an approved entry, dropping its review badge. */
+  clearNeedsReview(id: string | number) {
+    return httpClient.put<{ id: number }>(API.competition.adminEntryReviewed(id));
   },
 
   entry(id: string | number) {

@@ -6,10 +6,7 @@ import {
   type LeaderboardParams,
   type ReportListParams,
 } from "@/services/competitionAdmin.service";
-import { campaignService, type ContactListParams } from "@/services/campaign.service";
 import type {
-  CampaignContactInput,
-  CampaignSettings,
   CompetitionConfig,
   CompetitionRuleInput,
   CreateFormFieldInput,
@@ -27,14 +24,6 @@ export const competitionKeys = {
   formFields: () => [...competitionKeys.all, "form-fields"] as const,
   reports: (params?: ReportListParams) => [...competitionKeys.all, "reports", params] as const,
   rules: () => [...competitionKeys.all, "rules"] as const,
-};
-
-export const campaignKeys = {
-  all: ["admin-campaign"] as const,
-  settings: () => [...campaignKeys.all, "settings"] as const,
-  stats: () => [...campaignKeys.all, "stats"] as const,
-  uploads: () => [...campaignKeys.all, "uploads"] as const,
-  contacts: (params?: ContactListParams) => [...campaignKeys.all, "contacts", params] as const,
 };
 
 // ---- Competition ----
@@ -140,6 +129,28 @@ export function useDeleteEntry() {
   });
 }
 
+/**
+ * Clears the "participant edited this" highlight. Fired when an admin opens a
+ * participant's detail page, so the red/blue row styling on the list goes away
+ * once someone has actually looked at the change.
+ */
+export function useMarkEntryViewed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => competitionAdminService.markEntryViewed(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
+  });
+}
+
+/** Accepts a photo change on an approved entry, dropping its "Needs Review" badge. */
+export function useClearNeedsReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => competitionAdminService.clearNeedsReview(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
+  });
+}
+
 export function useSaveEntryNote(id: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -228,60 +239,5 @@ export function useAiReviewPending() {
   return useMutation({
     mutationFn: () => competitionAdminService.aiReviewPending(),
     onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
-  });
-}
-
-// ---- AI calling campaign ----
-
-export function useCampaignSettings() {
-  return useQuery({ queryKey: campaignKeys.settings(), queryFn: () => campaignService.settings() });
-}
-
-export function useUpdateCampaignSettings() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (patch: Partial<CampaignSettings>) => campaignService.updateSettings(patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: campaignKeys.all }),
-  });
-}
-
-export function useCampaignStats() {
-  return useQuery({ queryKey: campaignKeys.stats(), queryFn: () => campaignService.stats(), refetchInterval: 15000 });
-}
-
-export function useCampaignUploads() {
-  return useQuery({ queryKey: campaignKeys.uploads(), queryFn: () => campaignService.uploads() });
-}
-
-export function useCampaignContacts(params?: ContactListParams) {
-  return useQuery({
-    queryKey: campaignKeys.contacts(params),
-    queryFn: () => campaignService.contacts(params),
-    refetchInterval: 15000,
-  });
-}
-
-export function useUploadContacts() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ fileName, contacts }: { fileName: string; contacts: CampaignContactInput[] }) =>
-      campaignService.uploadContacts(fileName, contacts),
-    onSuccess: () => qc.invalidateQueries({ queryKey: campaignKeys.all }),
-  });
-}
-
-export function useStartCampaign() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (limit?: number) => campaignService.start(limit),
-    onSuccess: () => qc.invalidateQueries({ queryKey: campaignKeys.all }),
-  });
-}
-
-export function useCallContact() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => campaignService.callContact(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: campaignKeys.all }),
   });
 }

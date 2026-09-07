@@ -68,6 +68,8 @@ export interface CompetitionConfig {
   /** YYYY-MM-DD. Visarjan dates on the app are derived from this + visarjan days. */
   festival_start_date: string | null;
   max_reports_per_user: number;
+  /** Off = the AI only leaves feedback and an admin makes every decision. */
+  ai_auto_decision: boolean;
   total_pandals: number;
 }
 
@@ -81,7 +83,13 @@ export interface LeaderboardItem {
   state_name: string | null;
   district_name: string | null;
   area_name: string | null;
+  /** votes + banner points — what the rank is computed from. */
   total_votes: number;
+  /** Votes an actual user cast, with no banner bonus mixed in. */
+  actual_votes: number;
+  /** Points credited when banner slot 1 / slot 2 was approved. */
+  banner1_votes: number;
+  banner2_votes: number;
   percentage: number;
 }
 
@@ -114,6 +122,15 @@ export interface AdminEntryListItem {
   visarjan_days?: string | null;
   submitted_by?: string | null;
   submitted_by_phone?: string | null;
+  /** Banner-approval points, split by slot, next to the votes people cast. */
+  banner1_votes?: number;
+  banner2_votes?: number;
+  actual_votes?: number;
+  /** The participant edited this since an admin last opened it → highlight it. */
+  is_unviewed?: boolean;
+  /** An approved entry whose photos changed and needs a second look. */
+  needs_review?: boolean;
+  last_participant_update_at?: string | null;
   created_at: string;
   updated_at?: string | null;
 }
@@ -153,6 +170,9 @@ export interface AdminEntryDetail {
   rejection_reason: string | null;
   entry_code: string;
   admin_notes: string | null;
+  needs_review: boolean;
+  last_participant_update_at: string | null;
+  admin_viewed_at: string | null;
   submitted_on: string | null;
   submitted_by: string | null;
   submitted_by_phone: string | null;
@@ -194,6 +214,10 @@ export interface AdminBanner {
   status: BannerStatus;
   points: number;
   uploaded_at: string;
+  rejection_reason?: string | null;
+  /** Replacement awaiting review; the approved image_url is still the live one. */
+  pending_image_url?: string | null;
+  pending_uploaded_at?: string | null;
 }
 
 export interface AdminBannerListItem {
@@ -212,6 +236,11 @@ export interface AdminBannerListItem {
   ai_reasons: string[];
   ai_suggestions: string[];
   uploaded_at: string;
+  state_name: string | null;
+  entry_code: string | null;
+  /** Replacement image waiting for review; the approved one is still live. */
+  pending_image_url: string | null;
+  pending_uploaded_at: string | null;
 }
 
 export interface BannerReviewCounts {
@@ -226,6 +255,8 @@ export interface BannerReviewCounts {
   priority_low: number;
   overdue: number;
   reviewed_today: number;
+  /** Approved banners with a replacement image waiting for review. */
+  pending_replacement: number;
 }
 
 export interface AdminBannerListData {
@@ -314,97 +345,7 @@ export interface Paged<T> {
   has_more: boolean;
 }
 
-// ---- AI calling campaign ----
-
-export type CampaignCallStatus =
-  | "not_started"
-  | "queued"
-  | "calling"
-  | "in_conversation"
-  | "completed"
-  | "no_answer"
-  | "call_failed";
-
-export type CampaignWhatsappStatus =
-  | "not_sent"
-  | "sent"
-  | "delivered"
-  | "read"
-  | "in_progress"
-  | "manual_required"
-  | "failed";
-
-export type CampaignParticipationStatus =
-  | "not_started"
-  | "in_progress"
-  | "form_started"
-  | "form_filled"
-  | "completed"
-  | "registered";
-
-export interface CampaignSettings {
-  bolna_agent_id: string | null;
-  voice_label: string;
-  language: string;
-  script_name: string;
-  campaign_description: string;
-  calling_start_time: string;
-  calling_end_time: string;
-  retry_attempts: number;
-  retry_delay_seconds: number;
-  whatsapp_number: string | null;
-  registration_link: string | null;
-  is_active: boolean;
-  updated_at: string;
-}
-
-export interface CampaignStats {
-  total_contacts: number;
-  calls_initiated: number;
-  calls_completed: number;
-  in_conversation: number;
-  whatsapp_sent: number;
-  forms_completed: number;
-  registered: number;
-}
-
-export interface CampaignContact {
-  id: number;
-  upload_id: number | null;
-  mandal_name: string;
-  contact_person: string;
-  phone: string;
-  position: string;
-  address: string;
-  area: string;
-  district: string;
-  state: string;
-  call_status: CampaignCallStatus;
-  call_outcome: string | null;
-  call_attempts: number;
-  last_called_at: string | null;
-  bolna_call_id: string | null;
-  call_summary: string | null;
-  whatsapp_status: CampaignWhatsappStatus;
-  participation_status: CampaignParticipationStatus;
-  created_at: string;
-}
-
-export interface CampaignUpload {
-  id: number;
-  file_name: string;
-  total_contacts: number;
-  uploaded_by: number | null;
-  created_at: string;
-}
-
-export interface CampaignContactInput {
-  mandal_name: string;
-  contact_person: string;
-  phone: string;
-  position: string;
-  address: string;
-  area: string;
-  district: string;
-  state: string;
+/** The participants list, plus the count behind the "highlighted only" toggle. */
+export interface AdminEntryListData extends Paged<AdminEntryListItem> {
+  unviewed_total: number;
 }

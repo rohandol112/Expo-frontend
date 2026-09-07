@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   useCompetitionEntry,
+  useMarkEntryViewed,
   useReviewBanner,
   useReviewEntry,
   useSaveEntryNote,
@@ -151,6 +152,20 @@ function ParticipantDetailPage() {
   const uploadAsset = useUploadCompetitionAsset();
 
   const entry = entryQuery.data;
+
+  // Opening the page counts as reviewing the change, so the red/blue highlight
+  // on the participants list clears here. Keyed on the id and fired once per
+  // entry — the mutation invalidates the list, which would otherwise re-run this.
+  const markViewed = useMarkEntryViewed();
+  const viewedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!entry || viewedRef.current === participantId) return;
+    viewedRef.current = participantId;
+    markViewed.mutate(participantId);
+    // markViewed is a stable mutation object; including it would re-fire on
+    // every render of the mutation state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry, participantId]);
   const original = useMemo(() => (entry ? toForm(entry) : null), [entry]);
   const current = form ?? original;
 
@@ -295,12 +310,29 @@ function ParticipantDetailPage() {
       {/* Header */}
       <PageHeader
         title={
-          <div className="flex items-center gap-3">
-            <span>Participant Details</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span>{entry?.name || (entryQuery.isLoading ? "Loading…" : "Participant Details")}</span>
+            {entry?.entry_code && (
+              <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-sm font-bold text-slate-700">
+                {entry.entry_code}
+              </span>
+            )}
             <span className="rounded-md bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">
               {STATUS_LABELS[entry?.status ?? "submitted"] ?? "Draft"}
             </span>
+            {entry?.needs_review && (
+              <span className="rounded-md bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-300">
+                Needs Review
+              </span>
+            )}
           </div>
+        }
+        description={
+          entry
+            ? [entry.committee_name, [entry.area_name, entry.district_name, entry.state_name].filter(Boolean).join(", ")]
+                .filter(Boolean)
+                .join(" · ") || undefined
+            : undefined
         }
         breadcrumbs={[
           { label: "Dashboard", to: ROUTES.DASHBOARD },

@@ -4,15 +4,18 @@ import {
   ArrowDownUp,
   ArrowUpDown,
   CheckCircle2,
-  Clock,
   Download,
   ExternalLink,
+  Eye,
+  FileSpreadsheet,
+  FileText,
   Filter,
   MoreVertical,
   RotateCcw,
+  Search,
   Send,
-  SlidersHorizontal,
-  Sparkles,
+  X,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -33,7 +36,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { useCompetitionEntries, useCompetitionStats, useDeleteEntry } from "@/hooks/api/useCompetition";
+import {
+  useCompetitionEntries,
+  useCompetitionStats,
+  useDeleteEntry,
+  useMarkEntryViewed,
+  useReviewEntry,
+} from "@/hooks/api/useCompetition";
 import { competitionAdminService } from "@/services/competitionAdmin.service";
 import { useRegions } from "@/hooks/api/useRegions";
 import type { AdminEntryListItem } from "@/types/competitionAdmin";
@@ -65,6 +74,18 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "Rejected",
 };
 
+/**
+ * Row tint for an entry the participant edited since an admin last opened it.
+ * Red for approved entries (their change is already live to the public, so it
+ * is the urgent one) and blue for drafts, per the client's colour rule.
+ */
+function highlightClass(row: AdminEntryListItem): string {
+  if (!row.is_unviewed) return "hover:bg-slate-50/80";
+  return row.status === "approved"
+    ? "bg-red-50/70 hover:bg-red-50 border-l-2 border-l-red-500"
+    : "bg-blue-50/70 hover:bg-blue-50 border-l-2 border-l-blue-500";
+}
+
 function formatDate(dateStr: string | null | undefined): { date: string; time: string } {
   if (!dateStr) return { date: "—", time: "" };
   const d = new Date(dateStr);
@@ -74,11 +95,24 @@ function formatDate(dateStr: string | null | undefined): { date: string; time: s
   return { date, time };
 }
 
+/**
+ * The route component is a layout: on a child route it renders the detail page
+ * instead of the list.
+ *
+ * The switch has to live in its own component. It used to be an early return
+ * inside the list component itself, which meant the same component rendered two
+ * hooks on a child route and twenty on the list — navigating from the list into
+ * a participant changes the hook count between renders of one component, which
+ * is exactly the "rendered more hooks than during the previous render" crash.
+ */
 function ParticipantsPage() {
-  const navigate = useNavigate();
   const { pathname } = useLocation();
   if (pathname !== ROUTES.COMPETITION_PARTICIPANTS) return <Outlet />;
+  return <ParticipantsList />;
+}
 
+function ParticipantsList() {
+  const navigate = useNavigate();
   const [selectedState, setSelectedState] = useState<string>("all");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
   const [selectedArea, setSelectedArea] = useState<string>("all");
@@ -88,10 +122,16 @@ function ParticipantsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<AdminEntryListItem | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ row: AdminEntryListItem; status: "approved" | "rejected" } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  /** "Option to see all highlighted entries" — narrows the list to unviewed edits. */
+  const [unviewedOnly, setUnviewedOnly] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const statsQuery = useCompetitionStats();
   const deleteEntry = useDeleteEntry();
+  const reviewEntry = useReviewEntry();
+  const markViewed = useMarkEntryViewed();
   const regionsQuery = useRegions();
   const states = regionsQuery.data ?? [];
   const districts = useMemo(
@@ -117,10 +157,12 @@ function ParticipantsPage() {
       page,
       per_page: PAGE_SIZE,
       search: search || undefined,
+      state_id: selectedState !== "all" ? Number(selectedState) : undefined,
       district_id: selectedDistrict !== "all" ? Number(selectedDistrict) : undefined,
       area_id: selectedArea !== "all" ? Number(selectedArea) : undefined,
+      unviewed: unviewedOnly || undefined,
     }),
-    [page, search, selectedDistrict, selectedArea],
+    [page, search, selectedState, selectedDistrict, selectedArea, unviewedOnly],
   );
 
   const entriesQuery = useCompetitionEntries(params);
@@ -138,7 +180,8 @@ function ParticipantsPage() {
     });
   }, [rawItems, sortOrder]);
 
-  const totalEntries = data?.total ?? 125;
+  const totalEntries = data?.total ?? 0;
+  const unviewedTotal = data?.unviewed_total ?? 0;
   const totalPages = Math.ceil(totalEntries / PAGE_SIZE) || 1;
 
   const handleReset = () => {
@@ -148,7 +191,24 @@ function ParticipantsPage() {
     setSortOrder(null);
     setSearchInput("");
     setSearch("");
+    setUnviewedOnly(false);
     setPage(1);
+  };
+
+  const handleReview = async () => {
+    if (!reviewTarget) return;
+    try {
+      await reviewEntry.mutateAsync({
+        id: reviewTarget.row.id,
+        status: reviewTarget.status,
+        reason: reviewTarget.status === "rejected" ? rejectReason.trim() || undefined : undefined,
+      });
+      toast.success(reviewTarget.status === "approved" ? "Participant approved" : "Participant rejected");
+      setReviewTarget(null);
+      setRejectReason("");
+    } catch {
+      toast.error("Unable to update this participant");
+    }
   };
 
   const handlePublishAllDrafts = () => {
@@ -157,13 +217,12 @@ function ParticipantsPage() {
 
   /**
    * Exports every entry matching the current filters, not just the page on
-   * screen. The button previously only raised a toast and downloaded nothing.
+   * screen — walks the pages rather than assuming one request returns the lot.
    *
-   * Paginated server-side, so this walks the pages rather than assuming one
-   * request returns everything. CSV rather than xlsx: Excel opens it natively
-   * and it needs no dependency.
+   * Two formats: .xlsx for Excel (a real workbook, so Devanagari names and long
+   * numbers survive without any import wizard) and .csv as the portable option.
    */
-  const handleExport = async () => {
+  const handleExport = async (format: "xlsx" | "csv") => {
     if (exporting) return;
     setExporting(true);
     const toastId = toast.loading("Preparing export…");
@@ -182,12 +241,16 @@ function ParticipantsPage() {
         if (!chunk.has_more || (chunk.items ?? []).length === 0) break;
         if (p > 100) break; // hard stop; 10k rows is far past a sane export
       }
+      if (all.length === 0) {
+        toast.error("Nothing to export for the current filters", { id: toastId });
+        return;
+      }
 
-      const columns: { header: string; value: (r: AdminEntryListItem) => string }[] = [
-        { header: "Code", value: (r) => r.entry_code ?? "" },
+      const columns: { header: string; value: (r: AdminEntryListItem) => string | number }[] = [
+        { header: "Entry Code", value: (r) => r.entry_code ?? "" },
         { header: "Pandal Name", value: (r) => r.name ?? "" },
-        { header: "Mandal / Society", value: (r) => r.committee_name ?? "" },
-        { header: "Established Year", value: (r) => (r.established_year != null ? String(r.established_year) : "") },
+        { header: "Committee / Mandal Name", value: (r) => r.committee_name ?? "" },
+        { header: "Established Year", value: (r) => r.established_year ?? "" },
         { header: "Visarjan Days", value: (r) => r.visarjan_days ?? "" },
         { header: "State", value: (r) => r.state_name ?? "" },
         { header: "District", value: (r) => r.district_name ?? "" },
@@ -197,30 +260,53 @@ function ParticipantsPage() {
         { header: "Contact Email", value: (r) => r.contact_email ?? "" },
         { header: "Submitted By", value: (r) => r.submitted_by ?? "" },
         { header: "Submitted By Phone", value: (r) => r.submitted_by_phone ?? "" },
-        { header: "Total Votes", value: (r) => String(r.total_votes ?? 0) },
-        { header: "Rank", value: (r) => (r.rank != null ? String(r.rank) : "") },
+        { header: "User Votes", value: (r) => r.actual_votes ?? 0 },
+        { header: "Banner 1 Vote", value: (r) => r.banner1_votes ?? 0 },
+        { header: "Banner 2 Vote", value: (r) => r.banner2_votes ?? 0 },
+        { header: "Total Votes", value: (r) => r.total_votes ?? 0 },
+        { header: "Rank", value: (r) => r.rank ?? "" },
         { header: "Status", value: (r) => STATUS_LABELS[r.status] ?? r.status ?? "" },
-        { header: "Registered On", value: (r) => (r.created_at ? new Date(r.created_at).toLocaleString("en-IN") : "") },
-        { header: "Last Updated", value: (r) => (r.updated_at ? new Date(r.updated_at).toLocaleString("en-IN") : "") },
+        { header: "Needs Review", value: (r) => (r.needs_review ? "Yes" : "No") },
+        { header: "Registration Date", value: (r) => (r.created_at ? new Date(r.created_at).toLocaleString("en-IN") : "") },
+        { header: "Last Updated Date", value: (r) => (r.updated_at ? new Date(r.updated_at).toLocaleString("en-IN") : "") },
       ];
 
-      // Quote everything and double inner quotes: names and addresses contain
-      // commas, and one unescaped quote shifts every later column.
-      const escape = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
-      const csv = [
-        columns.map((c) => escape(c.header)).join(","),
-        ...all.map((row) => columns.map((c) => escape(c.value(row))).join(",")),
-      ].join(CRLF);
+      const fileBase = `participants-${new Date().toISOString().slice(0, 10)}`;
+      if (format === "xlsx") {
+        // Loaded on demand: the sheet writer is a large dependency and most
+        // visits to this page never export anything.
+        const XLSX = await import("xlsx");
+        const rows = all.map((row) => {
+          const record: Record<string, string | number> = {};
+          columns.forEach((c) => {
+            record[c.header] = c.value(row);
+          });
+          return record;
+        });
+        const sheet = XLSX.utils.json_to_sheet(rows, { header: columns.map((c) => c.header) });
+        sheet["!cols"] = columns.map((c) => ({ wch: Math.min(38, Math.max(12, c.header.length + 4)) }));
+        const book = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(book, sheet, "Participants");
+        XLSX.writeFile(book, `${fileBase}.xlsx`);
+      } else {
+        // Quote everything and double inner quotes: names and addresses contain
+        // commas, and one unescaped quote shifts every later column.
+        const escape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+        const csv = [
+          columns.map((c) => escape(c.header)).join(","),
+          ...all.map((row) => columns.map((c) => escape(c.value(row))).join(",")),
+        ].join(CRLF);
 
-      const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `participants-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+        const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${fileBase}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
       toast.success(`Exported ${all.length} participant${all.length === 1 ? "" : "s"}`, { id: toastId });
     } catch (error) {
@@ -264,6 +350,29 @@ function ParticipantsPage() {
       {/* Top Filter Card */}
       <div className="rounded-xl border bg-card p-4 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-5">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-bold text-slate-700">Search Participants</label>
+            <div className="relative mt-1">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Name, entry code, committee, contact name or phone"
+                className="h-9 pl-8 pr-8 text-xs"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-900"
+                  onClick={() => setSearchInput("")}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="text-xs font-bold text-slate-700">Select State</label>
             <Select value={selectedState} onValueChange={(v) => { setSelectedState(v); setSelectedDistrict("all"); setSelectedArea("all"); }}>
@@ -303,7 +412,7 @@ function ParticipantsPage() {
             </Select>
           </div>
 
-          <div className="flex items-end gap-2 sm:col-span-2">
+          <div className="flex items-end gap-2 sm:col-span-5">
             <Button className="bg-red-600 font-bold hover:bg-red-700 text-xs px-5" onClick={() => setPage(1)}>
               <Filter className="mr-1.5 h-3.5 w-3.5" />
               Apply Filter
@@ -328,6 +437,26 @@ function ParticipantsPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Jumps straight to entries a participant changed since anyone last
+                looked at them — the "see all highlighted entries" option. */}
+            <Button
+              variant={unviewedOnly ? "default" : "outline"}
+              size="sm"
+              className={`text-xs font-bold ${unviewedOnly ? "bg-amber-500 hover:bg-amber-600 text-white" : "border-amber-300 text-amber-700 hover:bg-amber-50"}`}
+              onClick={() => {
+                setUnviewedOnly((v) => !v);
+                setPage(1);
+              }}
+            >
+              <Eye className="mr-1.5 h-3.5 w-3.5" />
+              {unviewedOnly ? "Showing Updated Only" : "Updated Entries"}
+              {unviewedTotal > 0 && (
+                <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${unviewedOnly ? "bg-white/25" : "bg-amber-100"}`}>
+                  {unviewedTotal}
+                </span>
+              )}
+            </Button>
+
             <div className="text-right">
               <Button
                 variant="outline"
@@ -341,17 +470,36 @@ function ParticipantsPage() {
               <p className="text-[10px] text-muted-foreground">All draft entries will be published</p>
             </div>
 
-            <Button variant="outline" size="sm" className="text-xs" onClick={handleExport}>
-              <Download className="mr-1.5 h-3.5 w-3.5" />
-              Export
-            </Button>
-
-            <Button variant="outline" size="sm" className="text-xs">
-              <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
-              Filter
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs" disabled={exporting}>
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  {exporting ? "Exporting…" : "Export"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="text-xs">
+                <DropdownMenuItem onClick={() => handleExport("xlsx")}>
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export as Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("csv")}>
+                  <FileText className="mr-2 h-3.5 w-3.5 text-slate-600" />
+                  Export as CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        {unviewedTotal > 0 && !unviewedOnly && (
+          <div className="flex items-center gap-2 border-b bg-amber-50/60 px-4 py-2 text-[11px] text-amber-900">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+            Approved entry edited
+            <span className="ml-3 inline-block h-2 w-2 rounded-full bg-blue-500" />
+            Draft entry edited
+            <span className="ml-auto font-semibold">{unviewedTotal} entr{unviewedTotal === 1 ? "y" : "ies"} updated since last viewed</span>
+          </div>
+        )}
 
         {/* Data Table */}
         <div className="overflow-x-auto">
@@ -359,11 +507,14 @@ function ParticipantsPage() {
             <thead>
               <tr className="border-b bg-slate-50 text-[11px] font-bold text-slate-700">
                 <th className="py-3 px-3 w-10 text-center">#</th>
+                <th className="py-3 px-3">Entry Code</th>
                 <th className="py-3 px-3">Cover Image</th>
                 <th className="py-3 px-3">
                   <div>Name</div>
                   <div className="text-[10px] font-normal text-muted-foreground">Area</div>
                 </th>
+                <th className="py-3 px-3">Committee Name</th>
+                <th className="py-3 px-3">Visarjan Days</th>
                 <th className="py-3 px-3">
                   <div>Person Name</div>
                   <div className="text-[10px] font-normal text-muted-foreground">Contact Number</div>
@@ -373,7 +524,6 @@ function ParticipantsPage() {
                   <div className="text-[10px] font-normal text-muted-foreground">User Name / Contact Number</div>
                 </th>
                 <th className="py-3 px-3">User Location</th>
-                <th className="py-3 px-3">Email ID</th>
                 <th className="py-3 px-3">Registered On</th>
                 <th className="py-3 px-3">
                   <DropdownMenu>
@@ -406,14 +556,14 @@ function ParticipantsPage() {
             <tbody className="divide-y divide-slate-100">
               {entriesQuery.isLoading ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={12} className="py-8 text-center text-muted-foreground">
                     Loading participants…
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center text-muted-foreground">
-                    No participants found.
+                  <td colSpan={12} className="py-8 text-center text-muted-foreground">
+                    {unviewedOnly ? "No entries have been updated since they were last viewed." : "No participants found."}
                   </td>
                 </tr>
               ) : (
@@ -424,8 +574,13 @@ function ParticipantsPage() {
                   const rowNum = (page - 1) * PAGE_SIZE + idx + 1;
 
                   return (
-                    <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={row.id} className={`${highlightClass(row)} transition-colors`}>
                       <td className="py-3 px-3 text-center font-bold text-slate-700">{rowNum}</td>
+                      <td className="py-3 px-3">
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-slate-700">
+                          {row.entry_code || "—"}
+                        </span>
+                      </td>
                       <td className="py-3 px-3">
                         {row.cover_photo_url ? (
                           <img src={row.cover_photo_url} alt="" className="h-10 w-16 rounded border object-cover shadow-sm" />
@@ -436,22 +591,29 @@ function ParticipantsPage() {
                         )}
                       </td>
                       <td className="py-3 px-3">
-                        <p className="font-bold text-slate-900">{row.name}</p>
-                        <p className="text-[11px] text-slate-500">{[row.area_name, row.district_name].filter(Boolean).join(", ") || "Mumbai"}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-slate-900">{row.name}</p>
+                          {row.is_unviewed && (
+                            <span
+                              title="Updated since it was last viewed"
+                              className={`inline-block h-2 w-2 shrink-0 rounded-full ${row.status === "approved" ? "bg-red-500" : "bg-blue-500"}`}
+                            />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500">{[row.area_name, row.district_name].filter(Boolean).join(", ") || "—"}</p>
+                      </td>
+                      <td className="py-3 px-3 text-slate-700">{row.committee_name || "—"}</td>
+                      <td className="py-3 px-3 text-slate-700">{row.visarjan_days || "—"}</td>
+                      <td className="py-3 px-3">
+                        <p className="font-bold text-slate-900">{row.contact_name || "—"}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">{row.contact_phone || "—"}</p>
                       </td>
                       <td className="py-3 px-3">
-                        <p className="font-bold text-slate-900">{row.contact_name || "Suresh Jadhav"}</p>
-                        <p className="text-[11px] text-slate-500 font-mono">{row.contact_phone || "98765 43210"}</p>
-                      </td>
-                      <td className="py-3 px-3">
-                        <p className="font-bold text-slate-900">{row.submitted_by || "Ravi Sharma"}</p>
-                        <p className="text-[11px] text-slate-500 font-mono">{row.submitted_by_phone || "98201 11122"}</p>
+                        <p className="font-bold text-slate-900">{row.submitted_by || "—"}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">{row.submitted_by_phone || "—"}</p>
                       </td>
                       <td className="py-3 px-3 text-slate-700">
-                        {[row.area_name, row.district_name, row.state_name].filter(Boolean).join(", ") || "Mumbai, Maharashtra"}
-                      </td>
-                      <td className="py-3 px-3 text-slate-600 font-mono text-[11px]">
-                        {row.contact_email || `${row.name.toLowerCase().replace(/\s+/g, "")}@gmail.com`}
+                        {[row.area_name, row.district_name, row.state_name].filter(Boolean).join(", ") || "—"}
                       </td>
                       <td className="py-3 px-3">
                         <p className="font-semibold text-slate-800">{reg.date}</p>
@@ -466,6 +628,11 @@ function ParticipantsPage() {
                           status={STATUS_LABELS[statusKey] ?? statusKey}
                           variant={STATUS_VARIANTS[statusKey] ?? "blue"}
                         />
+                        {row.needs_review && (
+                          <p className="mt-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                            Needs Review
+                          </p>
+                        )}
                       </td>
                       <td className="py-3 px-3 text-right">
                         <DropdownMenu>
@@ -481,6 +648,41 @@ function ParticipantsPage() {
                             <DropdownMenuItem onClick={() => navigate({ to: "/competition/participants/$participantId", params: { participantId: String(row.id) } })}>
                               Edit Participant
                             </DropdownMenuItem>
+                            {row.status !== "approved" && (
+                              <DropdownMenuItem
+                                className="text-emerald-700"
+                                onClick={() => setReviewTarget({ row, status: "approved" })}
+                              >
+                                <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+                                Approve
+                              </DropdownMenuItem>
+                            )}
+                            {row.status !== "rejected" && (
+                              <DropdownMenuItem
+                                className="text-rose-700"
+                                onClick={() => {
+                                  setRejectReason("");
+                                  setReviewTarget({ row, status: "rejected" });
+                                }}
+                              >
+                                <XCircle className="mr-2 h-3.5 w-3.5" />
+                                Reject
+                              </DropdownMenuItem>
+                            )}
+                            {row.is_unviewed && (
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  try {
+                                    await markViewed.mutateAsync(row.id);
+                                  } catch {
+                                    toast.error("Unable to clear the highlight");
+                                  }
+                                }}
+                              >
+                                <Eye className="mr-2 h-3.5 w-3.5" />
+                                Mark as Viewed
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem className="text-red-600" onClick={() => setDeleteTarget(row)}>
                               Delete Participant
                             </DropdownMenuItem>
@@ -533,6 +735,39 @@ function ParticipantsPage() {
           </div>
         </div>
       </div>
+
+      {/* Approve / reject straight from the list. Rejection asks for a reason
+          because the participant is shown it in the app. */}
+      <ConfirmDialog
+        open={Boolean(reviewTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReviewTarget(null);
+            setRejectReason("");
+          }
+        }}
+        title={reviewTarget?.status === "approved" ? "Approve Participant?" : "Reject Participant?"}
+        description={
+          reviewTarget?.status === "approved"
+            ? `"${reviewTarget?.row.name}" will be published and can start collecting votes.`
+            : `"${reviewTarget?.row.name}" will be rejected and removed from the public list.`
+        }
+        confirmLabel={reviewEntry.isPending ? "Saving…" : reviewTarget?.status === "approved" ? "Approve" : "Reject"}
+        destructive={reviewTarget?.status === "rejected"}
+        onConfirm={handleReview}
+      >
+        {reviewTarget?.status === "rejected" && (
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700">Reason for rejection</label>
+            <Input
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Shown to the participant in the app"
+              className="text-xs"
+            />
+          </div>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

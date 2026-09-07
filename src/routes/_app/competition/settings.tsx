@@ -554,6 +554,21 @@ function CompetitionSettingsPage() {
                 </label>
               </div>
 
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="chk-ai-auto"
+                  checked={Boolean(config.ai_auto_decision)}
+                  onCheckedChange={(v) => setField("ai_auto_decision", Boolean(v))}
+                />
+                <label htmlFor="chk-ai-auto" className="cursor-pointer text-xs">
+                  <span className="block font-bold text-slate-800">Let AI approve / reject banners automatically</span>
+                  <span className="block text-muted-foreground text-[11px]">
+                    Off by default. While off the AI only records feedback (duplicate, Pehli Baat logo, Ganpati
+                    relevance, real displayed banner) and every decision is made by an admin.
+                  </span>
+                </label>
+              </div>
+
               <div className="flex items-center justify-between gap-4 border-t pt-3">
                 <div>
                   <p className="text-xs font-bold text-slate-800">Display on Leaderboard <Info className="inline h-3 w-3 text-muted-foreground" /></p>

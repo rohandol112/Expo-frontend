@@ -5,7 +5,7 @@ import { BannerForm } from "@/components/advertisement/BannerForm";
 import { useCreateAdBanner } from "@/hooks/api/useAdvertisement";
 import { ROUTES } from "@/constants/routes.constants";
 
-export const Route = createFileRoute("/_app/advertisement/banners/add")({ component: AddBannerPage });
+export const Route = createFileRoute("/_app/competition/ads/add")({ component: AddBannerPage });
 
 function AddBannerPage() {
   const navigate = useNavigate();
@@ -14,12 +14,12 @@ function AddBannerPage() {
   return (
     <div>
       <PageHeader
-        title="Add New Banner"
+        title="Add New Ad"
         breadcrumbs={[
           { label: "Dashboard", to: ROUTES.DASHBOARD },
-          { label: "Advertisement" },
-          { label: "Banners", to: ROUTES.ADS_BANNERS },
-          { label: "Add New Banner" },
+          { label: "Competition", to: ROUTES.COMPETITION },
+          { label: "Ad List", to: ROUTES.ADS_BANNERS },
+          { label: "Add New Ad" },
         ]}
       />
       <BannerForm

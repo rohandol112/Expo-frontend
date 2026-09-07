@@ -5,7 +5,7 @@ import { BannerForm } from "@/components/advertisement/BannerForm";
 import { useAdBanner, useUpdateAdBanner } from "@/hooks/api/useAdvertisement";
 import { ROUTES } from "@/constants/routes.constants";
 
-export const Route = createFileRoute("/_app/advertisement/banners/$bannerId/edit")({ component: EditBannerPage });
+export const Route = createFileRoute("/_app/competition/ads/$bannerId/edit")({ component: EditBannerPage });
 
 function EditBannerPage() {
   const { bannerId } = Route.useParams();
@@ -17,11 +17,11 @@ function EditBannerPage() {
   return (
     <div>
       <PageHeader
-        title="Edit Banner"
+        title="Edit Ad"
         breadcrumbs={[
           { label: "Dashboard", to: ROUTES.DASHBOARD },
-          { label: "Advertisement" },
-          { label: "Banners", to: ROUTES.ADS_BANNERS },
+          { label: "Competition", to: ROUTES.COMPETITION },
+          { label: "Ad List", to: ROUTES.ADS_BANNERS },
           { label: banner?.name ?? "Edit" },
         ]}
       />

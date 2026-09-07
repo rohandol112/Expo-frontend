@@ -12,9 +12,11 @@ import {
   HelpCircle,
   Image as ImageIcon,
   Info,
+  Maximize2,
   MinusSquare,
   MoreVertical,
   RotateCw,
+  Search,
   Send,
   UserCheck,
   X,
@@ -90,12 +92,16 @@ const BREADCRUMBS = [
 
 /** Common per-screen filter state driving the server-side banner query. */
 interface QueueFilters {
+  stateId?: number;
+  districtId?: number;
   areaId?: number;
   slot?: number;
   priority?: "high" | "medium" | "low";
   dateFrom?: string;
   dateTo?: string;
   reason?: string;
+  /** Free-text over mandal name, entry code, committee and phone. */
+  search?: string;
 }
 
 const REASON_OPTIONS = [
@@ -108,15 +114,215 @@ const REASON_OPTIONS = [
   "Duplicate",
 ];
 
-function useAreaOptions() {
+/**
+ * State -> district -> area options, each level scoped to the one above it.
+ * Flattening every level (as this page used to) offers districts from states
+ * the admin did not pick, so the two selects end up contradicting each other.
+ */
+function useLocationOptions(stateId?: number, districtId?: number) {
   const regionsQuery = useRegions();
-  return useMemo(
-    () =>
-      (regionsQuery.data ?? [])
-        .flatMap((s) => s.districts)
-        .flatMap((d) => d.areas.map((a) => ({ label: a.name, value: String(a.id) }))),
-    [regionsQuery.data],
+  const states = regionsQuery.data ?? [];
+  return useMemo(() => {
+    const districtSource = stateId
+      ? (states.find((s) => s.id === stateId)?.districts ?? [])
+      : states.flatMap((s) => s.districts);
+    const areaSource = districtId
+      ? (districtSource.find((d) => d.id === districtId)?.areas ?? [])
+      : districtSource.flatMap((d) => d.areas);
+    return {
+      states: states.map((s) => ({ label: s.name, value: String(s.id) })),
+      districts: districtSource.map((d) => ({ label: d.name, value: String(d.id) })),
+      areas: areaSource.map((a) => ({ label: a.name, value: String(a.id) })),
+    };
+  }, [states, stateId, districtId]);
+}
+
+/**
+ * State / District / Area selects shared by all three review screens. Changing
+ * a level clears the ones below it, so the query can never carry a district
+ * that does not belong to the selected state.
+ */
+function QueueLocationFilters({
+  filters,
+  onChange,
+}: {
+  filters: QueueFilters;
+  onChange: (patch: Partial<QueueFilters>) => void;
+}) {
+  const options = useLocationOptions(filters.stateId, filters.districtId);
+  return (
+    <>
+      <FilterSelect
+        value={filters.stateId ? String(filters.stateId) : "all"}
+        placeholder="All States"
+        options={options.states}
+        onChange={(v) =>
+          onChange({ stateId: v === "all" ? undefined : Number(v), districtId: undefined, areaId: undefined })
+        }
+        width="w-[130px]"
+      />
+      <FilterSelect
+        value={filters.districtId ? String(filters.districtId) : "all"}
+        placeholder="All Districts"
+        options={options.districts}
+        onChange={(v) => onChange({ districtId: v === "all" ? undefined : Number(v), areaId: undefined })}
+        width="w-[130px]"
+      />
+      <FilterSelect
+        value={filters.areaId ? String(filters.areaId) : "all"}
+        placeholder="All Areas"
+        options={options.areas}
+        onChange={(v) => onChange({ areaId: v === "all" ? undefined : Number(v) })}
+        width="w-[130px]"
+      />
+    </>
   );
+}
+
+/** Debounced search box shared by the three queues. */
+function QueueSearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [text, setText] = useState(value);
+  // Keep in step when the parent resets its filters.
+  useEffect(() => setText(value), [value]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (text.trim() !== value) onChange(text.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+  return (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Search mandal, entry code or phone"
+        className="h-9 w-[240px] pl-8 pr-8 text-xs"
+      />
+      {text && (
+        <button
+          type="button"
+          aria-label="Clear search"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          onClick={() => setText("")}
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Banner slot as its own column, so a queue can be read without opening a row. */
+function BannerNumberCell({ slot }: { slot: number }) {
+  return (
+    <span className="inline-flex whitespace-nowrap rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+      Banner {slot}
+    </span>
+  );
+}
+
+/**
+ * Full-screen preview. Banner artwork is judged on text legibility and whether
+ * the Pehli Baat logo is visible, neither of which a 56px thumbnail can show.
+ */
+function ImageLightbox({ src, caption, onClose }: { src: string; caption?: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    // The overlay covers the page; letting the list scroll behind it is jarring.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={caption || "Banner preview"}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-6"
+      onClick={onClose}
+    >
+      <div className="flex w-full max-w-5xl items-center justify-between pb-3 text-white">
+        <p className="truncate text-sm font-semibold">{caption}</p>
+        <div className="flex items-center gap-2">
+          <a
+            href={src}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-md bg-white/15 px-2.5 py-1 text-xs hover:bg-white/25"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Open original
+          </a>
+          <button
+            type="button"
+            aria-label="Close preview"
+            className="rounded-md bg-white/15 p-1.5 hover:bg-white/25"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <img
+        src={src}
+        alt={caption || "Banner"}
+        className="max-h-[80vh] max-w-full rounded-lg object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <p className="pt-3 text-[11px] text-white/60">Click anywhere or press Esc to close</p>
+    </div>
+  );
+}
+
+/**
+ * Wraps a thumbnail so clicking it opens the full-screen preview instead of
+ * selecting the row underneath it.
+ */
+function ZoomableThumb({
+  src,
+  caption,
+  className,
+  onZoom,
+}: {
+  src: string | null;
+  caption: string;
+  className?: string;
+  onZoom: (src: string, caption: string) => void;
+}) {
+  if (!src) return <BannerThumb src={src} className={className} />;
+  return (
+    <button
+      type="button"
+      aria-label={`Open ${caption} full screen`}
+      className="group relative block cursor-zoom-in"
+      onClick={(e) => {
+        e.stopPropagation();
+        onZoom(src, caption);
+      }}
+    >
+      <BannerThumb src={src} className={className} />
+      <span className="absolute inset-0 flex items-center justify-center rounded-md bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+        <Maximize2 className="h-3.5 w-3.5 text-white" />
+      </span>
+    </button>
+  );
+}
+
+/** Lightbox state shared by every screen on this page. */
+function useLightbox() {
+  const [zoom, setZoom] = useState<{ src: string; caption: string } | null>(null);
+  const openZoom = (src: string, caption: string) => setZoom({ src, caption });
+  const lightbox = zoom ? <ImageLightbox src={zoom.src} caption={zoom.caption} onClose={() => setZoom(null)} /> : null;
+  return { openZoom, lightbox };
 }
 
 function FilterSelect({
@@ -175,16 +381,29 @@ function DateRangeInputs({
   );
 }
 
-/** Shared row-identity cell: thumb, mandal name, location, PMM id. */
-function MandalCell({ r, showId = true }: { r: AdminBannerListItem; showId?: boolean }) {
+/** Shared row-identity cell: thumb, mandal name, location, entry + PMM id. */
+function MandalCell({
+  r,
+  showId = true,
+  onZoom,
+}: {
+  r: AdminBannerListItem;
+  showId?: boolean;
+  onZoom?: (src: string, caption: string) => void;
+}) {
   return (
     <div className="flex items-center gap-2.5">
-      <BannerThumb src={r.image_url} />
+      {onZoom ? (
+        <ZoomableThumb src={r.image_url} caption={`${r.pandal_name} — Banner ${r.slot}`} onZoom={onZoom} />
+      ) : (
+        <BannerThumb src={r.image_url} />
+      )}
       <div className="min-w-0">
         <p className="truncate text-xs font-bold text-foreground">{r.pandal_name}</p>
         <p className="truncate text-[11px] text-muted-foreground">
           {[r.area_name, r.district_name].filter(Boolean).join(", ") || "—"}
         </p>
+        {r.entry_code && <p className="font-mono text-[10px] text-slate-500">{r.entry_code}</p>}
         {showId && <p className="font-mono text-[10px] text-slate-400">ID: {bannerCode(r.id)}</p>}
       </div>
     </div>
@@ -199,7 +418,13 @@ function useReviewActions(onDone?: () => void) {
       { id: banner.id, status: "approved" },
       {
         onSuccess: () => {
-          toast.success("Banner approved & bonus points credited");
+          // A replacement on an already-approved slot credits nothing — the
+          // points were awarded the first time that slot was approved.
+          toast.success(
+            banner.pending_image_url
+              ? "Replacement approved & now live"
+              : "Banner approved & bonus points credited",
+          );
           onDone?.();
         },
         onError: (err) => toast.error(err instanceof Error ? err.message : "Approval failed"),
@@ -259,7 +484,7 @@ function BannerReviewPage() {
 /* Screen 1 — Banner Review Dashboard (Overview + Reviewed Banners)    */
 /* ------------------------------------------------------------------ */
 
-type OverviewTab = "all" | "ai_approved" | "ai_uncertain" | "ai_rejected" | "manual_reviewed";
+type OverviewTab = "all" | "ai_approved" | "ai_uncertain" | "ai_rejected" | "manual_reviewed" | "pending_replacement";
 
 function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
   const navigate = useNavigate();
@@ -276,7 +501,7 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
 
   const configQuery = useCompetitionConfig();
   const competitionTitle = configQuery.data?.title || "Ganpati Utsav Competition 2025";
-  const areaOptions = useAreaOptions();
+  const { openZoom, lightbox } = useLightbox();
   const adminsQuery = useUsers({ role: "admin", per_page: 50 });
   const admins = adminsQuery.data?.items ?? [];
 
@@ -287,7 +512,11 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
       ai_status:
         statusTab === "ai_approved" ? "approved" : statusTab === "ai_uncertain" ? "uncertain" : statusTab === "ai_rejected" ? "rejected" : undefined,
       reviewed: statusTab === "manual_reviewed" ? true : undefined,
+      pending: statusTab === "pending_replacement" ? true : undefined,
       status: statusFilter !== "all" ? statusFilter : undefined,
+      search: filters.search || undefined,
+      state_id: filters.stateId,
+      district_id: filters.districtId,
       area_id: filters.areaId,
       slot: filters.slot,
       date_from: filters.dateFrom,
@@ -323,10 +552,13 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
 
   const tabs: { key: OverviewTab; label: string; count?: number }[] = [
     { key: "all", label: "All", count: counts?.total },
-    { key: "ai_approved", label: "AI Approved", count: counts?.ai_approved },
+    { key: "ai_approved", label: "AI Says Pass", count: counts?.ai_approved },
     { key: "ai_uncertain", label: "AI Uncertain", count: counts?.ai_uncertain },
-    { key: "ai_rejected", label: "AI Rejected", count: counts?.ai_rejected },
+    { key: "ai_rejected", label: "AI Says Fail", count: counts?.ai_rejected },
     { key: "manual_reviewed", label: "Manual Reviewed", count: counts?.manually_reviewed },
+    // Approved banners whose owner uploaded a new image after approval. The
+    // approved image is still live; this queue is where the swap is accepted.
+    { key: "pending_replacement", label: "Replacement Pending", count: counts?.pending_replacement },
   ];
 
   const now = new Date();
@@ -360,11 +592,20 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
         }
       />
 
+      <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-2 text-[11px] text-blue-900">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span>
+          AI review is <strong>advisory only</strong> — it checks for duplicates, a visible Pehli Baat logo,
+          Ganpati relevance and whether the photo shows a real displayed banner, then leaves feedback.
+          Every approve and reject decision is made by an admin.
+        </span>
+      </div>
+
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <QueueStatCard title="Total Uploads" value={(counts?.total ?? 0).toLocaleString("en-IN")} subtitle="All banners" icon={ImageIcon} tone="blue" />
-        <QueueStatCard title="AI Approved" value={counts?.ai_approved ?? 0} subtitle="Auto approved by AI" icon={CheckCircle2} tone="emerald" valueTone="text-emerald-600" />
-        <QueueStatCard title="AI Uncertain" value={counts?.ai_uncertain ?? 0} subtitle="Sent for manual review" icon={HelpCircle} tone="amber" valueTone="text-amber-600" />
-        <QueueStatCard title="AI Rejected" value={counts?.ai_rejected ?? 0} subtitle="Auto rejected by AI" icon={XCircle} tone="rose" valueTone="text-rose-600" />
+        <QueueStatCard title="AI Says Pass" value={counts?.ai_approved ?? 0} subtitle="AI feedback only" icon={CheckCircle2} tone="emerald" valueTone="text-emerald-600" />
+        <QueueStatCard title="AI Uncertain" value={counts?.ai_uncertain ?? 0} subtitle="Needs a closer look" icon={HelpCircle} tone="amber" valueTone="text-amber-600" />
+        <QueueStatCard title="AI Says Fail" value={counts?.ai_rejected ?? 0} subtitle="AI feedback only" icon={XCircle} tone="rose" valueTone="text-rose-600" />
         <QueueStatCard title="Manually Reviewed" value={counts?.manually_reviewed ?? 0} subtitle="Reviewed by admin" icon={UserCheck} tone="purple" valueTone="text-purple-600" />
       </div>
 
@@ -404,7 +645,7 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
                 }
               >
                 <Bot className="mr-1.5 h-3.5 w-3.5 text-purple-600" />
-                {aiReviewAll.isPending ? "Reviewing…" : "Run AI on Pending"}
+                {aiReviewAll.isPending ? "Checking…" : "Run AI Feedback"}
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs">
                 <Filter className="mr-1.5 h-3.5 w-3.5" /> Filters
@@ -417,16 +658,20 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
 
           {/* Filter row */}
           <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
-            <FilterSelect value="current" placeholder="All Competitions" options={[{ label: competitionTitle, value: "current" }]} onChange={() => undefined} />
-            <FilterSelect
-              value={filters.areaId ? String(filters.areaId) : "all"}
-              placeholder="All Areas"
-              options={areaOptions}
+            <QueueSearchInput
+              value={filters.search ?? ""}
               onChange={(v) => {
-                setFilters((f) => ({ ...f, areaId: v === "all" ? undefined : Number(v) }));
+                setFilters((f) => ({ ...f, search: v || undefined }));
                 setPage(1);
               }}
-              width="w-[130px]"
+            />
+            <FilterSelect value="current" placeholder="All Competitions" options={[{ label: competitionTitle, value: "current" }]} onChange={() => undefined} />
+            <QueueLocationFilters
+              filters={filters}
+              onChange={(patch) => {
+                setFilters((f) => ({ ...f, ...patch }));
+                setPage(1);
+              }}
             />
             <FilterSelect
               value={statusFilter}
@@ -476,6 +721,7 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
                   <th className="w-10 p-3">#</th>
                   <th className="p-3">Mandal / Participant</th>
                   <th className="p-3">Competition</th>
+                  <th className="p-3">Banner No.</th>
                   <th className="p-3">Banner</th>
                   <th className="p-3">AI Result</th>
                   <th className="p-3">Status</th>
@@ -486,13 +732,13 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
               <tbody className="divide-y">
                 {bannersQuery.isLoading ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       Loading banners…
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       No banners found for this view.
                     </td>
                   </tr>
@@ -513,11 +759,45 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
                     >
                       <td className="p-3 text-muted-foreground">{(page - 1) * pageSize + idx + 1}</td>
                       <td className="p-3">
-                        <MandalCell r={r} showId={false} />
+                        <MandalCell r={r} showId={false} onZoom={openZoom} />
                       </td>
                       <td className="max-w-[130px] p-3 text-[11px] text-slate-600">{competitionTitle}</td>
                       <td className="p-3">
-                        <BannerThumb src={r.image_url} className="h-9 w-14" />
+                        <BannerNumberCell slot={r.slot} />
+                      </td>
+                      <td className="p-3">
+                        {r.pending_image_url ? (
+                          // Two thumbs: what is live now, and what is waiting to
+                          // replace it. Approving swaps the right one in.
+                          <div className="flex items-center gap-1.5">
+                            <div className="text-center">
+                              <ZoomableThumb
+                                src={r.image_url}
+                                caption={`${r.pandal_name} — Banner ${r.slot} (live)`}
+                                className="h-9 w-14 opacity-60"
+                                onZoom={openZoom}
+                              />
+                              <p className="text-[9px] text-muted-foreground">Live</p>
+                            </div>
+                            <span className="text-muted-foreground">→</span>
+                            <div className="text-center">
+                              <ZoomableThumb
+                                src={r.pending_image_url}
+                                caption={`${r.pandal_name} — Banner ${r.slot} (new)`}
+                                className="h-9 w-14 ring-2 ring-amber-400"
+                                onZoom={openZoom}
+                              />
+                              <p className="text-[9px] font-semibold text-amber-700">New</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <ZoomableThumb
+                            src={r.image_url}
+                            caption={`${r.pandal_name} — Banner ${r.slot}`}
+                            className="h-9 w-14"
+                            onZoom={openZoom}
+                          />
+                        )}
                       </td>
                       <td className="p-3">
                         <div>
@@ -595,7 +875,12 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
             </div>
             <div className="space-y-4 p-4 text-xs">
               <div className="flex items-start gap-3">
-                <BannerThumb src={selected.image_url} className="h-20 w-16 rounded-lg" />
+                <ZoomableThumb
+                  src={selected.image_url}
+                  caption={`${selected.pandal_name} — Banner ${selected.slot}`}
+                  className="h-20 w-16 rounded-lg"
+                  onZoom={openZoom}
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-foreground">{selected.pandal_name}</p>
                   <p className="truncate text-[11px] text-muted-foreground">
@@ -707,6 +992,8 @@ function OverviewScreen({ reviewedOnly }: { reviewedOnly: boolean }) {
           </aside>
         )}
       </div>
+
+      {lightbox}
     </div>
   );
 }
@@ -726,7 +1013,7 @@ function AiQueueScreen() {
 
   const configQuery = useCompetitionConfig();
   const competitionTitle = configQuery.data?.title || "Ganpati Utsav Competition 2025";
-  const areaOptions = useAreaOptions();
+  const { openZoom, lightbox } = useLightbox();
 
   const params: BannerListParams = useMemo(
     () => ({
@@ -734,6 +1021,9 @@ function AiQueueScreen() {
       per_page: pageSize,
       status: "in_review",
       ai_status: "uncertain",
+      search: filters.search || undefined,
+      state_id: filters.stateId,
+      district_id: filters.districtId,
       area_id: filters.areaId,
       slot: filters.slot,
       priority: filters.priority,
@@ -794,16 +1084,20 @@ function AiQueueScreen() {
         <div className="min-w-0 flex-1 rounded-xl border bg-card shadow-sm">
           {/* Filter row */}
           <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
-            <FilterSelect value="current" placeholder="All Competitions" options={[{ label: competitionTitle, value: "current" }]} onChange={() => undefined} width="w-[140px]" />
-            <FilterSelect
-              value={filters.areaId ? String(filters.areaId) : "all"}
-              placeholder="All Areas"
-              options={areaOptions}
+            <QueueSearchInput
+              value={filters.search ?? ""}
               onChange={(v) => {
-                setFilters((f) => ({ ...f, areaId: v === "all" ? undefined : Number(v) }));
+                setFilters((f) => ({ ...f, search: v || undefined }));
                 setPage(1);
               }}
-              width="w-[120px]"
+            />
+            <FilterSelect value="current" placeholder="All Competitions" options={[{ label: competitionTitle, value: "current" }]} onChange={() => undefined} width="w-[140px]" />
+            <QueueLocationFilters
+              filters={filters}
+              onChange={(patch) => {
+                setFilters((f) => ({ ...f, ...patch }));
+                setPage(1);
+              }}
             />
             <FilterSelect
               value={filters.slot ? String(filters.slot) : "all"}
@@ -920,7 +1214,7 @@ function AiQueueScreen() {
                         <input type="checkbox" className="rounded border-slate-300" checked={checked.has(r.id)} onChange={() => toggleCheck(r.id)} />
                       </td>
                       <td className="p-3">
-                        <MandalCell r={r} />
+                        <MandalCell r={r} onZoom={openZoom} />
                       </td>
                       <td className="p-3">
                         <SlotBadge slot={r.slot} />
@@ -982,7 +1276,12 @@ function AiQueueScreen() {
             </div>
             <div className="space-y-4 p-4 text-xs">
               <div className="flex items-start gap-3">
-                <BannerThumb src={selected.image_url} className="h-20 w-16 rounded-lg" />
+                <ZoomableThumb
+                  src={selected.image_url}
+                  caption={`${selected.pandal_name} — Banner ${selected.slot}`}
+                  className="h-20 w-16 rounded-lg"
+                  onZoom={openZoom}
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-foreground">{selected.pandal_name}</p>
                   <p className="truncate text-[11px] text-muted-foreground">
@@ -1105,6 +1404,8 @@ function AiQueueScreen() {
           </aside>
         )}
       </div>
+
+      {lightbox}
     </div>
   );
 }
@@ -1130,7 +1431,7 @@ function ManualQueueScreen() {
 
   const configQuery = useCompetitionConfig();
   const competitionTitle = configQuery.data?.title || "Ganpati Utsav Competition 2025";
-  const areaOptions = useAreaOptions();
+  const { openZoom, lightbox } = useLightbox();
   const adminsQuery = useUsers({ role: "admin", per_page: 50 });
   const admins = adminsQuery.data?.items ?? [];
   const aiReview = useAiReviewBanner();
@@ -1142,6 +1443,9 @@ function ManualQueueScreen() {
       status: "in_review",
       priority: subTab === "high" || subTab === "medium" || subTab === "low" ? subTab : filters.priority,
       overdue: subTab === "overdue" ? true : undefined,
+      search: filters.search || undefined,
+      state_id: filters.stateId,
+      district_id: filters.districtId,
       area_id: filters.areaId,
       slot: filters.slot,
       date_from: filters.dateFrom,
@@ -1232,16 +1536,20 @@ function ManualQueueScreen() {
 
           {/* Filter row */}
           <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
-            <FilterSelect value="current" placeholder="All Competitions" options={[{ label: competitionTitle, value: "current" }]} onChange={() => undefined} width="w-[140px]" />
-            <FilterSelect
-              value={filters.areaId ? String(filters.areaId) : "all"}
-              placeholder="All Areas"
-              options={areaOptions}
+            <QueueSearchInput
+              value={filters.search ?? ""}
               onChange={(v) => {
-                setFilters((f) => ({ ...f, areaId: v === "all" ? undefined : Number(v) }));
+                setFilters((f) => ({ ...f, search: v || undefined }));
                 setPage(1);
               }}
-              width="w-[115px]"
+            />
+            <FilterSelect value="current" placeholder="All Competitions" options={[{ label: competitionTitle, value: "current" }]} onChange={() => undefined} width="w-[140px]" />
+            <QueueLocationFilters
+              filters={filters}
+              onChange={(patch) => {
+                setFilters((f) => ({ ...f, ...patch }));
+                setPage(1);
+              }}
             />
             <FilterSelect
               value={filters.slot ? String(filters.slot) : "all"}
@@ -1362,7 +1670,7 @@ function ManualQueueScreen() {
                           />
                         </td>
                         <td className="p-3">
-                          <MandalCell r={r} />
+                          <MandalCell r={r} onZoom={openZoom} />
                         </td>
                         <td className="p-3">
                           <SlotBadge slot={r.slot} />
@@ -1444,7 +1752,12 @@ function ManualQueueScreen() {
             </div>
             <div className="space-y-4 p-4 text-xs">
               <div className="flex items-start gap-3">
-                <BannerThumb src={selected.image_url} className="h-20 w-16 rounded-lg" />
+                <ZoomableThumb
+                  src={selected.image_url}
+                  caption={`${selected.pandal_name} — Banner ${selected.slot}`}
+                  className="h-20 w-16 rounded-lg"
+                  onZoom={openZoom}
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-foreground">{selected.pandal_name}</p>
                   <p className="truncate text-[11px] text-muted-foreground">
@@ -1615,6 +1928,8 @@ function ManualQueueScreen() {
           </ul>
         </DialogContent>
       </Dialog>
+
+      {lightbox}
     </div>
   );
 }

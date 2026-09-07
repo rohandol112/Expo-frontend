@@ -20,7 +20,7 @@ import { ROUTES } from "@/constants/routes.constants";
 import { cn } from "@/lib/utils";
 import { TableFooter, exportRowsToExcel, formatDateTime } from "@/components/competition/bannerReview";
 
-export const Route = createFileRoute("/_app/advertisement/banners")({ component: BannersPage });
+export const Route = createFileRoute("/_app/competition/ads")({ component: BannersPage });
 
 const STATUS_LABELS: Record<string, string> = { active: "Active", inactive: "Inactive" };
 
@@ -165,11 +165,11 @@ function BannersPage() {
   return (
     <div>
       <PageHeader
-        title="Banner List"
+        title="Ad List"
         breadcrumbs={[
           { label: "Dashboard", to: ROUTES.DASHBOARD },
-          { label: "Banners" },
-          { label: "Banner List" },
+          { label: "Competition", to: ROUTES.COMPETITION },
+          { label: "Ad List" },
         ]}
         actions={
           <div className="flex items-center gap-2">
@@ -331,7 +331,7 @@ function BannersPage() {
                     <td className="whitespace-nowrap p-3 text-slate-600">{formatDateTime(r.created_at)}</td>
                     <td className="p-3 text-right">
                       <ActionMenu
-                        onEdit={() => navigate({ to: "/advertisement/banners/$bannerId/edit", params: { bannerId: String(r.id) } })}
+                        onEdit={() => navigate({ to: "/competition/ads/$bannerId/edit", params: { bannerId: String(r.id) } })}
                         onDelete={() =>
                           deleteBanner.mutate(r.id, {
                             onSuccess: () => toast.success("Banner deleted"),
