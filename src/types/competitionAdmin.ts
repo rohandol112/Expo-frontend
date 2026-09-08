@@ -130,6 +130,8 @@ export interface AdminEntryListItem {
   is_unviewed?: boolean;
   /** An approved entry whose photos changed and needs a second look. */
   needs_review?: boolean;
+  /** Approved entry with a photo change held back from the app. */
+  has_pending_photos?: boolean;
   last_participant_update_at?: string | null;
   created_at: string;
   updated_at?: string | null;
@@ -173,6 +175,13 @@ export interface AdminEntryDetail {
   needs_review: boolean;
   last_participant_update_at: string | null;
   admin_viewed_at: string | null;
+  /**
+   * Photo change staged by an approved participant. NOT public — the live
+   * photo_urls above keep showing on the app until this is approved here.
+   */
+  pending_cover_photo_url: string | null;
+  pending_photo_urls: string[];
+  pending_photos_at: string | null;
   submitted_on: string | null;
   submitted_by: string | null;
   submitted_by_phone: string | null;

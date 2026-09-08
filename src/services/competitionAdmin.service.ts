@@ -26,6 +26,8 @@ export type EntryListParams = {
   area_id?: number;
   /** Only entries a participant edited since an admin last opened them. */
   unviewed?: boolean;
+  /** Only approved entries whose photo change is waiting for review. */
+  pending_photos?: boolean;
 };
 
 export type LeaderboardParams = {
@@ -84,6 +86,17 @@ export const competitionAdminService = {
   /** Accepts a photo change on an approved entry, dropping its review badge. */
   clearNeedsReview(id: string | number) {
     return httpClient.put<{ id: number }>(API.competition.adminEntryReviewed(id));
+  },
+
+  /**
+   * Publishes or discards a staged photo change. Until this runs the app keeps
+   * showing the previously approved photos.
+   */
+  reviewPhotos(id: string | number, status: "approved" | "rejected", rejectionReason?: string) {
+    return httpClient.put<AdminEntryDetail>(API.competition.adminEntryReviewPhotos(id), {
+      status,
+      rejection_reason: rejectionReason,
+    });
   },
 
   entry(id: string | number) {

@@ -149,6 +149,7 @@ export const API = {
     adminEntryNotes: (id: string | number) => `/admin/competition/entries/${id}/notes`,
     adminEntryViewed: (id: string | number) => `/admin/competition/entries/${id}/viewed`,
     adminEntryReviewed: (id: string | number) => `/admin/competition/entries/${id}/reviewed`,
+    adminEntryReviewPhotos: (id: string | number) => `/admin/competition/entries/${id}/photos/review`,
     adminBanners: "/admin/competition/banners",
     adminReviewBanner: (id: string | number) => `/admin/competition/banners/${id}/review`,
     adminAiReviewBanner: (id: string | number) => `/admin/competition/banners/${id}/ai-review`,
