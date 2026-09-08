@@ -42,6 +42,7 @@ import {
 import {
   useCompetitionEntry,
   useMarkEntryViewed,
+  useReviewPhotos,
   useReviewBanner,
   useReviewEntry,
   useSaveEntryNote,
@@ -157,6 +158,8 @@ function ParticipantDetailPage() {
   // on the participants list clears here. Keyed on the id and fired once per
   // entry — the mutation invalidates the list, which would otherwise re-run this.
   const markViewed = useMarkEntryViewed();
+  const reviewPhotos = useReviewPhotos();
+  const [photoRejectReason, setPhotoRejectReason] = useState("");
   const viewedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!entry || viewedRef.current === participantId) return;
@@ -402,6 +405,107 @@ function ParticipantDetailPage() {
       {entryQuery.error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           Unable to load participant details from backend.
+        </div>
+      )}
+
+      {/* Photo change staged by an approved participant. The app is still
+          showing the old photos, so this is the gate on the new ones. */}
+      {entry && (entry.pending_cover_photo_url || entry.pending_photo_urls?.length > 0) && (
+        <div className="rounded-xl border-2 border-amber-300 bg-amber-50/60 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-amber-900">
+                <ImagePlus className="h-4 w-4" />
+                Photo change waiting for approval
+              </h3>
+              <p className="mt-0.5 text-xs text-amber-800">
+                The app is still showing the approved photos below. The new ones go live only when you approve them.
+                {entry.pending_photos_at && ` Submitted ${formatDate(entry.pending_photos_at)}.`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-emerald-600 font-bold text-white hover:bg-emerald-700"
+                disabled={reviewPhotos.isPending}
+                onClick={async () => {
+                  try {
+                    await reviewPhotos.mutateAsync({ id: participantId, status: "approved" });
+                    toast.success("New photos are now live");
+                  } catch {
+                    toast.error("Could not publish the new photos");
+                  }
+                }}
+              >
+                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                Approve &amp; Publish
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-rose-300 font-bold text-rose-700 hover:bg-rose-50"
+                disabled={reviewPhotos.isPending}
+                onClick={async () => {
+                  try {
+                    await reviewPhotos.mutateAsync({
+                      id: participantId,
+                      status: "rejected",
+                      reason: photoRejectReason.trim() || undefined,
+                    });
+                    setPhotoRejectReason("");
+                    toast.success("New photos discarded; the approved ones stay live");
+                  } catch {
+                    toast.error("Could not reject the new photos");
+                  }
+                }}
+              >
+                <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                Reject
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 text-[11px] font-bold uppercase text-slate-500">Live now (on the app)</p>
+              <div className="flex flex-wrap gap-2">
+                {[entry.cover_photo_url, ...(entry.photo_urls ?? [])]
+                  .filter(Boolean)
+                  .slice(0, 5)
+                  .map((url, i) => (
+                    <img
+                      key={`live-${i}`}
+                      src={url as string}
+                      alt=""
+                      className="h-16 w-20 rounded border object-cover opacity-70"
+                    />
+                  ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] font-bold uppercase text-amber-700">Submitted (not public yet)</p>
+              <div className="flex flex-wrap gap-2">
+                {[entry.pending_cover_photo_url, ...(entry.pending_photo_urls ?? [])]
+                  .filter(Boolean)
+                  .slice(0, 5)
+                  .map((url, i) => (
+                    <img
+                      key={`pending-${i}`}
+                      src={url as string}
+                      alt=""
+                      className="h-16 w-20 rounded border-2 border-amber-400 object-cover"
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          <Input
+            value={photoRejectReason}
+            onChange={(e) => setPhotoRejectReason(e.target.value)}
+            placeholder="Reason for rejecting (optional, recorded in the activity trail)"
+            className="mt-3 h-8 text-xs"
+          />
         </div>
       )}
 

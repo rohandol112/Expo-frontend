@@ -151,6 +151,19 @@ export function useClearNeedsReview() {
   });
 }
 
+/**
+ * Publishes or discards a photo change an approved participant staged. The app
+ * shows the old photos until this runs, so it is the gate on the new ones.
+ */
+export function useReviewPhotos() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, reason }: { id: string | number; status: "approved" | "rejected"; reason?: string }) =>
+      competitionAdminService.reviewPhotos(id, status, reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: competitionKeys.all }),
+  });
+}
+
 export function useSaveEntryNote(id: string) {
   const qc = useQueryClient();
   return useMutation({
