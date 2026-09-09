@@ -516,6 +516,21 @@ function ParticipantDetailPage() {
             {/* Basic Information */}
             <SectionCard title="Basic Information">
               <div className="space-y-4">
+                {/* The pandal's own title. Editable because a lot of entries
+                    arrive with the wrong title typed in on the user side, and an
+                    admin needs to correct it before approving. The form state
+                    and the API already carried `name`; only the input was
+                    missing, so there was no way to change it. */}
+                <div>
+                  <Label className="text-xs font-bold text-slate-800">Title / Pandal Name *</Label>
+                  <Input
+                    className="mt-1 text-xs"
+                    value={current.name}
+                    onChange={(e) => setField("name", e.target.value)}
+                    placeholder="e.g. Mukund Nagarcha Raja"
+                  />
+                </div>
+
                 <div>
                   <Label className="text-xs font-bold text-slate-800">Established In *</Label>
                   <Select
