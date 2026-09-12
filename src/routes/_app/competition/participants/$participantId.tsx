@@ -624,12 +624,12 @@ function ParticipantDetailPage() {
                   <Textarea
                     className="mt-1 text-xs leading-relaxed"
                     rows={4}
-                    maxLength={500}
+                    maxLength={5000}
                     value={current.description}
                     onChange={(e) => setField("description", e.target.value)}
                   />
                   <p className="mt-1 text-right text-[11px] text-muted-foreground font-semibold">
-                    {current.description.length}/500
+                    {current.description.length}/5000
                   </p>
                 </div>
               </div>
