@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, type Column } from "@/components/tables/DataTable";
 import { CategoryBadge, StatusBadge } from "@/components/common/StatusBadge";
-import { mockNews } from "@/mock/news.mock";
+import { useNews, useNewsStats } from "@/hooks/api/useNews";
+import type { NewsItem } from "@/types/news";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
@@ -30,16 +31,24 @@ const platformUsers = [
 ];
 
 function Dashboard() {
-  const columns: Column<(typeof mockNews)[number]>[] = [
+  const statsQuery = useNewsStats({ is_admin_news: false });
+  const latestUserNewsQuery = useNews({ is_admin_news: false, page: 1, per_page: 5 });
+  const latestUserNews = latestUserNewsQuery.data?.items ?? [];
+
+  const columns: Column<NewsItem>[] = [
     {
       key: "title",
       header: "News",
       cell: (row) => (
         <div className="flex items-center gap-3">
-          <img src={row.thumbnail} alt="" className="h-11 w-16 rounded object-cover" />
+          {row.thumbnail ? (
+            <img src={row.thumbnail} alt="" className="h-11 w-16 rounded object-cover" />
+          ) : (
+            <div className="flex h-11 w-16 items-center justify-center rounded bg-muted text-xs text-muted-foreground">No media</div>
+          )}
           <div className="min-w-0">
             <p className="max-w-[360px] truncate text-sm font-medium">{row.title}</p>
-            <p className="text-xs text-muted-foreground">{row.channel?.name ?? "Admin"} • {row.publishedOn ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">{row.createdBy ?? "User"} • {row.uploadedOn ?? row.publishedOn ?? "—"}</p>
           </div>
         </div>
       ),
@@ -66,7 +75,7 @@ function Dashboard() {
       />
 
       <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-5">
-        <StatsCard title="Total Posts" value="1,482" subtitle="+12% this month" icon={FileText} variant="red" />
+        <StatsCard title="Total User News" value={(statsQuery.data?.user_news ?? 0).toLocaleString()} subtitle="Uploaded from the app" icon={FileText} variant="red" />
         <StatsCard title="Total Users" value="24,892" subtitle="Registered + guests" icon={Users} variant="blue" />
         <StatsCard title="Opened App Today" value="3,418" subtitle="+214 since yesterday" icon={Smartphone} variant="green" />
         <StatsCard title="New Users This Month" value="1,280" subtitle="+18% growth" icon={UserPlus} variant="violet" />
@@ -120,10 +129,20 @@ function Dashboard() {
 
       <Card className="p-5">
         <div className="mb-4">
-          <h3 className="text-base font-semibold">Top Viewed News</h3>
-          <p className="text-sm text-muted-foreground">Highest performing stories for the selected range</p>
+          <h3 className="text-base font-semibold">Latest User News</h3>
+          <p className="text-sm text-muted-foreground">Most recent stories uploaded by users from the app</p>
         </div>
-        <DataTable columns={columns} data={mockNews.slice(0, 5)} rowKey={(row) => row.id} page={1} pageSize={5} total={5} />
+        <DataTable
+          columns={columns}
+          data={latestUserNews}
+          rowKey={(row) => row.id}
+          page={1}
+          pageSize={5}
+          total={latestUserNews.length}
+          serverPaged
+          loading={latestUserNewsQuery.isLoading}
+          emptyTitle="No user news yet"
+        />
       </Card>
     </div>
   );

@@ -150,7 +150,10 @@ export interface AdminUserSearchItem {
 
 export const newsService = {
   async list(params?: NewsListParams): Promise<{ items: NewsItem[]; total: number; page: number; perPage: number }> {
-    const data = await httpClient.get<ListResponse<BackendNews>>(API.news.adminList, { params });
+    // The backend parses is_admin_news with z.coerce.boolean(), so "false" becomes true.
+    // An empty value is the only form that parses to false and returns user news.
+    const query = params ? { ...params, is_admin_news: params.is_admin_news === false ? "" : params.is_admin_news } : undefined;
+    const data = await httpClient.get<ListResponse<BackendNews>>(API.news.adminList, { params: query });
     return {
       items: (data.items || []).map(toNewsItem),
       total: data.total ?? data.items?.length ?? 0,
