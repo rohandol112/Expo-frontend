@@ -1,6 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Topbar } from "@/components/layout/Topbar";
 
 function AuthPageSkeleton() {
   return (
@@ -30,10 +28,12 @@ function AuthPageSkeleton() {
 function DashboardShellSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar />
+      <aside className="fixed inset-y-0 left-0 hidden w-64 bg-slate-900 lg:block" />
 
       <div className="flex min-h-screen min-w-0 flex-col lg:ml-64 max-lg:ml-20">
-        <Topbar />
+        <header className="flex h-16 items-center border-b bg-card px-6">
+          <Skeleton className="h-9 w-72 rounded-md" />
+        </header>
 
         <main className="flex-1 bg-muted/30 p-4 lg:p-6">
           <div className="space-y-6">
