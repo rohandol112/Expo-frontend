@@ -173,7 +173,7 @@ export function toNewsItem(row: BackendNews): NewsItem {
     statusLabel: row.status_label,
     rejectionReason: row.rejection_reason ?? null,
     scheduledFor: row.scheduled_for ?? null,
-    publishedOn: formatDateTime(row.published_at || row.created_at),
+    publishedOn: formatDateTime(row.status === "scheduled" && row.scheduled_for ? row.scheduled_for : row.published_at || row.created_at),
     createdBy: creatorName,
     createdById,
     createdByRole: creatorRole,
