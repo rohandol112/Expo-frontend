@@ -20,6 +20,7 @@ import { useApproveNews, useDeleteNews, useNews, useNewsStats, useRejectNews, us
 import { ApiError, isAuthApiError } from "@/lib/apiError";
 import { toast } from "sonner";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useUser } from "@/hooks/api/useUsers";
 
 export const Route = createFileRoute("/_app/news/all")({
   component: UserNewsPage,
@@ -54,6 +55,16 @@ function getNewsLocationLabel(row: NewsItem) {
     if (parts.length > 0) return parts.join(", ");
   }
   return "National";
+}
+
+function UploaderLocation({ row }: { row: NewsItem }) {
+  const hasOwnLocation = getNewsLocationLabel(row) !== "National";
+  const uploaderQuery = useUser(!hasOwnLocation && row.createdById ? String(row.createdById) : "");
+  if (hasOwnLocation) return <span className="text-sm">{getNewsLocationLabel(row)}</span>;
+  if (!row.createdById) return <span className="text-sm">National</span>;
+  const u = uploaderQuery.data;
+  const parts = [u?.area, u?.district, u?.state].filter((p): p is string => Boolean(p && p !== "—"));
+  return <span className="text-sm">{parts.length > 0 ? parts.join(", ") : uploaderQuery.isLoading ? "…" : "—"}</span>;
 }
 
 const SCHEDULABLE_STATUSES: NewsItem["status"][] = ["Draft", "Pending", "Published"];
@@ -233,7 +244,7 @@ function UserNewsPage() {
     {
       key: "location",
       header: "User Location",
-      cell: (r) => <span className="text-sm">{getNewsLocationLabel(r)}</span>,
+      cell: (r) => <UploaderLocation row={r} />,
     },
     {
       key: "visibility",
