@@ -75,9 +75,36 @@ const MENU: Item[] = [
   { label: "Channels", icon: Tv, to: ROUTES.CHANNELS },
   { label: "Reports", icon: BarChart3, to: ROUTES.REPORTS },
   { label: "Notifications", icon: Bell, to: ROUTES.NOTIFICATIONS },
-  { label: "Referrals & Points", icon: Gift, to: ROUTES.REFERRALS },
+  {
+    label: "Referrals & Points",
+    icon: Gift,
+    children: [
+      { label: "Overview", to: ROUTES.REFERRALS },
+      { label: "Referral Users", to: ROUTES.REFERRALS_USERS },
+      { label: "Streak", to: ROUTES.REFERRALS_STREAK },
+      { label: "Winners", to: ROUTES.REFERRALS_WINNERS },
+      { label: "Gift Request", to: ROUTES.REFERRALS_GIFT_REQUESTS },
+      { label: "Gift Management", to: ROUTES.REFERRALS_GIFT_MANAGEMENT },
+      { label: "Leader Board", to: ROUTES.REFERRALS_LEADERBOARD },
+      { label: "Daily Quiz", to: ROUTES.REFERRALS_DAILY_QUIZ },
+      { label: "Settings", to: ROUTES.REFERRALS_SETTINGS },
+    ],
+  },
   { label: "Offers", icon: Tags, to: ROUTES.OFFERS },
-  { label: "Listings", icon: List, to: ROUTES.LISTINGS },
+  {
+    label: "Listings",
+    icon: List,
+    children: [
+      { label: "All Listings", to: ROUTES.LISTINGS },
+      { label: "Add New Listing", to: ROUTES.LISTINGS_ADD },
+      { label: "Listing Categories", to: ROUTES.LISTINGS_CATEGORIES },
+      { label: "Sub Categories", to: ROUTES.LISTINGS_SUB_CATEGORIES },
+      { label: "Shops", to: ROUTES.LISTINGS_SHOPS },
+      { label: "Products", to: ROUTES.LISTINGS_PRODUCTS },
+      { label: "Services", to: ROUTES.LISTINGS_SERVICES },
+      { label: "Banners", to: ROUTES.LISTINGS_BANNERS },
+    ],
+  },
   { label: "Monetization Management", icon: DollarSign, to: ROUTES.MONETIZATION },
   { label: "Feedback", icon: MessageSquareText, to: ROUTES.FEEDBACK },
   { label: "CMS", icon: FileText, to: ROUTES.CMS },
@@ -117,6 +144,8 @@ export function Sidebar() {
     "News Management": pathname.startsWith("/news"),
     "System Management": pathname.startsWith("/system"),
     Competition: pathname.startsWith("/competition"),
+    Listings: pathname.startsWith("/listings"),
+    "Referrals & Points": pathname.startsWith("/referrals"),
   });
 
   return (
