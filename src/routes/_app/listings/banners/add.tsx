@@ -14,9 +14,21 @@ import { useListingSubCategories } from "@/hooks/api/useListingSubCategories";
 import { useCreateBanner, useBanners, useUpdateBanner } from "@/hooks/api/useBanners";
 import { ROUTES } from "@/constants/routes.constants";
 import { toast } from "sonner";
-import type { Banner } from "@/types/banner";
+import type { Banner, BannerInput, BannerStatus } from "@/types/banner";
+import { isStoredImage, type ImageValue } from "@/lib/mediaUpload";
+import { CascadingLocationPicker, type CascadingLocationValue } from "@/components/forms/CascadingLocationPicker";
 
 export const Route = createFileRoute("/_app/listings/banners/add")({ component: AddBannerPage });
+
+/** Runs a save, leaving error toasts to the mutation hooks; resolves true on success. */
+async function attempt(run: () => Promise<unknown>): Promise<boolean> {
+  try {
+    await run();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function AddBannerPage() {
   const navigate = useNavigate();
@@ -32,54 +44,60 @@ export function BannerForm({ onDone, initial }: { onDone: () => void; initial?: 
   const updateBanner = useUpdateBanner();
 
   const [name, setName] = useState(initial?.name ?? "");
-  const [image, setImage] = useState<File[]>([]);
+  const [image, setImage] = useState<ImageValue[]>(initial?.image ? [initial.image] : []);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [link, setLink] = useState(initial?.link ?? "");
-  const [status, setStatus] = useState<"Active" | "Inactive">((initial?.status as "Active" | "Inactive") ?? "Active");
+  const [status, setStatus] = useState<"Active" | "Inactive">(initial?.status === "Inactive" ? "Inactive" : "Active");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
   const [subCategoryIds, setSubCategoryIds] = useState<string[]>(initial?.subCategoryIds ?? []);
-  const [state, setState] = useState(initial?.state ?? "");
-  const [district, setDistrict] = useState(initial?.district ?? "");
-  const [area, setArea] = useState(initial?.area ?? "");
+  const [regions, setRegions] = useState<CascadingLocationValue>({
+    states: initial?.stateIds ?? [],
+    districts: initial?.districtIds ?? [],
+    areas: initial?.areaIds ?? [],
+  });
   const [sortOrder, setSortOrder] = useState(initial?.sortOrder ?? (bannersQuery.data?.items.length ?? 0) + 1);
 
   const saving = createBanner.isPending || updateBanner.isPending;
 
   useEffect(() => {
-    if (image[0]) {
-      const url = URL.createObjectURL(image[0]);
-      setPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    setPreviewUrl(null);
-  }, [image]);
-
-  const categoriesById = new Map((categoriesQuery.data?.items ?? []).map((c) => [c.id, c.name]));
-  const subCategoriesById = new Map((subCategoriesQuery.data?.items ?? []).map((s) => [s.id, s.name]));
-
-  const save = async (saveStatus: "Active" | "Inactive") => {
-    if (!name.trim() || (image.length === 0 && !initial?.image) || !link.trim()) {
-      toast.error("Please fill in banner name, image and link.");
+    const first = image[0];
+    if (!first) {
+      setPreviewUrl(null);
       return;
     }
-    const payload = {
+    if (isStoredImage(first)) {
+      setPreviewUrl(first.url);
+      return;
+    }
+    const url = URL.createObjectURL(first);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [image]);
+
+  const save = async (saveStatus: BannerStatus) => {
+    if (!name.trim()) {
+      toast.error("Please enter a banner name.");
+      return;
+    }
+    // A draft may be incomplete; publishing needs the image, link and a category.
+    if (saveStatus !== "Draft" && (image.length === 0 || !link.trim() || categoryIds.length === 0)) {
+      toast.error("Please add the banner image, link and at least one category, or save it as a draft.");
+      return;
+    }
+    const payload: BannerInput = {
       name,
-      image: image[0]?.name ?? initial?.image,
+      image,
       link,
       status: saveStatus,
       categoryIds,
-      category: categoryIds.map((id) => categoriesById.get(id)).filter(Boolean).join(", "),
       subCategoryIds,
-      subcategory: subCategoryIds.map((id) => subCategoriesById.get(id)).filter(Boolean).join(", "),
-      stateIds: [], districtIds: [], areaIds: [],
-      state, district, area,
+      stateIds: regions.states,
+      districtIds: regions.districts,
+      areaIds: regions.areas,
       sortOrder,
     };
-    if (initial) {
-      await updateBanner.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createBanner.mutateAsync(payload);
-    }
+    const saved = await attempt(() => (initial ? updateBanner.mutateAsync({ id: initial.id, payload }) : createBanner.mutateAsync(payload)));
+    if (!saved) return;
     toast.success(initial ? "Banner updated" : "Banner saved");
     onDone();
   };
@@ -129,12 +147,8 @@ export function BannerForm({ onDone, initial }: { onDone: () => void; initial?: 
           </FormSection>
 
           <FormSection title="Location">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2"><Label>State</Label><Input value={state} onChange={(e) => setState(e.target.value)} placeholder="Select States" /></div>
-              <div className="space-y-2"><Label>District</Label><Input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Select Districts" /></div>
-              <div className="space-y-2"><Label>Area / City</Label><Input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Select Areas / Cities" /></div>
-            </div>
-            <p className="text-xs text-muted-foreground">You can select multiple states, districts and areas.</p>
+            <CascadingLocationPicker value={regions} onChange={setRegions} />
+            <p className="text-xs text-muted-foreground">Leave everything empty to show the banner everywhere.</p>
           </FormSection>
 
           <FormSection title="Display & Order">
@@ -160,7 +174,7 @@ export function BannerForm({ onDone, initial }: { onDone: () => void; initial?: 
 
       <div className="mt-6 flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={() => navigate({ to: ROUTES.LISTINGS_BANNERS })}>Cancel</Button>
-        <Button type="button" variant="outline" onClick={() => save("Inactive")} disabled={saving}><Save className="mr-2 h-4 w-4" />Save as Draft</Button>
+        <Button type="button" variant="outline" onClick={() => save("Draft")} disabled={saving}><Save className="mr-2 h-4 w-4" />Save as Draft</Button>
         <Button type="button" onClick={() => save(status)} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? "Saving..." : initial ? "Save Changes" : "Save Banner"}</Button>
       </div>
     </div>

@@ -1,73 +1,88 @@
-import type { UserAnalytics, UserAnalyticsActivity, UserAnalyticsDayPoint } from "@/types/referrals";
-import { winners } from "@/mock/winners.mock";
+import { API } from "@/lib/apiEndpoints";
+import { httpClient } from "@/lib/httpClient";
+import { formatDate, formatDateTime } from "@/lib/format";
+import { placeLabel, toRewardUser, type ApiRewardUser } from "@/services/adapters/rewards.adapter";
+import type { UserAnalytics, UserAnalyticsActivity } from "@/types/referrals";
 
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value));
+interface ApiAnalytics {
+  month: string;
+  user: ApiRewardUser & {
+    is_active: boolean;
+    location_title: string | null;
+    member_since: string | null;
+    last_active_at: string | null;
+  };
+  points: {
+    total_points: number;
+    reading_points: number;
+    quiz_points: number;
+    referral_points: number;
+    streak_points: number;
+    bonus_points: number;
+  };
+  streak: { current_streak: number; longest_streak: number };
+  gift_requests: { total: number; pending: number; approved: number; rejected: number; delivered: number };
+  day_wise: Array<{ date: string; reading: number; quiz: number; referral: number; streak: number; bonus: number }>;
+  recent_activity: Array<{ id: number; source: string; points: number; description: string | null; created_at: string | null }>;
 }
 
-const ACTIVITY_TYPES: UserAnalyticsActivity["type"][] = ["Reading", "Quiz", "Referral", "Bonus"];
+const ACTIVITY_TYPE: Record<string, UserAnalyticsActivity["type"]> = {
+  reading: "Reading",
+  quiz: "Quiz",
+  referral: "Referral",
+  streak: "Streak",
+};
 
-function buildDayWisePoints(total: UserAnalytics["totalPoints"], seed: number): UserAnalyticsDayPoint[] {
-  const days: UserAnalyticsDayPoint[] = [];
-  for (let day = 1; day <= 30; day++) {
-    const base = total / 30;
-    const variance = Math.sin(day + seed) * (base * 0.4);
-    const value = Math.max(0, Math.round(base + variance));
-    days.push({
-      date: `${String(day).padStart(2, "0")} Sep`,
-      reading: Math.round(value * 0.38),
-      quiz: Math.round(value * 0.22),
-      bonus: Math.round(value * 0.14),
-      referral: Math.round(value * 0.26),
-    });
-  }
-  return days;
-}
-
-function buildRecentActivity(seed: number): UserAnalyticsActivity[] {
-  return Array.from({ length: 10 }, (_, i) => {
-    const type = ACTIVITY_TYPES[(seed + i) % ACTIVITY_TYPES.length];
-    const activityLabel: Record<UserAnalyticsActivity["type"], string> = {
-      Reading: "Read news article",
-      Quiz: "Completed daily quiz",
-      Referral: "Referred a new user",
-      Bonus: "Daily login bonus",
-    };
-    return {
-      id: `activity-${seed}-${i + 1}`,
-      dateTime: `28 Sep 2026, ${10 - i}:${(i * 7) % 60 < 10 ? "0" : ""}${(i * 7) % 60} AM`,
-      activity: activityLabel[type],
-      points: 50 + ((seed + i) % 5) * 20,
-      type,
-    };
-  });
-}
+const ACTIVITY_LABEL: Record<string, string> = {
+  reading: "Read news",
+  quiz: "Played the daily quiz",
+  referral: "Referred a friend",
+  streak: "Daily streak",
+  task: "Daily task bonus",
+  welcome: "Welcome bonus",
+  bonus: "Bonus points",
+  adjustment: "Points adjustment",
+  redemption: "Points redeemed",
+};
 
 export const userAnalyticsService = {
-  async get(userId: string): Promise<UserAnalytics | undefined> {
-    const winner = winners.find((w) => w.userId === userId);
-    if (!winner) return undefined;
-    const seed = Number(userId.replace(/\D/g, "")) || 1;
-    const analytics: UserAnalytics = {
-      userId: winner.userId,
-      name: winner.name,
-      phone: winner.phone,
-      status: "Active",
-      language: winner.language,
-      location: `${winner.area}, ${winner.district}, ${winner.state}`,
-      memberSince: "12 Aug 2026",
-      lastActiveAt: "28 Sep 2026, 10:24 AM",
-      totalPoints: winner.totalPoints,
-      readingPoints: winner.readingPoints,
-      quizPoints: winner.quizPoints,
-      bonusPoints: winner.bonusPoints,
-      referralPoints: winner.referralPoints,
-      giftRequestsCount: winner.giftRequestStatus === "Requested" ? 3 : 0,
-      giftRequestsSubmitted: winner.giftRequestStatus === "Requested" ? 2 : 0,
-      giftRequestsPending: winner.giftRequestStatus === "Requested" ? 1 : 0,
-      dayWisePoints: buildDayWisePoints(winner.totalPoints, seed),
-      recentActivity: buildRecentActivity(seed),
+  async get(userId: string, month?: string): Promise<UserAnalytics> {
+    const d = await httpClient.get<ApiAnalytics>(API.rewards.userAnalytics(userId), { params: month ? { month } : undefined });
+    const base = toRewardUser(d.user);
+    return {
+      userId: base.userId,
+      name: base.name,
+      phone: base.phone,
+      status: d.user.is_active ? "Active" : "Inactive",
+      language: base.language || "—",
+      location: placeLabel(base),
+      competitionLocation: d.user.location_title,
+      memberSince: formatDate(d.user.member_since) || "—",
+      lastActiveAt: formatDateTime(d.user.last_active_at) || "—",
+      totalPoints: d.points.total_points,
+      readingPoints: d.points.reading_points,
+      quizPoints: d.points.quiz_points,
+      bonusPoints: d.points.bonus_points + d.points.streak_points,
+      referralPoints: d.points.referral_points,
+      currentStreak: d.streak.current_streak,
+      longestStreak: d.streak.longest_streak,
+      giftRequestsCount: d.gift_requests.total,
+      giftRequestsSubmitted: d.gift_requests.approved,
+      giftRequestsPending: d.gift_requests.pending,
+      dayWisePoints: d.day_wise.map((day) => ({
+        date: formatDate(day.date).slice(0, 6),
+        reading: day.reading,
+        quiz: day.quiz,
+        bonus: day.bonus + day.streak,
+        referral: day.referral,
+      })),
+      recentActivity: d.recent_activity.map((a) => ({
+        id: String(a.id),
+        dateTime: formatDateTime(a.created_at),
+        activity: a.description || ACTIVITY_LABEL[a.source] || a.source,
+        points: a.points,
+        type: ACTIVITY_TYPE[a.source] ?? "Bonus",
+      })),
     };
-    return clone(analytics);
   },
 };

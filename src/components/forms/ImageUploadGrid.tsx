@@ -1,11 +1,13 @@
 import { useEffect, useId, useState } from "react";
 import { ImageIcon, Plus, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isStoredImage, type ImageValue } from "@/lib/mediaUpload";
 
 /**
- * Client-only image picker with preview (no upload endpoint yet — the backend
- * for these modules doesn't exist). Single mode shows one dashed box; multi
- * mode shows a grid of preview tiles plus "+" tiles up to `max`.
+ * Image picker with preview. The value mixes images that are already stored
+ * (shown from their URL) and newly picked files; the caller uploads the files
+ * on save. Single mode shows one dashed box; multi mode shows a grid of preview
+ * tiles plus "+" tiles up to `max`.
  */
 export function ImageUploadGrid({
   label,
@@ -18,8 +20,8 @@ export function ImageUploadGrid({
 }: {
   label: string;
   hint?: string;
-  value: File[];
-  onChange: (files: File[]) => void;
+  value: ImageValue[];
+  onChange: (images: ImageValue[]) => void;
   multiple?: boolean;
   max?: number;
   className?: string;
@@ -28,9 +30,16 @@ export function ImageUploadGrid({
   const [previews, setPreviews] = useState<string[]>([]);
 
   useEffect(() => {
-    const urls = value.map((file) => URL.createObjectURL(file));
-    setPreviews(urls);
-    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+    const objectUrls: string[] = [];
+    setPreviews(
+      value.map((image) => {
+        if (isStoredImage(image)) return image.url;
+        const url = URL.createObjectURL(image);
+        objectUrls.push(url);
+        return url;
+      }),
+    );
+    return () => objectUrls.forEach((url) => URL.revokeObjectURL(url));
   }, [value]);
 
   const handleFiles = (files: FileList | null) => {

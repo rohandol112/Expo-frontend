@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { handleError } from "@/lib/errorHandler";
 import { giftRankService } from "@/services/giftRank.service";
-import type { GiftRank } from "@/types/referrals";
+import type { GiftRankInput } from "@/types/referrals";
 
 export const giftRankKeys = {
   all: ["gift-ranks"] as const,
@@ -18,7 +19,8 @@ export function useGiftRanks(locationId: string) {
 export function useSaveGiftRanks() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ locationId, ranks }: { locationId: string; ranks: GiftRank[] }) => giftRankService.saveAll(locationId, ranks),
+    mutationFn: ({ locationId, ranks }: { locationId: string; ranks: GiftRankInput[] }) => giftRankService.saveAll(locationId, ranks),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: giftRankKeys.all }),
   });
 }

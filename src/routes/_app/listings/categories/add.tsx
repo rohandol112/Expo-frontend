@@ -11,12 +11,23 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCreateListingCategory, useListingCategories, useUpdateListingCategory } from "@/hooks/api/useListingCategories";
 import { ROUTES } from "@/constants/routes.constants";
 import { toast } from "sonner";
-import type { ListingCategory } from "@/types/listingCategory";
+import type { ListingCategory, ListingCategoryInput } from "@/types/listingCategory";
+import type { ImageValue } from "@/lib/mediaUpload";
 
 export const Route = createFileRoute("/_app/listings/categories/add")({ component: AddCategoryPage });
 
 function slugify(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+/** Runs a save, leaving error toasts to the mutation hooks; resolves true on success. */
+async function attempt(run: () => Promise<unknown>): Promise<boolean> {
+  try {
+    await run();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function AddCategoryPage() {
@@ -31,7 +42,7 @@ export function CategoryForm({ onDone, initial }: { onDone: () => void; initial?
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(initial));
-  const [icon, setIcon] = useState<File[]>([]);
+  const [icon, setIcon] = useState<ImageValue[]>(initial?.icon ? [initial.icon] : []);
   const [status, setStatus] = useState<"Active" | "Inactive">((initial?.status as "Active" | "Inactive") ?? "Active");
   const [sortOrder, setSortOrder] = useState(initial?.sortOrder ?? (categoriesQuery.data?.items.length ?? 0) + 1);
 
@@ -42,12 +53,9 @@ export function CategoryForm({ onDone, initial }: { onDone: () => void; initial?
       toast.error("Please enter a category name and slug.");
       return;
     }
-    const payload = { name, slug, icon: icon[0]?.name ?? initial?.icon, status, sortOrder };
-    if (initial) {
-      await updateCategory.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createCategory.mutateAsync(payload);
-    }
+    const payload: ListingCategoryInput = { name, slug, icon, status, sortOrder };
+    const saved = await attempt(() => (initial ? updateCategory.mutateAsync({ id: initial.id, payload }) : createCategory.mutateAsync(payload)));
+    if (!saved) return;
     toast.success(initial ? "Category updated" : "Category saved");
     onDone();
   };

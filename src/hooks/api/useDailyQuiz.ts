@@ -1,68 +1,68 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { dailyQuizService } from "@/services/dailyQuiz.service";
-import type { QuizConfig, QuizQuestion, TodaysGift } from "@/types/referrals";
+import { handleError } from "@/lib/errorHandler";
+import { dailyQuizService, type QuizQuestionInput } from "@/services/dailyQuiz.service";
+import type { ImageValue } from "@/lib/mediaUpload";
+import type { QuizConfig } from "@/types/referrals";
 
 export const dailyQuizKeys = {
   all: ["daily-quiz"] as const,
-  locations: () => [...dailyQuizKeys.all, "locations"] as const,
-  location: (id: string) => [...dailyQuizKeys.all, "location", id] as const,
+  locations: (date: string) => [...dailyQuizKeys.all, "locations", date] as const,
+  location: (id: string, date: string) => [...dailyQuizKeys.all, "location", id, date] as const,
 };
 
-export function useDailyQuizLocations() {
+export function useDailyQuizLocations(date: string) {
   return useQuery({
-    queryKey: dailyQuizKeys.locations(),
-    queryFn: () => dailyQuizService.listLocations(),
+    queryKey: dailyQuizKeys.locations(date),
+    queryFn: () => dailyQuizService.listLocations(date),
   });
 }
 
-export function useDailyQuizLocation(locationId: string) {
+export function useDailyQuizLocation(locationId: string, date: string) {
   return useQuery({
-    queryKey: dailyQuizKeys.location(locationId),
-    queryFn: () => dailyQuizService.getLocation(locationId),
-    enabled: Boolean(locationId),
+    queryKey: dailyQuizKeys.location(locationId, date),
+    queryFn: () => dailyQuizService.getLocation(locationId, date),
+    enabled: Boolean(locationId) && locationId !== "all",
+  });
+}
+
+function useQuizMutation<V>(fn: (vars: V) => Promise<void>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onError: (error) => handleError(error),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: dailyQuizKeys.all }),
   });
 }
 
 export function useSaveQuizSettings() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ locationId, quizNumber, payload }: { locationId: string; quizNumber: 1 | 2; payload: Partial<Omit<QuizConfig, "questions" | "quizNumber">> }) =>
-      dailyQuizService.saveQuizSettings(locationId, quizNumber, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: dailyQuizKeys.all }),
-  });
+  return useQuizMutation(
+    ({ locationId, quizNumber, payload }: {
+      locationId: string;
+      quizNumber: 1 | 2;
+      payload: Pick<QuizConfig, "isActive" | "scheduleDate" | "startTime" | "endTime" | "totalQuestions" | "pointsPerCorrect">;
+    }) => dailyQuizService.saveQuizSettings(locationId, quizNumber, payload),
+  );
 }
 
 export function useAddQuizQuestion() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ locationId, quizNumber, payload }: { locationId: string; quizNumber: 1 | 2; payload: Omit<QuizQuestion, "id"> }) =>
-      dailyQuizService.addQuestion(locationId, quizNumber, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: dailyQuizKeys.all }),
-  });
+  return useQuizMutation(({ quizId, payload }: { quizId: string; payload: QuizQuestionInput }) => dailyQuizService.addQuestion(quizId, payload));
 }
 
 export function useUpdateQuizQuestion() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ locationId, quizNumber, questionId, payload }: { locationId: string; quizNumber: 1 | 2; questionId: string; payload: Omit<QuizQuestion, "id"> }) =>
-      dailyQuizService.updateQuestion(locationId, quizNumber, questionId, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: dailyQuizKeys.all }),
-  });
+  return useQuizMutation(({ questionId, payload }: { questionId: string; payload: QuizQuestionInput }) =>
+    dailyQuizService.updateQuestion(questionId, payload),
+  );
 }
 
 export function useDeleteQuizQuestion() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ locationId, quizNumber, questionId }: { locationId: string; quizNumber: 1 | 2; questionId: string }) =>
-      dailyQuizService.deleteQuestion(locationId, quizNumber, questionId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: dailyQuizKeys.all }),
-  });
+  return useQuizMutation((questionId: string) => dailyQuizService.deleteQuestion(questionId));
 }
 
 export function useSaveTodaysGift() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ locationId, payload }: { locationId: string; payload: TodaysGift }) => dailyQuizService.saveTodaysGift(locationId, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: dailyQuizKeys.all }),
-  });
+  return useQuizMutation(
+    ({ locationId, payload }: {
+      locationId: string;
+      payload: { date: string; giftName: string; description?: string; giftValue?: number | null; photo: ImageValue[] };
+    }) => dailyQuizService.saveTodaysGift(locationId, payload),
+  );
 }

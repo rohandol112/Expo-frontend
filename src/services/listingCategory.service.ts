@@ -1,48 +1,71 @@
-import type { ListingCategory } from "@/types/listingCategory";
-import { listingCategories as seedCategories } from "@/mock/listingCategories.mock";
+import { API } from "@/lib/apiEndpoints";
+import { httpClient } from "@/lib/httpClient";
+import { formatDateTime, toAdminStatus, toApiStatus } from "@/lib/format";
+import { imageKey, storedImage } from "@/lib/mediaUpload";
+import { uploadListingImage } from "@/services/listing.service";
+import type { ListingCategory, ListingCategoryInput } from "@/types/listingCategory";
 
-// Mock-backed for now — the real backend is being built separately. Each
-// function mutates this in-memory copy and returns the same shape a real API
-// would, so swapping the body for an httpClient call later is mechanical.
-let categories: ListingCategory[] = [...seedCategories];
-let nextId = categories.length + 1;
+interface ApiCategory {
+  id: number;
+  name: string;
+  slug: string;
+  icon_key: string | null;
+  icon_url: string | null;
+  status: string;
+  sort_order: number;
+  sub_category_count: number;
+  listing_count: number;
+  created_at: string;
+}
 
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value));
+function toCategory(r: ApiCategory): ListingCategory {
+  return {
+    id: String(r.id),
+    name: r.name,
+    slug: r.slug,
+    icon: storedImage(r.icon_key, r.icon_url),
+    status: toAdminStatus(r.status),
+    sortOrder: r.sort_order,
+    subCategoryCount: r.sub_category_count,
+    listingCount: r.listing_count,
+    createdOn: formatDateTime(r.created_at),
+  };
+}
+
+async function toBody(input: ListingCategoryInput) {
+  return {
+    name: input.name.trim(),
+    slug: input.slug.trim() || undefined,
+    icon_key: await imageKey(input.icon, uploadListingImage("category-icon")),
+    status: toApiStatus(input.status),
+    sort_order: input.sortOrder,
+  };
 }
 
 export const listingCategoryService = {
   async list(): Promise<{ items: ListingCategory[]; total: number }> {
-    const items = [...categories].sort((a, b) => a.sortOrder - b.sortOrder);
-    return { items: clone(items), total: items.length };
+    const data = await httpClient.get<{ items: ApiCategory[] }>(API.listings.categories);
+    const items = data.items.map(toCategory).sort((a, b) => a.sortOrder - b.sortOrder);
+    return { items, total: items.length };
   },
 
-  async get(id: string): Promise<ListingCategory | undefined> {
-    return clone(categories.find((c) => c.id === id));
+  async get(id: string): Promise<ListingCategory> {
+    return toCategory(await httpClient.get<ApiCategory>(API.listings.category(id)));
   },
 
-  async create(payload: Omit<ListingCategory, "id" | "createdOn">): Promise<ListingCategory> {
-    const category: ListingCategory = {
-      ...payload,
-      id: `cat-${nextId++}`,
-      createdOn: new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date()),
-    };
-    categories = [...categories, category];
-    return clone(category);
+  async create(input: ListingCategoryInput): Promise<ListingCategory> {
+    return toCategory(await httpClient.post<ApiCategory>(API.listings.categories, await toBody(input)));
   },
 
-  async update(id: string, payload: Partial<Omit<ListingCategory, "id">>): Promise<ListingCategory | undefined> {
-    categories = categories.map((c) => (c.id === id ? { ...c, ...payload } : c));
-    return clone(categories.find((c) => c.id === id));
+  async update(id: string, input: ListingCategoryInput): Promise<ListingCategory> {
+    return toCategory(await httpClient.put<ApiCategory>(API.listings.category(id), await toBody(input)));
   },
 
   async remove(id: string): Promise<void> {
-    categories = categories.filter((c) => c.id !== id);
+    await httpClient.delete(API.listings.category(id));
   },
 
-  async reorder(orderedIds: string[]): Promise<ListingCategory[]> {
-    const order = new Map(orderedIds.map((id, index) => [id, index + 1]));
-    categories = categories.map((c) => (order.has(c.id) ? { ...c, sortOrder: order.get(c.id)! } : c));
-    return clone([...categories].sort((a, b) => a.sortOrder - b.sortOrder));
+  async reorder(orderedIds: string[]): Promise<void> {
+    await httpClient.put(API.listings.categoriesReorder, { ids: orderedIds.map(Number) });
   },
 };

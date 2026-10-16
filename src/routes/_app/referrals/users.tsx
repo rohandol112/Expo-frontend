@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Download, Medal, UserPlus, Users, UserCheck, UserX, Coins } from "lucide-react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { Button } from "@/components/ui/button";
 import { useReferralUsers } from "@/hooks/api/useReferralUsers";
-import type { ReferralUser } from "@/types/referrals";
+import type { ReferralUser, TrendStat } from "@/types/referrals";
+import { useAudienceFilters } from "@/hooks/useAudienceFilters";
+import { useReportListState } from "@/hooks/useReportListState";
+import { referralUserService } from "@/services/referralUser.service";
+import { trendSubtitle } from "@/services/adapters/rewards.adapter";
+import { downloadCsv, EXPORT_LIMIT, type CsvColumn } from "@/lib/csv";
+import { handleError } from "@/lib/errorHandler";
+import { istToday } from "@/lib/format";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/referrals/users")({ component: ReferralUsersPage });
 
@@ -55,45 +62,83 @@ function columns(): Column<ReferralUser>[] {
     { key: "total", header: "Total Referred Users", cell: (r) => r.totalReferredUsers },
     { key: "successful", header: "Successful Referrals", cell: (r) => r.successfulReferrals },
     { key: "active", header: "Active Users", cell: (r) => r.activeUsers },
+    { key: "pending", header: "Pending", cell: (r) => r.pendingReferrals },
     { key: "uninstalled", header: "Uninstalled Users", cell: (r) => r.uninstalledUsers },
     { key: "points", header: "Total Referred Points", cell: (r) => <span className="font-medium">{r.totalReferredPoints.toLocaleString()}</span> },
   ];
 }
 
+const PAGE_SIZE = 20;
+
+const CSV_COLUMNS: CsvColumn<ReferralUser>[] = [
+  { header: "Rank", value: (r) => r.rank },
+  { header: "Name", value: (r) => r.name },
+  { header: "Phone", value: (r) => r.phone },
+  { header: "State", value: (r) => r.state },
+  { header: "District", value: (r) => r.district },
+  { header: "Area", value: (r) => r.area },
+  { header: "Language", value: (r) => r.language },
+  { header: "Referral Code", value: (r) => r.referralCode },
+  { header: "Total Referred", value: (r) => r.totalReferredUsers },
+  { header: "Successful", value: (r) => r.successfulReferrals },
+  { header: "Pending", value: (r) => r.pendingReferrals },
+  { header: "Active", value: (r) => r.activeUsers },
+  { header: "Inactive (14 days)", value: (r) => r.uninstalledUsers },
+  { header: "Referral Points", value: (r) => r.totalReferredPoints },
+];
+
 function ReferralUsersPage() {
-  const usersQuery = useReferralUsers();
+  const list = useReportListState();
+  const { dropdowns, params } = useAudienceFilters(list.dropdownValues);
+  const query = { ...params, page: list.page, per_page: PAGE_SIZE, search: list.search || undefined, from: list.from, to: list.to };
+  const usersQuery = useReferralUsers(query);
+  const [exporting, setExporting] = useState(false);
   const users = usersQuery.data?.items ?? [];
+  const stats = usersQuery.data?.stats;
+  const stat = (s: TrendStat | undefined) => (s ? s.value.toLocaleString("en-IN") : "—");
+  const sub = (s: TrendStat | undefined, label: string) => (s ? trendSubtitle(s, label) : label);
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const all = await referralUserService.list({ ...query, page: 1, per_page: EXPORT_LIMIT });
+      downloadCsv(`referral-users-${istToday()}`, all.items, CSV_COLUMNS);
+    } catch (error) {
+      handleError(error, "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <AdminListPage
       title="Referral Users"
       breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Referrals & Points", to: ROUTES.REFERRALS }, { label: "Referral Users" }]}
-      actions={<Button variant="outline" onClick={() => toast.info("Export coming soon")}><Download className="mr-2 h-4 w-4" />Export CSV</Button>}
+      actions={<Button variant="outline" onClick={exportCsv} disabled={exporting}><Download className="mr-2 h-4 w-4" />{exporting ? "Exporting..." : "Export CSV"}</Button>}
       stats={[
-        { title: "Total Referrer Users", value: "4,860", subtitle: "↑20% · Users who referred at least 1 user", icon: UserPlus, variant: "blue" },
-        { title: "Total Referred Users", value: "12,450", subtitle: "↑18% · Referred by all referrers", icon: Users, variant: "green" },
-        { title: "Successful Referrals", value: "8,720", subtitle: "↑22% · Completed & verified users", icon: UserCheck, variant: "violet" },
-        { title: "Active Referred Users", value: "6,240", subtitle: "↑16% · Currently active users", icon: UserCheck, variant: "amber" },
-        { title: "Uninstalled Users", value: "3,730", subtitle: "↑8% · Referred users uninstalled", icon: UserX, variant: "rose" },
-        { title: "Total Referred Points", value: "2,45,800", subtitle: "↑25% · Points earned from referrals", icon: Coins, variant: "pink" },
+        { title: "Total Referrer Users", value: stat(stats?.referrers), subtitle: sub(stats?.referrers, "Users who referred at least 1 user"), icon: UserPlus, variant: "blue" },
+        { title: "Total Referred Users", value: stat(stats?.referredUsers), subtitle: sub(stats?.referredUsers, "Referred by all referrers"), icon: Users, variant: "green" },
+        { title: "Successful Referrals", value: stat(stats?.successfulReferrals), subtitle: sub(stats?.successfulReferrals, "Stayed active, points paid"), icon: UserCheck, variant: "violet" },
+        { title: "Active Referred Users", value: stat(stats?.activeReferredUsers), subtitle: sub(stats?.activeReferredUsers, "Opened the app in the last 14 days"), icon: UserCheck, variant: "amber" },
+        { title: "Uninstalled Users", value: stat(stats?.inactiveReferredUsers), subtitle: sub(stats?.inactiveReferredUsers, "Not opened in 14 days"), icon: UserX, variant: "rose" },
+        { title: "Total Referred Points", value: stat(stats?.referralPoints), subtitle: sub(stats?.referralPoints, "Points earned from referrals"), icon: Coins, variant: "pink" },
       ]}
       data={users}
       columns={columns()}
       loading={usersQuery.isLoading}
+      error={usersQuery.error ? "Unable to load referral users." : undefined}
       rowKey={(r) => r.id}
       searchPlaceholder="Search by name, phone number, referral code..."
       showDateRange
-      dropdowns={[
-        { key: "state", placeholder: "State", options: [...new Set(users.map((u) => u.state))].map((s) => ({ label: s, value: s })) },
-        { key: "district", placeholder: "District", options: [...new Set(users.map((u) => u.district))].map((d) => ({ label: d, value: d })) },
-        { key: "language", placeholder: "Language", options: [...new Set(users.map((u) => u.language))].map((l) => ({ label: l, value: l })) },
-      ]}
-      filter={(row, search, dropdowns) =>
-        (!dropdowns.state || row.state === dropdowns.state) &&
-        (!dropdowns.district || row.district === dropdowns.district) &&
-        (!dropdowns.language || row.language === dropdowns.language) &&
-        (!search || [row.name, row.phone, row.referralCode].some((v) => v.toLowerCase().includes(search.toLowerCase())))
-      }
+      onDateRangeChange={list.onDateRangeChange}
+      serverSide
+      total={usersQuery.data?.total ?? 0}
+      pageSize={PAGE_SIZE}
+      page={list.page}
+      onPageChange={list.setPage}
+      onQueryChange={list.onQueryChange}
+      initialDropdownValues={list.dropdownValues}
+      dropdowns={dropdowns}
     />
   );
 }

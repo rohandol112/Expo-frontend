@@ -33,7 +33,16 @@ function BannersPage() {
 
   const columns: SortableColumn<Banner>[] = [
     { key: "name", header: "Banner Name", cell: (r) => <span className="font-medium">{r.name}</span> },
-    { key: "image", header: "Image", cell: () => <div className="flex h-9 w-14 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">No image</div> },
+    {
+      key: "image",
+      header: "Image",
+      cell: (r) =>
+        r.image ? (
+          <img src={r.image.url} alt="" className="h-9 w-14 rounded object-cover" />
+        ) : (
+          <div className="flex h-9 w-14 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">No image</div>
+        ),
+    },
     { key: "category", header: "Category", cell: (r) => <span className="text-sm">{r.category}</span> },
     { key: "sub", header: "Sub Category", cell: (r) => <span className="text-sm">{r.subcategory || "—"}</span> },
     { key: "state", header: "State", cell: (r) => <span className="text-sm">{r.state}</span> },
@@ -41,6 +50,7 @@ function BannersPage() {
     { key: "area", header: "Area", cell: (r) => <span className="text-sm">{r.area}</span> },
     { key: "added", header: "Added Date", cell: (r) => <span className="whitespace-nowrap text-sm text-muted-foreground">{r.createdOn}</span> },
     { key: "sort", header: "Select Order", cell: (r) => r.sortOrder },
+    { key: "views", header: "Views", cell: (r) => r.views.toLocaleString() },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
     {
       key: "actions",
@@ -85,7 +95,7 @@ function BannersPage() {
           key: "status",
           placeholder: "All Status",
           value: status || "all",
-          options: [{ label: "All Status", value: "all" }, { label: "Active", value: "Active" }, { label: "Inactive", value: "Inactive" }],
+          options: [{ label: "All Status", value: "all" }, { label: "Active", value: "Active" }, { label: "Inactive", value: "Inactive" }, { label: "Draft", value: "Draft" }],
           onChange: (v) => setStatus(v === "all" ? "" : v),
         }]}
       />

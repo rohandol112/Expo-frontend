@@ -1,14 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import { referralUserService } from "@/services/referralUser.service";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { referralUserService, type ReportQuery } from "@/services/referralUser.service";
 
 export const referralUserKeys = {
   all: ["referral-users"] as const,
-  list: () => [...referralUserKeys.all, "list"] as const,
+  list: (query: ReportQuery) => [...referralUserKeys.all, "list", query] as const,
 };
 
-export function useReferralUsers() {
+export function useReferralUsers(query: ReportQuery) {
   return useQuery({
-    queryKey: referralUserKeys.list(),
-    queryFn: () => referralUserService.list(),
+    queryKey: referralUserKeys.list(query),
+    queryFn: () => referralUserService.list(query),
+    placeholderData: keepPreviousData,
   });
 }

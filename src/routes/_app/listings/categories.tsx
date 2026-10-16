@@ -29,8 +29,10 @@ function CategoriesPage() {
   const filtered = categories.filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()));
 
   const columns: SortableColumn<ListingCategory>[] = [
-    { key: "icon", header: "Icon", cell: (r) => <span className="text-lg">{r.icon || "—"}</span> },
+    { key: "icon", header: "Icon", cell: (r) => (r.icon ? <img src={r.icon.url} alt="" className="h-8 w-8 rounded object-contain" /> : <span className="text-muted-foreground">—</span>) },
     { key: "name", header: "Category Name", cell: (r) => <span className="font-medium">{r.name}</span> },
+    { key: "subs", header: "Sub Categories", cell: (r) => r.subCategoryCount },
+    { key: "listings", header: "Listings", cell: (r) => r.listingCount },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
     { key: "sort", header: "Sort Order", cell: (r) => <span className="text-sm">{r.sortOrder}</span> },
     { key: "created", header: "Created At", cell: (r) => <span className="whitespace-nowrap text-sm text-muted-foreground">{r.createdOn}</span> },

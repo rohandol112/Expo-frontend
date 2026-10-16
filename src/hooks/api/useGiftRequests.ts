@@ -1,16 +1,27 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { giftRequestService } from "@/services/giftRequest.service";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { handleError } from "@/lib/errorHandler";
+import { giftRequestService, type GiftRequestQuery } from "@/services/giftRequest.service";
+import { winnerKeys } from "@/hooks/api/useWinners";
 
 export const giftRequestKeys = {
   all: ["gift-requests"] as const,
-  list: () => [...giftRequestKeys.all, "list"] as const,
+  list: (query: GiftRequestQuery) => [...giftRequestKeys.all, "list", query] as const,
+  counts: () => [...giftRequestKeys.all, "counts"] as const,
   detail: (id: string) => [...giftRequestKeys.all, "detail", id] as const,
 };
 
-export function useGiftRequests() {
+export function useGiftRequests(query: GiftRequestQuery) {
   return useQuery({
-    queryKey: giftRequestKeys.list(),
-    queryFn: () => giftRequestService.list(),
+    queryKey: giftRequestKeys.list(query),
+    queryFn: () => giftRequestService.list(query),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useGiftRequestCounts() {
+  return useQuery({
+    queryKey: giftRequestKeys.counts(),
+    queryFn: () => giftRequestService.counts(),
   });
 }
 
@@ -22,18 +33,22 @@ export function useGiftRequest(id: string) {
   });
 }
 
-export function useApproveGiftRequest() {
+function useReviewMutation<V>(fn: (vars: V) => Promise<void>) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => giftRequestService.approve(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: giftRequestKeys.all }),
+    mutationFn: fn,
+    onError: (error) => handleError(error),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: giftRequestKeys.all });
+      void queryClient.invalidateQueries({ queryKey: winnerKeys.all });
+    },
   });
 }
 
+export function useApproveGiftRequest() {
+  return useReviewMutation((id: string) => giftRequestService.approve(id));
+}
+
 export function useRejectGiftRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) => giftRequestService.reject(id, reason),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: giftRequestKeys.all }),
-  });
+  return useReviewMutation(({ id, reason }: { id: string; reason?: string }) => giftRequestService.reject(id, reason));
 }

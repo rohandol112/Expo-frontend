@@ -1,14 +1,25 @@
 import type { AdminStatus } from "@/types/system";
 import type { ListingType } from "@/types/listing";
+import type { ImageValue, StoredImage } from "@/lib/mediaUpload";
 
 export interface ListingCategory {
   id: string;
   name: string;
   slug: string;
-  icon?: string;
+  icon?: StoredImage;
   status: AdminStatus;
   sortOrder: number;
+  subCategoryCount: number;
+  listingCount: number;
   createdOn: string;
+}
+
+export interface ListingCategoryInput {
+  name: string;
+  slug: string;
+  icon: ImageValue[];
+  status: "Active" | "Inactive";
+  sortOrder: number;
 }
 
 export interface ListingSubCategory {
@@ -17,7 +28,7 @@ export interface ListingSubCategory {
   category: string;
   name: string;
   type: ListingType;
-  icon?: string;
+  icon?: StoredImage;
   status: AdminStatus;
   sortOrder: number;
   displayOnHome: boolean;
@@ -25,4 +36,14 @@ export interface ListingSubCategory {
   productsCount?: number;
   servicesCount?: number;
   createdOn: string;
+}
+
+export interface ListingSubCategoryInput {
+  categoryId: string;
+  name: string;
+  type: ListingType;
+  icon: ImageValue[];
+  status: "Active" | "Inactive";
+  sortOrder: number;
+  displayOnHome: boolean;
 }

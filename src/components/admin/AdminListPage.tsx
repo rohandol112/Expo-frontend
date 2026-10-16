@@ -41,6 +41,7 @@ export function AdminListPage<T>({
   onFiltersChange,
   searchDebounceMs = 300,
   initialDropdownValues,
+  onDateRangeChange,
 }: {
   title: string;
   breadcrumbs: Crumb[];
@@ -64,6 +65,7 @@ export function AdminListPage<T>({
   onFiltersChange?: (filters: FilterState) => void;
   searchDebounceMs?: number;
   initialDropdownValues?: Record<string, string>;
+  onDateRangeChange?: (range: { from: string; to: string }) => void;
 }) {
   const [search, setSearch] = useState("");
   const [internalPage, setInternalPage] = useState(1);
@@ -141,6 +143,7 @@ export function AdminListPage<T>({
         searchPlaceholder={searchPlaceholder}
         dropdowns={wiredDropdowns}
         showDateRange={showDateRange}
+        onDateRangeChange={onDateRangeChange}
         onReset={() => {
           setSearch("");
           setDropdownValues({});

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Store, Package, Wrench, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FormSection } from "@/components/forms/FormSection";
@@ -17,9 +17,11 @@ import { useListingSubCategories } from "@/hooks/api/useListingSubCategories";
 import { useCreateListing, useUpdateListing } from "@/hooks/api/useListings";
 import { useListings } from "@/hooks/api/useListings";
 import { cn } from "@/lib/utils";
+import { RegionSelect, EMPTY_REGION, type RegionValue } from "@/components/forms/RegionSelect";
+import type { ImageValue } from "@/lib/mediaUpload";
 import { ROUTES } from "@/constants/routes.constants";
 import { toast } from "sonner";
-import type { Listing, ListingType } from "@/types/listing";
+import type { Listing, ListingInput, ListingType } from "@/types/listing";
 
 export const Route = createFileRoute("/_app/listings/add")({ component: AddListingPage });
 
@@ -99,58 +101,72 @@ function HighlightsField({ highlights, onChange }: { highlights: string[]; onCha
   );
 }
 
-function useCategoryOptions() {
+/**
+ * Category options, plus sub categories narrowed to the chosen categories and
+ * the listing's own type (the API rejects any other pairing).
+ */
+function useCategoryOptions(type: ListingType, categoryIds: string[]) {
   const categoriesQuery = useListingCategories();
   const subCategoriesQuery = useListingSubCategories();
   return {
     categoryOptions: (categoriesQuery.data?.items ?? []).map((c) => ({ label: c.name, value: c.id })),
-    subCategoryOptions: (subCategoriesQuery.data?.items ?? []).map((s) => ({ label: s.name, value: s.id })),
-    categoriesById: new Map((categoriesQuery.data?.items ?? []).map((c) => [c.id, c.name])),
-    subCategoriesById: new Map((subCategoriesQuery.data?.items ?? []).map((s) => [s.id, s.name])),
+    subCategoryOptions: (subCategoriesQuery.data?.items ?? [])
+      .filter((s) => s.type === type && categoryIds.includes(s.categoryId))
+      .map((s) => ({ label: `${s.name} (${s.category})`, value: s.id })),
   };
 }
 
-function baseListingPayload(opts: {
-  name: string; type: ListingType; categoryIds: string[]; subCategoryIds: string[];
-  categoriesById: Map<string, string>; subCategoriesById: Map<string, string>;
-  location: Listing["location"]; status: "Active" | "Inactive";
-}): Omit<Listing, "id" | "createdOn" | "views"> {
-  return {
-    name: opts.name,
-    type: opts.type,
-    categoryIds: opts.categoryIds,
-    category: opts.categoryIds.map((id) => opts.categoriesById.get(id)).filter(Boolean).join(", "),
-    subCategoryIds: opts.subCategoryIds,
-    subcategory: opts.subCategoryIds.map((id) => opts.subCategoriesById.get(id)).filter(Boolean).join(", "),
-    images: [],
-    location: opts.location,
-    city: opts.location.district || opts.location.area || "Online",
-    contact: "",
-    status: opts.status,
-  };
+/** Keeps only sub categories that still fit the chosen categories. */
+function useValidSubCategories(type: ListingType, categoryIds: string[], subCategoryIds: string[], setSubCategoryIds: (ids: string[]) => void) {
+  const subCategoriesQuery = useListingSubCategories();
+  const items = subCategoriesQuery.data?.items;
+  useEffect(() => {
+    if (!items) return;
+    const valid = subCategoryIds.filter((id) => items.some((s) => s.id === id && s.type === type && categoryIds.includes(s.categoryId)));
+    if (valid.length !== subCategoryIds.length) setSubCategoryIds(valid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, categoryIds]);
+}
+
+function regionOf(listing?: Listing): RegionValue {
+  if (!listing) return EMPTY_REGION;
+  return { stateId: listing.location.stateId ?? "", districtId: listing.location.districtId ?? "", areaId: listing.location.areaId ?? "" };
+}
+
+/** Runs a save, leaving error toasts to the mutation hooks; resolves true on success. */
+async function attempt(run: () => Promise<unknown>): Promise<boolean> {
+  try {
+    await run();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function ShopForm({ onDone, initial }: { onDone: () => void; initial?: Listing }) {
-  const { categoryOptions, subCategoryOptions, categoriesById, subCategoriesById } = useCategoryOptions();
   const createListing = useCreateListing();
   const updateListing = useUpdateListing();
   const isEdit = Boolean(initial);
   const [name, setName] = useState(initial?.name ?? "");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
   const [subCategoryIds, setSubCategoryIds] = useState<string[]>(initial?.subCategoryIds ?? []);
+  const { categoryOptions, subCategoryOptions } = useCategoryOptions("Shop", categoryIds);
+  useValidSubCategories("Shop", categoryIds, subCategoryIds, setSubCategoryIds);
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [pincode, setPincode] = useState(initial?.pincode ?? "");
-  const [state, setState] = useState(initial?.location.state ?? "");
-  const [district, setDistrict] = useState(initial?.location.district ?? "");
-  const [area, setArea] = useState(initial?.location.area ?? "");
+  const [region, setRegion] = useState<RegionValue>(regionOf(initial));
+  const [locality, setLocality] = useState(initial?.location.locality ?? "");
   const [address, setAddress] = useState(initial?.location.address ?? "");
-  const [images, setImages] = useState<File[]>([]);
+  const [latitude, setLatitude] = useState(initial?.location.latitude ?? "");
+  const [longitude, setLongitude] = useState(initial?.location.longitude ?? "");
+  const [images, setImages] = useState<ImageValue[]>(initial?.images ?? []);
   const [timingsMode, setTimingsMode] = useState<"all_days" | "custom">(initial?.timings?.mode ?? "all_days");
   const [open24, setOpen24] = useState(initial?.timings?.open24Hours ?? false);
   const [openingTime, setOpeningTime] = useState(initial?.timings?.openingTime ?? "09:00");
   const [closingTime, setClosingTime] = useState(initial?.timings?.closingTime ?? "22:00");
+  const [weeklyOff, setWeeklyOff] = useState(initial?.timings?.weeklyOff ?? "");
   const [offerMessage, setOfferMessage] = useState(initial?.offerMessage ?? "");
   const [shortDescription, setShortDescription] = useState(initial?.shortDescription ?? "");
   const [status, setStatus] = useState<"Active" | "Inactive">((initial?.status as "Active" | "Inactive") ?? "Active");
@@ -158,22 +174,24 @@ export function ShopForm({ onDone, initial }: { onDone: () => void; initial?: Li
   const saving = createListing.isPending || updateListing.isPending;
 
   const submit = async () => {
-    if (!name.trim() || categoryIds.length === 0 || (images.length === 0 && !initial?.images.length)) {
+    if (!name.trim() || categoryIds.length === 0 || images.length === 0) {
       toast.error("Please fill in shop name, category and at least one image.");
       return;
     }
-    const payload = {
-      ...baseListingPayload({ name, type: "Shop", categoryIds, subCategoryIds, categoriesById, subCategoriesById, location: { state, district, area, address }, status }),
-      phone, whatsapp, email, pincode,
-      images: images.length ? images.map((f) => f.name) : initial?.images ?? [],
-      offerMessage, shortDescription,
-      timings: { mode: timingsMode, open24Hours: open24, openingTime, closingTime },
-    };
-    if (initial) {
-      await updateListing.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createListing.mutateAsync(payload);
+    if (!region.stateId || !region.districtId) {
+      toast.error("Please select the shop's state and district.");
+      return;
     }
+    const payload: ListingInput = {
+      name, type: "Shop", categoryIds, subCategoryIds, status,
+      phone, whatsapp, email, pincode,
+      location: { ...region, locality, address, latitude, longitude },
+      images,
+      offerMessage, shortDescription,
+      timings: { mode: timingsMode, open24Hours: open24, openingTime, closingTime, weeklyOff: weeklyOff || undefined },
+    };
+    const saved = await attempt(() => (initial ? updateListing.mutateAsync({ id: initial.id, payload }) : createListing.mutateAsync(payload)));
+    if (!saved) return;
     toast.success(isEdit ? "Shop updated" : "Shop saved");
     onDone();
   };
@@ -191,17 +209,19 @@ export function ShopForm({ onDone, initial }: { onDone: () => void; initial?: Li
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Email (Optional)"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email" /></Field>
-            <Field label="Pincode" required><Input value={pincode} onChange={(e) => setPincode(e.target.value)} placeholder="Enter pincode" /></Field>
+            <Field label="Pincode"><Input value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit pincode" /></Field>
           </div>
         </FormSection>
 
         <FormSection title="Location Details">
+          <RegionSelect value={region} onChange={setRegion} required />
+          <Field label="Locality"><Input value={locality} onChange={(e) => setLocality(e.target.value)} placeholder="Enter locality / landmark" /></Field>
+          <Field label="Full Address"><Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter full address" /></Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="State" required><Input value={state} onChange={(e) => setState(e.target.value)} placeholder="Select state" /></Field>
-            <Field label="District" required><Input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Select district" /></Field>
+            <Field label="Latitude (Optional)"><Input value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="e.g. 19.1197" /></Field>
+            <Field label="Longitude (Optional)"><Input value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="e.g. 72.8468" /></Field>
           </div>
-          <Field label="Area / Locality" required><Input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Enter area / locality" /></Field>
-          <Field label="Full Address" required><Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter full address" /></Field>
+          <p className="text-xs text-muted-foreground">With latitude and longitude the app can show distance and a map for this shop.</p>
         </FormSection>
       </div>
 
@@ -225,10 +245,20 @@ export function ShopForm({ onDone, initial }: { onDone: () => void; initial?: Li
               <Field label="Closing Time"><Input type="time" value={closingTime} onChange={(e) => setClosingTime(e.target.value)} /></Field>
             </div>
           )}
+          {timingsMode === "custom" && (
+            <Field label="Weekly Off">
+              <RadioGroup value={weeklyOff || "none"} onValueChange={(v) => setWeeklyOff(v === "none" ? "" : v)} className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="none" />None</label>
+                {DAYS.map((day) => (
+                  <label key={day} className="flex items-center gap-2 text-sm"><RadioGroupItem value={day.toLowerCase()} />{day}</label>
+                ))}
+              </RadioGroup>
+            </Field>
+          )}
         </FormSection>
 
         <FormSection title="Offer & Description">
-          <Field label="Offer Message" required><Input value={offerMessage} onChange={(e) => setOfferMessage(e.target.value)} placeholder="e.g. Get 10% OFF on all groceries" /></Field>
+          <Field label="Offer Message"><Input value={offerMessage} onChange={(e) => setOfferMessage(e.target.value)} placeholder="e.g. Get 10% OFF on all groceries" /></Field>
           <Field label="Short Description" required><CounterTextarea value={shortDescription} onChange={setShortDescription} max={150} placeholder="Enter short description" /></Field>
         </FormSection>
       </div>
@@ -249,24 +279,23 @@ export function ShopForm({ onDone, initial }: { onDone: () => void; initial?: Li
 }
 
 export function ServiceForm({ onDone, initial }: { onDone: () => void; initial?: Listing }) {
-  const { categoryOptions, subCategoryOptions, categoriesById, subCategoriesById } = useCategoryOptions();
   const createListing = useCreateListing();
   const updateListing = useUpdateListing();
   const isEdit = Boolean(initial);
   const [name, setName] = useState(initial?.name ?? "");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
   const [subCategoryIds, setSubCategoryIds] = useState<string[]>(initial?.subCategoryIds ?? []);
-  const [coverImage, setCoverImage] = useState<File[]>([]);
+  const { categoryOptions, subCategoryOptions } = useCategoryOptions("Service", categoryIds);
+  useValidSubCategories("Service", categoryIds, subCategoryIds, setSubCategoryIds);
+  const [coverImage, setCoverImage] = useState<ImageValue[]>(initial?.coverImage ? [initial.coverImage] : []);
   const [shortDescription, setShortDescription] = useState(initial?.shortDescription ?? "");
   const [fullDescription, setFullDescription] = useState(initial?.fullDescription ?? "");
-  const [offerShortMessage, setOfferShortMessage] = useState("");
+  const [offerShortMessage, setOfferShortMessage] = useState(initial?.discountShortMessage ?? "");
   const [offerMessage, setOfferMessage] = useState(initial?.offerMessage ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? "");
-  const [state, setState] = useState(initial?.location.state ?? "");
-  const [district, setDistrict] = useState(initial?.location.district ?? "");
-  const [area, setArea] = useState(initial?.location.area ?? "");
-  const [images, setImages] = useState<File[]>([]);
+  const [region, setRegion] = useState<RegionValue>(regionOf(initial));
+  const [images, setImages] = useState<ImageValue[]>(initial?.images ?? []);
   const [highlights, setHighlights] = useState<string[]>(initial?.highlights ?? []);
   const [days, setDays] = useState<string[]>(initial?.availability?.days ?? DAYS);
   const [startTime, setStartTime] = useState(initial?.availability?.startTime ?? "09:00");
@@ -282,20 +311,17 @@ export function ServiceForm({ onDone, initial }: { onDone: () => void; initial?:
       toast.error("Please fill in service name, category and short description.");
       return;
     }
-    const payload = {
-      ...baseListingPayload({ name, type: "Service", categoryIds, subCategoryIds, categoriesById, subCategoriesById, location: { state, district, area }, status }),
-      coverImage: coverImage[0]?.name ?? initial?.coverImage,
-      images: images.length ? images.map((f) => f.name) : initial?.images ?? [],
+    const payload: ListingInput = {
+      name, type: "Service", categoryIds, subCategoryIds, status,
+      location: region,
+      coverImage, images,
       shortDescription, fullDescription,
-      offerMessage: offerMessage || offerShortMessage,
+      discountShortMessage: offerShortMessage, offerMessage,
       phone, whatsapp, featured, highlights: highlights.filter(Boolean),
       availability: { days, startTime, endTime, is24Hours },
     };
-    if (initial) {
-      await updateListing.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createListing.mutateAsync(payload);
-    }
+    const saved = await attempt(() => (initial ? updateListing.mutateAsync({ id: initial.id, payload }) : createListing.mutateAsync(payload)));
+    if (!saved) return;
     toast.success(isEdit ? "Service updated" : "Service saved");
     onDone();
   };
@@ -330,11 +356,8 @@ export function ServiceForm({ onDone, initial }: { onDone: () => void; initial?:
           <Field label="WhatsApp Number"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Enter WhatsApp number" /></Field>
         </FormSection>
         <FormSection title="Service Location">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="State"><Input value={state} onChange={(e) => setState(e.target.value)} placeholder="Select state" /></Field>
-            <Field label="District"><Input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Select district" /></Field>
-          </div>
-          <Field label="Area"><Input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Enter area" /></Field>
+          <RegionSelect value={region} onChange={setRegion} />
+          <p className="text-xs text-muted-foreground">Leave empty for a service available everywhere.</p>
         </FormSection>
       </div>
 
@@ -388,7 +411,6 @@ export function ServiceForm({ onDone, initial }: { onDone: () => void; initial?:
 }
 
 export function ProductForm({ onDone, initial }: { onDone: () => void; initial?: Listing }) {
-  const { categoryOptions, subCategoryOptions, categoriesById, subCategoriesById } = useCategoryOptions();
   const shopsQuery = useListings({ type: "Shop" });
   const createListing = useCreateListing();
   const updateListing = useUpdateListing();
@@ -397,12 +419,14 @@ export function ProductForm({ onDone, initial }: { onDone: () => void; initial?:
   const [shopIds, setShopIds] = useState<string[]>(initial?.shopIds ?? []);
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
   const [subCategoryIds, setSubCategoryIds] = useState<string[]>(initial?.subCategoryIds ?? []);
+  const { categoryOptions, subCategoryOptions } = useCategoryOptions("Product", categoryIds);
+  useValidSubCategories("Product", categoryIds, subCategoryIds, setSubCategoryIds);
   const [price, setPrice] = useState(initial?.price != null ? String(initial.price) : "");
   const [salePrice, setSalePrice] = useState(initial?.salePrice != null ? String(initial.salePrice) : "");
   const [discountShortMessage, setDiscountShortMessage] = useState(initial?.discountShortMessage ?? "");
   const [discountMessage, setDiscountMessage] = useState(initial?.discountMessage ?? "");
-  const [coverImage, setCoverImage] = useState<File[]>([]);
-  const [images, setImages] = useState<File[]>([]);
+  const [coverImage, setCoverImage] = useState<ImageValue[]>(initial?.coverImage ? [initial.coverImage] : []);
+  const [images, setImages] = useState<ImageValue[]>(initial?.images ?? []);
   const [shortDescription, setShortDescription] = useState(initial?.shortDescription ?? "");
   const [fullDescription, setFullDescription] = useState(initial?.fullDescription ?? "");
   const [highlights, setHighlights] = useState<string[]>(initial?.highlights ?? []);
@@ -413,26 +437,26 @@ export function ProductForm({ onDone, initial }: { onDone: () => void; initial?:
   const shopOptions = (shopsQuery.data?.items ?? []).map((s) => ({ label: s.name, value: s.id }));
 
   const submit = async () => {
-    if (!name.trim() || categoryIds.length === 0 || !price || (coverImage.length === 0 && !initial?.coverImage)) {
+    if (!name.trim() || categoryIds.length === 0 || !price || coverImage.length === 0) {
       toast.error("Please fill in product name, category, price and cover image.");
       return;
     }
-    const payload = {
-      ...baseListingPayload({ name, type: "Product", categoryIds, subCategoryIds, categoriesById, subCategoriesById, location: {}, status }),
+    if (salePrice && Number(salePrice) > Number(price)) {
+      toast.error("Sale price cannot be more than the price.");
+      return;
+    }
+    const payload: ListingInput = {
+      name, type: "Product", categoryIds, subCategoryIds, status,
       shopIds,
-      coverImage: coverImage[0]?.name ?? initial?.coverImage,
-      images: images.length ? images.map((f) => f.name) : initial?.images ?? [],
+      coverImage, images,
       price: Number(price), salePrice: salePrice ? Number(salePrice) : undefined,
       discountShortMessage, discountMessage,
       shortDescription, fullDescription,
       highlights: highlights.filter(Boolean),
       featured,
     };
-    if (initial) {
-      await updateListing.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createListing.mutateAsync(payload);
-    }
+    const saved = await attempt(() => (initial ? updateListing.mutateAsync({ id: initial.id, payload }) : createListing.mutateAsync(payload)));
+    if (!saved) return;
     toast.success(isEdit ? "Product updated" : "Product saved");
     onDone();
   };
@@ -442,7 +466,7 @@ export function ProductForm({ onDone, initial }: { onDone: () => void; initial?:
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <FormSection title="Basic Information">
           <Field label="Product Name" required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter product name" /></Field>
-          <Field label="Select Shops" required><MultiSelect options={shopOptions} value={shopIds} onChange={setShopIds} placeholder="Select one or more shops" /></Field>
+          <Field label="Select Shops"><MultiSelect options={shopOptions} value={shopIds} onChange={setShopIds} placeholder="Select one or more shops" /></Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Product Category (Select multiple)" required><MultiSelect options={categoryOptions} value={categoryIds} onChange={setCategoryIds} placeholder="Select categories" /></Field>
             <Field label="Product Sub Category (Select multiple)"><MultiSelect options={subCategoryOptions} value={subCategoryIds} onChange={setSubCategoryIds} placeholder="Select sub categories" /></Field>

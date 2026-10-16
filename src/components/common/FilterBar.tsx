@@ -27,6 +27,7 @@ export function FilterBar({
   showDateRange = true,
   onReset,
   onFilter,
+  onDateRangeChange,
 }: {
   search?: string;
   onSearchChange?: (v: string) => void;
@@ -35,12 +36,20 @@ export function FilterBar({
   showDateRange?: boolean;
   onReset?: () => void;
   onFilter?: () => void;
+  /** Called with `YYYY-MM-DD` values (empty when unset) whenever either date changes. */
+  onDateRangeChange?: (range: { from: string; to: string }) => void;
 }) {
   const [searchValue, setSearchValue] = useState(search ?? "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const debouncedSearch = useDebouncedValue(searchValue);
   const lastEmittedSearch = useRef(search ?? "");
+  const onDateRangeChangeRef = useRef(onDateRangeChange);
+  onDateRangeChangeRef.current = onDateRangeChange;
+
+  useEffect(() => {
+    onDateRangeChangeRef.current?.({ from: startDate, to: endDate });
+  }, [startDate, endDate]);
 
   useEffect(() => {
     setSearchValue(search ?? "");

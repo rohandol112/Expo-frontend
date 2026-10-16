@@ -34,7 +34,16 @@ function SubCategoriesPage() {
   );
 
   const columns: SortableColumn<ListingSubCategory>[] = [
-    { key: "name", header: "Sub Category Name", cell: (r) => <span className="font-medium">{r.icon} {r.name}</span> },
+    {
+      key: "name",
+      header: "Sub Category Name",
+      cell: (r) => (
+        <span className="flex items-center gap-2 font-medium">
+          {r.icon && <img src={r.icon.url} alt="" className="h-6 w-6 rounded object-contain" />}
+          {r.name}
+        </span>
+      ),
+    },
     { key: "category", header: "Category", cell: (r) => <span className="text-sm">{r.category}</span> },
     { key: "type", header: "Type", cell: (r) => <span className="text-sm">{r.type}</span> },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },

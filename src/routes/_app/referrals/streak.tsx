@@ -1,12 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Download, Flame, UserCheck, Trophy, BarChart3, Gift } from "lucide-react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { Button } from "@/components/ui/button";
 import { useStreakUsers } from "@/hooks/api/useStreakUsers";
 import type { StreakUser } from "@/types/referrals";
+import { useAudienceFilters } from "@/hooks/useAudienceFilters";
+import { useReportListState } from "@/hooks/useReportListState";
+import { streakUserService } from "@/services/streakUser.service";
+import { downloadCsv, EXPORT_LIMIT, type CsvColumn } from "@/lib/csv";
+import { handleError } from "@/lib/errorHandler";
+import { istToday } from "@/lib/format";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/referrals/streak")({ component: StreakPage });
 
@@ -53,51 +59,81 @@ const STREAK_BUCKETS = [
   { label: "91+ days", value: "91+" },
 ];
 
-function inBucket(days: number, bucket: string) {
-  if (bucket === "1-7") return days <= 7;
-  if (bucket === "8-15") return days >= 8 && days <= 15;
-  if (bucket === "16-30") return days >= 16 && days <= 30;
-  if (bucket === "31-60") return days >= 31 && days <= 60;
-  if (bucket === "61-90") return days >= 61 && days <= 90;
-  if (bucket === "91+") return days >= 91;
-  return true;
-}
+const PAGE_SIZE = 20;
+
+const CSV_COLUMNS: CsvColumn<StreakUser>[] = [
+  { header: "Rank", value: (r) => r.rank },
+  { header: "Name", value: (r) => r.name },
+  { header: "Phone", value: (r) => r.phone },
+  { header: "State", value: (r) => r.state },
+  { header: "District", value: (r) => r.district },
+  { header: "Area", value: (r) => r.area },
+  { header: "Language", value: (r) => r.language },
+  { header: "Current Streak (days)", value: (r) => r.currentStreak },
+  { header: "Longest Streak (days)", value: (r) => r.longestStreak },
+  { header: "Total Active Days", value: (r) => r.totalActiveDays },
+  { header: "Last Active", value: (r) => r.lastActiveAt },
+  { header: "Streak Points", value: (r) => r.streakPoints },
+];
 
 function StreakPage() {
-  const streakQuery = useStreakUsers();
+  const list = useReportListState();
+  const { dropdowns, params } = useAudienceFilters(list.dropdownValues, { area: true, language: true });
+  const query = {
+    ...params,
+    page: list.page,
+    per_page: PAGE_SIZE,
+    search: list.search || undefined,
+    from: list.from,
+    to: list.to,
+    streak_range: list.dropdownValues.bucket || undefined,
+  };
+  const streakQuery = useStreakUsers(query);
+  const [exporting, setExporting] = useState(false);
   const users = streakQuery.data?.items ?? [];
+  const stats = streakQuery.data?.stats;
+  const n = (v: number | undefined) => (v === undefined ? "—" : v.toLocaleString("en-IN"));
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const all = await streakUserService.list({ ...query, page: 1, per_page: EXPORT_LIMIT });
+      downloadCsv(`streak-users-${istToday()}`, all.items, CSV_COLUMNS);
+    } catch (error) {
+      handleError(error, "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <AdminListPage
       title="Streak Details"
       breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Referrals & Points", to: ROUTES.REFERRALS }, { label: "Streak" }]}
-      actions={<Button variant="outline" onClick={() => toast.info("Export coming soon")}><Download className="mr-2 h-4 w-4" />Export CSV</Button>}
+      actions={<Button variant="outline" onClick={exportCsv} disabled={exporting}><Download className="mr-2 h-4 w-4" />{exporting ? "Exporting..." : "Export CSV"}</Button>}
       stats={[
-        { title: "Total Streak Users", value: "8,420", subtitle: "↑18% · Users with 1+ day streak", icon: Flame, variant: "blue" },
-        { title: "Active Streak Users", value: "5,230", subtitle: "↑22% · Users active today", icon: UserCheck, variant: "green" },
-        { title: "Longest Streak", value: "365 Days", subtitle: "Current record", icon: Trophy, variant: "amber" },
-        { title: "Average Streak", value: "12 Days", subtitle: "Among active users", icon: BarChart3, variant: "violet" },
-        { title: "Total Streak Points", value: "2,48,000", subtitle: "Points given this month", icon: Gift, variant: "rose" },
+        { title: "Total Streak Users", value: n(stats?.streakUsers), subtitle: "Users with a live streak", icon: Flame, variant: "blue" },
+        { title: "Active Streak Users", value: n(stats?.activeToday), subtitle: "Checked in today", icon: UserCheck, variant: "green" },
+        { title: "Longest Streak", value: stats ? `${n(stats.longestStreak)} Days` : "—", subtitle: "Current record", icon: Trophy, variant: "amber" },
+        { title: "Average Streak", value: stats ? `${Math.round(stats.averageStreak)} Days` : "—", subtitle: "Among users with a live streak", icon: BarChart3, variant: "violet" },
+        { title: "Total Streak Points", value: n(stats?.streakPoints), subtitle: list.from || list.to ? "Points in the selected dates" : "Points given so far", icon: Gift, variant: "rose" },
       ]}
       data={users}
       columns={columns()}
       loading={streakQuery.isLoading}
+      error={streakQuery.error ? "Unable to load streak users." : undefined}
       rowKey={(r) => r.id}
       searchPlaceholder="Search by name, phone number..."
       showDateRange
-      dropdowns={[
-        { key: "bucket", placeholder: "Streak Days", options: STREAK_BUCKETS },
-        { key: "state", placeholder: "State", options: [...new Set(users.map((u) => u.state))].map((s) => ({ label: s, value: s })) },
-        { key: "district", placeholder: "District", options: [...new Set(users.map((u) => u.district))].map((d) => ({ label: d, value: d })) },
-        { key: "language", placeholder: "Language", options: [...new Set(users.map((u) => u.language))].map((l) => ({ label: l, value: l })) },
-      ]}
-      filter={(row, search, dropdowns) =>
-        (!dropdowns.bucket || inBucket(row.currentStreak, dropdowns.bucket)) &&
-        (!dropdowns.state || row.state === dropdowns.state) &&
-        (!dropdowns.district || row.district === dropdowns.district) &&
-        (!dropdowns.language || row.language === dropdowns.language) &&
-        (!search || [row.name, row.phone].some((v) => v.toLowerCase().includes(search.toLowerCase())))
-      }
+      onDateRangeChange={list.onDateRangeChange}
+      serverSide
+      total={streakQuery.data?.total ?? 0}
+      pageSize={PAGE_SIZE}
+      page={list.page}
+      onPageChange={list.setPage}
+      onQueryChange={list.onQueryChange}
+      initialDropdownValues={list.dropdownValues}
+      dropdowns={[{ key: "bucket", placeholder: "Streak Days", options: STREAK_BUCKETS }, ...dropdowns]}
     />
   );
 }

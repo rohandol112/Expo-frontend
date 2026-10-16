@@ -38,10 +38,14 @@ export function LinkForm({ onDone, initial }: { onDone: () => void; initial?: Im
       return;
     }
     const payload = { title: title.trim(), description, status };
-    if (initial) {
-      await updateLink.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createLink.mutateAsync(payload);
+    try {
+      if (initial) {
+        await updateLink.mutateAsync({ id: initial.id, payload });
+      } else {
+        await createLink.mutateAsync(payload);
+      }
+    } catch {
+      return;
     }
     toast.success(initial ? "Link updated" : "Link saved");
     onDone();

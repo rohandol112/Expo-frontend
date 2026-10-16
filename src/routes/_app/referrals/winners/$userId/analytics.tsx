@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { useUserAnalytics } from "@/hooks/api/useUserAnalytics";
 import { ROUTES } from "@/constants/routes.constants";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { downloadCsv } from "@/lib/csv";
+import { istMonth } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/referrals/winners/$userId/analytics")({ component: UserAnalyticsPage });
 
@@ -41,10 +42,10 @@ function StatTile({ icon: Icon, label, value, tone }: { icon: React.ComponentTyp
 function UserAnalyticsPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
-  const analyticsQuery = useUserAnalytics(userId);
+  const [month, setMonth] = useState(istMonth());
+  const analyticsQuery = useUserAnalytics(userId, month);
   const data = analyticsQuery.data;
   const [series, setSeries] = useState<Series>("all");
-  const [month, setMonth] = useState("2026-09");
 
   const showSeries = (key: Exclude<Series, "all">) => series === "all" || series === key;
 
@@ -82,9 +83,23 @@ function UserAnalyticsPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={() => navigate({ to: ROUTES.REFERRALS_WINNERS })}><ArrowLeft className="mr-2 h-4 w-4" />Back to Winners</Button>
-            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[170px]" aria-label="Month" />
-            <Button onClick={() => toast.success("Analytics refreshed")}>Apply</Button>
-            <Button variant="outline" onClick={() => toast.info("Export coming soon")}><Download className="mr-2 h-4 w-4" />Export</Button>
+            <Input type="month" value={month} max={istMonth()} onChange={(e) => setMonth(e.target.value || istMonth())} className="w-[170px]" aria-label="Month" />
+            <Button
+              variant="outline"
+              disabled={!data}
+              onClick={() =>
+                data &&
+                downloadCsv(`points-${data.userId}-${month}`, data.dayWisePoints, [
+                  { header: "Date", value: (d) => d.date },
+                  { header: "Reading", value: (d) => d.reading },
+                  { header: "Quiz", value: (d) => d.quiz },
+                  { header: "Bonus", value: (d) => d.bonus },
+                  { header: "Referral", value: (d) => d.referral },
+                ])
+              }
+            >
+              <Download className="mr-2 h-4 w-4" />Export
+            </Button>
           </div>
         }
       />
@@ -190,7 +205,7 @@ function UserAnalyticsPage() {
                 {pieData.map((d) => (
                   <div key={d.name} className="flex items-center justify-between">
                     <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />{d.name}</span>
-                    <span className="font-medium">{d.value.toLocaleString()} ({((d.value / data.totalPoints) * 100).toFixed(1)}%)</span>
+                    <span className="font-medium">{d.value.toLocaleString()} ({(data.totalPoints ? (d.value / data.totalPoints) * 100 : 0).toFixed(1)}%)</span>
                   </div>
                 ))}
               </div>

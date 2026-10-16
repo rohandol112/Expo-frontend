@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Clock, Gift, Pencil, Plus, Save, Trash2, Trophy } from "lucide-react";
+import { Clock, Gift, Lock, Pencil, Plus, Save, Trash2, Trophy } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { LocationTabs } from "@/components/admin/LocationTabs";
@@ -17,14 +17,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import {
   useAddQuizQuestion,
+  useDailyQuizLocation,
   useDailyQuizLocations,
   useDeleteQuizQuestion,
   useSaveQuizSettings,
   useSaveTodaysGift,
   useUpdateQuizQuestion,
 } from "@/hooks/api/useDailyQuiz";
-import { DAILY_QUIZ_LOCATIONS } from "@/mock/dailyQuiz.mock";
-import type { DailyQuizLocation, QuizConfig, QuizQuestion, TodaysGift } from "@/types/referrals";
+import { useCompetitionLocations } from "@/hooks/api/useRewardsSettings";
+import { formatDate, istToday } from "@/lib/format";
+import type { ImageValue } from "@/lib/mediaUpload";
+import type { DailyQuizLocation, QuizConfig, QuizQuestion } from "@/types/referrals";
 import { ROUTES } from "@/constants/routes.constants";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -33,11 +36,23 @@ export const Route = createFileRoute("/_app/referrals/daily-quiz")({ component: 
 
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
+/** Runs a save, leaving error toasts to the mutation hooks; resolves true on success. */
+async function attempt(run: () => Promise<unknown>): Promise<boolean> {
+  try {
+    await run();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function DailyQuizPage() {
   const [locationId, setLocationId] = useState("all");
-  const locationsQuery = useDailyQuizLocations();
-  const locations = locationsQuery.data ?? [];
-  const selected = locations.find((l) => l.locationId === locationId);
+  const [date, setDate] = useState(istToday());
+  const locationsQuery = useCompetitionLocations();
+  const overviewQuery = useDailyQuizLocations(date);
+  const detailQuery = useDailyQuizLocation(locationId, date);
+  const tabs = (locationsQuery.data?.items ?? []).map((l) => ({ id: l.id, label: l.title }));
 
   return (
     <div>
@@ -49,24 +64,34 @@ function DailyQuizPage() {
             : "Create and manage daily quiz for different locations. Set schedule, questions, answer options, timer and points."
         }
         breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Referrals & Points", to: ROUTES.REFERRALS }, { label: "Daily Quiz" }]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Label htmlFor="quiz-date" className="text-sm text-muted-foreground">Quiz date</Label>
+            <Input id="quiz-date" type="date" value={date} onChange={(e) => setDate(e.target.value || istToday())} className="w-[170px]" />
+          </div>
+        }
       />
-
-      <LocationTabs
-        locations={DAILY_QUIZ_LOCATIONS.map((l) => ({ id: l.id, label: l.label }))}
-        value={locationId}
-        onChange={setLocationId}
-      />
-
-      {locationId === "all" && <AllLocationsTable locations={locations} onManage={setLocationId} loading={locationsQuery.isLoading} />}
-
-      {locationId !== "all" && selected && <LocationQuizBuilder key={selected.locationId} location={selected} />}
+      <LocationTabs locations={tabs} value={locationId} onChange={setLocationId} />
+      {tabs.length === 0 && !locationsQuery.isLoading && (
+        <div className="mb-4 rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          Add a competition location in Settings first. Each location runs its own daily quiz.
+        </div>
+      )}
+      {locationId === "all" && (
+        <AllLocationsTable locations={overviewQuery.data ?? []} onManage={setLocationId} loading={overviewQuery.isLoading} />
+      )}
+      {locationId !== "all" && detailQuery.isLoading && <div className="p-6 text-sm text-muted-foreground">Loading quiz…</div>}
+      {locationId !== "all" && detailQuery.error && <div className="p-6 text-sm text-destructive">Unable to load this location's quiz.</div>}
+      {locationId !== "all" && detailQuery.data && (
+        <LocationQuizBuilder key={`${detailQuery.data.locationId}-${date}`} location={detailQuery.data} />
+      )}
     </div>
   );
 }
 
 function QuizStatus({ quiz }: { quiz: QuizConfig }) {
-  const configured = Boolean(quiz.scheduleDate && quiz.startTime && quiz.totalQuestions > 0);
-  return <StatusBadge status={configured ? "Active" : "Not Set"} variant={configured ? "green" : "red"} />;
+  if (!quiz.quizId) return <StatusBadge status="Not Set" variant="red" />;
+  return <StatusBadge status={quiz.isActive ? "Active" : "Inactive"} variant={quiz.isActive ? "green" : "amber"} />;
 }
 
 function AllLocationsTable({ locations, onManage, loading }: { locations: DailyQuizLocation[]; onManage: (id: string) => void; loading: boolean }) {
@@ -75,30 +100,35 @@ function AllLocationsTable({ locations, onManage, loading }: { locations: DailyQ
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-            <th rowSpan={2} className="px-4 py-3 font-medium">Location (Area, District, State)</th>
+            <th rowSpan={2} className="px-4 py-3 font-medium">Location</th>
             <th colSpan={4} className="border-l px-4 py-2 text-center font-medium">🏆 Quiz 1</th>
             <th colSpan={4} className="border-l px-4 py-2 text-center font-medium">🏆 Quiz 2</th>
+            <th rowSpan={2} className="border-l px-4 py-3 font-medium">Today's Gift</th>
             <th rowSpan={2} className="border-l px-4 py-3 font-medium">Actions</th>
           </tr>
           <tr className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
             {["Time", "Questions", "Points", "Status", "Time", "Questions", "Points", "Status"].map((h, i) => (
-              <th key={i} className={cn("px-4 py-2 font-medium", i === 0 && "border-l")}>{h}</th>
+              <th key={i} className={cn("px-4 py-2 font-medium", (i === 0 || i === 4) && "border-l")}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+            <tr><td colSpan={11} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+          )}
+          {!loading && locations.length === 0 && (
+            <tr><td colSpan={11} className="px-4 py-6 text-center text-muted-foreground">No competition locations yet</td></tr>
           )}
           {locations.map((loc) => (
             <tr key={loc.locationId} className="border-b last:border-0">
               <td className="px-4 py-3">
                 <p className="font-medium">📍 {loc.locationLabel}</p>
-                <p className="text-xs text-muted-foreground">{loc.state}</p>
+                {!loc.isActive && <p className="text-xs text-muted-foreground">Inactive location</p>}
               </td>
               {[loc.quiz1, loc.quiz2].map((quiz, qi) => (
-                <QuizSummaryCells key={qi} quiz={quiz} first={qi === 0} />
+                <QuizSummaryCells key={qi} quiz={quiz} />
               ))}
+              <td className="border-l px-4 py-3">{loc.todaysGift?.giftName ?? <span className="text-muted-foreground">Not set</span>}</td>
               <td className="border-l px-4 py-3">
                 <Button variant="outline" size="sm" onClick={() => onManage(loc.locationId)}>Manage</Button>
               </td>
@@ -110,13 +140,13 @@ function AllLocationsTable({ locations, onManage, loading }: { locations: DailyQ
   );
 }
 
-function QuizSummaryCells({ quiz, first }: { quiz: QuizConfig; first: boolean }) {
-  const time = quiz.startTime && quiz.endTime ? `${quiz.startTime} - ${quiz.endTime}` : "-";
+function QuizSummaryCells({ quiz }: { quiz: QuizConfig }) {
+  const set = Boolean(quiz.quizId);
   return (
     <>
-      <td className={cn("whitespace-nowrap px-4 py-3", first && "border-l")}>{time}</td>
-      <td className="px-4 py-3">{quiz.totalQuestions || "-"}</td>
-      <td className="px-4 py-3">{quiz.totalQuestions ? (quiz.totalQuestions * quiz.pointsPerCorrect).toLocaleString() : "-"}</td>
+      <td className="whitespace-nowrap border-l px-4 py-3">{set ? `${quiz.startTime} - ${quiz.endTime}` : "-"}</td>
+      <td className="px-4 py-3">{set ? quiz.totalQuestions : "-"}</td>
+      <td className="px-4 py-3">{set ? (quiz.totalQuestions * quiz.pointsPerCorrect).toLocaleString() : "-"}</td>
       <td className="px-4 py-3"><QuizStatus quiz={quiz} /></td>
     </>
   );
@@ -124,55 +154,62 @@ function QuizSummaryCells({ quiz, first }: { quiz: QuizConfig; first: boolean })
 
 function LocationQuizBuilder({ location }: { location: DailyQuizLocation }) {
   const saveTodaysGift = useSaveTodaysGift();
-  const [gift, setGift] = useState<TodaysGift>(location.todaysGift);
-  const [giftFile, setGiftFile] = useState<File[]>([]);
+  const [giftName, setGiftName] = useState(location.todaysGift?.giftName ?? "");
+  const [description, setDescription] = useState(location.todaysGift?.description ?? "");
+  const [giftValue, setGiftValue] = useState(location.todaysGift?.giftValue != null ? String(location.todaysGift.giftValue) : "");
+  const [photo, setPhoto] = useState<ImageValue[]>(location.todaysGift?.photo ? [location.todaysGift.photo] : []);
 
   return (
     <div className="space-y-4">
       <Card className="flex items-center justify-between p-4">
         <div>
-          <p className="flex items-center gap-2 font-semibold">📍 {location.locationLabel}, {location.state}</p>
-          <p className="text-sm text-muted-foreground">Manage quiz 1 and quiz 2 for {location.locationLabel}. Each question will have 30 seconds timer.</p>
+          <p className="flex items-center gap-2 font-semibold">📍 {location.locationLabel} · {formatDate(location.date)}</p>
+          <p className="text-sm text-muted-foreground">
+            Manage quiz 1 and quiz 2 for {location.locationLabel}. The first players in this location to answer every quiz of the day correctly win today's gift.
+          </p>
         </div>
         <StatusBadge status={location.isActive ? "Active" : "Inactive"} />
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <QuizCard location={location} quizNumber={1} accent="blue" />
-        <QuizCard location={location} quizNumber={2} accent="red" />
+        <QuizCard location={location} quiz={location.quiz1} accent="blue" />
+        <QuizCard location={location} quiz={location.quiz2} accent="red" />
       </div>
 
-      <FormSection title="Today's Gift" description="Set the gift that will be displayed to users for today's quiz.">
+      <FormSection title="Today's Gift" description={`The gift shown to users for the quiz on ${formatDate(location.date)}.`}>
         <div className="grid gap-4 md:grid-cols-[260px_1fr]">
-          <ImageUploadGrid
-            label="Gift Photo"
-            hint="JPG, PNG, Max 2MB"
-            value={giftFile}
-            onChange={setGiftFile}
-          />
+          <ImageUploadGrid label="Gift Photo" hint="JPG, PNG, Max 2MB" value={photo} onChange={setPhoto} />
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Gift Name</Label>
-              <Input value={gift.giftName} onChange={(e) => setGift({ ...gift, giftName: e.target.value })} placeholder="Enter gift name" />
+            <div className="grid gap-4 sm:grid-cols-[1fr_160px]">
+              <div className="space-y-2">
+                <Label>Gift Name</Label>
+                <Input value={giftName} onChange={(e) => setGiftName(e.target.value)} placeholder="Enter gift name" />
+              </div>
+              <div className="space-y-2">
+                <Label>Value (₹)</Label>
+                <Input type="number" min={0} value={giftValue} onChange={(e) => setGiftValue(e.target.value)} placeholder="e.g. 500" />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Description (Optional)</Label>
-              <Textarea value={gift.description ?? ""} onChange={(e) => setGift({ ...gift, description: e.target.value })} rows={3} placeholder="Enter description" />
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Enter description" />
             </div>
           </div>
         </div>
         <div className="flex justify-end">
           <Button
-            disabled={saveTodaysGift.isPending || !gift.giftName.trim()}
+            disabled={saveTodaysGift.isPending || !giftName.trim()}
             onClick={async () => {
-              await saveTodaysGift.mutateAsync({
-                locationId: location.locationId,
-                payload: { ...gift, photo: giftFile[0]?.name ?? gift.photo },
-              });
-              toast.success("Today's gift saved");
+              const saved = await attempt(() =>
+                saveTodaysGift.mutateAsync({
+                  locationId: location.locationId,
+                  payload: { date: location.date, giftName, description, giftValue: giftValue === "" ? null : Math.round(Number(giftValue)), photo },
+                }),
+              );
+              if (saved) toast.success("Today's gift saved");
             }}
           >
-            <Save className="mr-2 h-4 w-4" />Save Gift
+            <Save className="mr-2 h-4 w-4" />{saveTodaysGift.isPending ? "Saving..." : "Save Gift"}
           </Button>
         </div>
       </FormSection>
@@ -180,36 +217,36 @@ function LocationQuizBuilder({ location }: { location: DailyQuizLocation }) {
   );
 }
 
-function QuizCard({ location, quizNumber, accent }: { location: DailyQuizLocation; quizNumber: 1 | 2; accent: "blue" | "red" }) {
-  const initial = quizNumber === 1 ? location.quiz1 : location.quiz2;
+type QuizDraft = Pick<QuizConfig, "isActive" | "startTime" | "endTime" | "totalQuestions" | "pointsPerCorrect">;
+
+function draftOf(quiz: QuizConfig): QuizDraft {
+  return {
+    isActive: quiz.isActive,
+    startTime: quiz.startTime || (quiz.quizNumber === 1 ? "10:00" : "18:00"),
+    endTime: quiz.endTime || (quiz.quizNumber === 1 ? "11:00" : "19:00"),
+    totalQuestions: quiz.totalQuestions,
+    pointsPerCorrect: quiz.pointsPerCorrect,
+  };
+}
+
+function QuizCard({ location, quiz, accent }: { location: DailyQuizLocation; quiz: QuizConfig; accent: "blue" | "red" }) {
+  const quizNumber = quiz.quizNumber;
   const saveSettings = useSaveQuizSettings();
   const deleteQuestion = useDeleteQuizQuestion();
-  const [draft, setDraft] = useState<Omit<QuizConfig, "questions" | "quizNumber">>({
-    isActive: initial.isActive,
-    scheduleDate: initial.scheduleDate,
-    startTime: initial.startTime,
-    endTime: initial.endTime,
-    totalQuestions: initial.totalQuestions,
-    pointsPerCorrect: initial.pointsPerCorrect,
-  });
+  const [draft, setDraft] = useState<QuizDraft>(draftOf(quiz));
   const [questionDialog, setQuestionDialog] = useState<{ open: boolean; question?: QuizQuestion }>({ open: false });
   const [deleteTarget, setDeleteTarget] = useState<QuizQuestion | null>(null);
 
   useEffect(() => {
-    setDraft({
-      isActive: initial.isActive,
-      scheduleDate: initial.scheduleDate,
-      startTime: initial.startTime,
-      endTime: initial.endTime,
-      totalQuestions: initial.totalQuestions,
-      pointsPerCorrect: initial.pointsPerCorrect,
-    });
-  }, [initial]);
+    setDraft(draftOf(quiz));
+  }, [quiz]);
 
   const borderClass = accent === "blue" ? "border-t-blue-500" : "border-t-red-500";
   const textClass = accent === "blue" ? "text-blue-700" : "text-red-700";
-  const questions = initial.questions;
-  const totalPoints = questions.length * draft.pointsPerCorrect;
+  const questions = quiz.questions;
+  const locked = quiz.attemptCount > 0;
+  const full = questions.length >= quiz.totalQuestions;
+  const canAdd = Boolean(quiz.quizId) && !locked && !full;
 
   return (
     <Card className={cn("border-t-4 p-5", borderClass)}>
@@ -226,50 +263,68 @@ function QuizCard({ location, quizNumber, accent }: { location: DailyQuizLocatio
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-1.5">
           <Label>Schedule Date</Label>
-          <Input value={draft.scheduleDate} onChange={(e) => setDraft({ ...draft, scheduleDate: e.target.value })} placeholder="e.g. 28 Sep 2026" />
+          <Input value={formatDate(location.date)} readOnly />
         </div>
         <div className="space-y-1.5">
           <Label>Start Time</Label>
-          <Input value={draft.startTime} onChange={(e) => setDraft({ ...draft, startTime: e.target.value })} placeholder="e.g. 10:00 AM" />
+          <Input type="time" value={draft.startTime} onChange={(e) => setDraft({ ...draft, startTime: e.target.value })} />
         </div>
         <div className="space-y-1.5">
           <Label>End Time</Label>
-          <Input value={draft.endTime} onChange={(e) => setDraft({ ...draft, endTime: e.target.value })} placeholder="e.g. 11:00 AM" />
+          <Input type="time" value={draft.endTime} onChange={(e) => setDraft({ ...draft, endTime: e.target.value })} />
         </div>
         <div className="space-y-1.5">
           <Label>Total Questions</Label>
-          <Input value={`${questions.length} Questions`} readOnly />
+          <Input
+            type="number"
+            min={Math.max(1, questions.length)}
+            max={50}
+            value={draft.totalQuestions}
+            onChange={(e) => setDraft({ ...draft, totalQuestions: Math.min(50, Math.max(1, Math.round(Number(e.target.value) || 1))) })}
+          />
         </div>
         <div className="space-y-1.5">
           <Label>Points per Correct Answer</Label>
-          <Input type="number" value={draft.pointsPerCorrect} onChange={(e) => setDraft({ ...draft, pointsPerCorrect: Number(e.target.value) })} />
+          <Input type="number" min={0} value={draft.pointsPerCorrect} onChange={(e) => setDraft({ ...draft, pointsPerCorrect: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
         </div>
         <div className="space-y-1.5">
           <Label>Total Points (Max)</Label>
-          <Input value={totalPoints.toLocaleString()} readOnly />
+          <Input value={(draft.totalQuestions * draft.pointsPerCorrect).toLocaleString()} readOnly />
         </div>
       </div>
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">{quiz.quizId ? `${quiz.attemptCount} played so far` : "Not saved for this date yet"}</p>
         <Button
           size="sm"
           variant="outline"
-          disabled={saveSettings.isPending}
+          disabled={saveSettings.isPending || !draft.startTime || !draft.endTime}
           onClick={async () => {
-            await saveSettings.mutateAsync({ locationId: location.locationId, quizNumber, payload: { ...draft, totalQuestions: questions.length } });
-            toast.success(`Quiz ${quizNumber} settings saved`);
+            if (draft.endTime <= draft.startTime) {
+              toast.error("End time must be after start time.");
+              return;
+            }
+            const saved = await attempt(() =>
+              saveSettings.mutateAsync({ locationId: location.locationId, quizNumber, payload: { ...draft, scheduleDate: location.date } }),
+            );
+            if (saved) toast.success(`Quiz ${quizNumber} settings saved`);
           }}
         >
-          <Save className="mr-2 h-3.5 w-3.5" />Save Settings
+          <Save className="mr-2 h-3.5 w-3.5" />{saveSettings.isPending ? "Saving..." : "Save Settings"}
         </Button>
       </div>
 
       <div className="mt-5 flex items-center justify-between">
-        <h4 className="text-sm font-semibold">📋 Questions ({questions.length})</h4>
-        <Button size="sm" onClick={() => setQuestionDialog({ open: true })}>
+        <h4 className="text-sm font-semibold">📋 Questions ({questions.length}/{quiz.totalQuestions})</h4>
+        <Button size="sm" onClick={() => setQuestionDialog({ open: true })} disabled={!canAdd}>
           <Plus className="mr-1.5 h-3.5 w-3.5" />Add Question
         </Button>
       </div>
+      {!quiz.quizId && <p className="mt-1 text-xs text-muted-foreground">Save the settings first, then add questions.</p>}
+      {quiz.quizId && full && !locked && <p className="mt-1 text-xs text-muted-foreground">All {quiz.totalQuestions} questions added. Raise Total Questions to add more.</p>}
+      {locked && (
+        <p className="mt-1 flex items-center gap-1 text-xs text-amber-700"><Lock className="h-3 w-3" />Users have started this quiz, so its questions can no longer change.</p>
+      )}
 
       <div className="mt-2 overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
@@ -298,10 +353,10 @@ function QuizCard({ location, quizNumber, accent }: { location: DailyQuizLocatio
                 <td className="px-3 py-2"><span className="inline-flex items-center gap-1"><Gift className="h-3.5 w-3.5 text-muted-foreground" />{q.points}</span></td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setQuestionDialog({ open: true, question: q })} aria-label="Edit question">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" disabled={locked} onClick={() => setQuestionDialog({ open: true, question: q })} aria-label="Edit question">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(q)} aria-label="Delete question">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={locked} onClick={() => setDeleteTarget(q)} aria-label="Delete question">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -312,14 +367,16 @@ function QuizCard({ location, quizNumber, accent }: { location: DailyQuizLocatio
         </table>
       </div>
 
-      <QuestionDialog
-        open={questionDialog.open}
-        onOpenChange={(open) => setQuestionDialog({ open })}
-        title={`${questionDialog.question ? "Edit" : "Add"} Question (Quiz ${quizNumber} - ${location.locationLabel})`}
-        initial={questionDialog.question}
-        locationId={location.locationId}
-        quizNumber={quizNumber}
-      />
+      {quiz.quizId && (
+        <QuestionDialog
+          open={questionDialog.open}
+          onOpenChange={(open) => setQuestionDialog({ open })}
+          title={`${questionDialog.question ? "Edit" : "Add"} Question (Quiz ${quizNumber} - ${location.locationLabel})`}
+          initial={questionDialog.question}
+          quizId={quiz.quizId}
+          defaultPoints={quiz.pointsPerCorrect}
+        />
+      )}
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
@@ -330,7 +387,8 @@ function QuizCard({ location, quizNumber, accent }: { location: DailyQuizLocatio
         destructive
         onConfirm={async () => {
           if (!deleteTarget) return;
-          await deleteQuestion.mutateAsync({ locationId: location.locationId, quizNumber, questionId: deleteTarget.id });
+          const saved = await attempt(() => deleteQuestion.mutateAsync(deleteTarget.id));
+          if (!saved) return;
           toast.success("Question deleted");
           setDeleteTarget(null);
         }}
@@ -344,15 +402,15 @@ function QuestionDialog({
   onOpenChange,
   title,
   initial,
-  locationId,
-  quizNumber,
+  quizId,
+  defaultPoints,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   initial?: QuizQuestion;
-  locationId: string;
-  quizNumber: 1 | 2;
+  quizId: string;
+  defaultPoints: number;
 }) {
   const addQuestion = useAddQuizQuestion();
   const updateQuestion = useUpdateQuizQuestion();
@@ -360,7 +418,7 @@ function QuestionDialog({
   const [options, setOptions] = useState<string[]>(initial?.options ?? ["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState(initial?.correctIndex ?? 0);
   const [timerSeconds, setTimerSeconds] = useState(initial?.timerSeconds ?? 30);
-  const [points, setPoints] = useState(initial?.points ?? 100);
+  const [points, setPoints] = useState(initial?.points ?? defaultPoints);
 
   // Reset the form each time the dialog opens so it reflects the question being edited.
   useEffect(() => {
@@ -369,8 +427,8 @@ function QuestionDialog({
     setOptions(initial?.options ?? ["", "", "", ""]);
     setCorrectIndex(initial?.correctIndex ?? 0);
     setTimerSeconds(initial?.timerSeconds ?? 30);
-    setPoints(initial?.points ?? 100);
-  }, [open, initial]);
+    setPoints(initial?.points ?? defaultPoints);
+  }, [open, initial, defaultPoints]);
 
   const saving = addQuestion.isPending || updateQuestion.isPending;
 
@@ -379,12 +437,15 @@ function QuestionDialog({
       toast.error("Please fill in the question and all four options.");
       return;
     }
-    const payload = { text: text.trim(), options: options.map((o) => o.trim()), correctIndex, timerSeconds, points };
-    if (initial) {
-      await updateQuestion.mutateAsync({ locationId, quizNumber, questionId: initial.id, payload });
-    } else {
-      await addQuestion.mutateAsync({ locationId, quizNumber, payload });
+    if (timerSeconds < 5 || timerSeconds > 600) {
+      toast.error("The timer must be between 5 and 600 seconds.");
+      return;
     }
+    const payload = { text: text.trim(), options: options.map((o) => o.trim()), correctIndex, timerSeconds, points };
+    const saved = await attempt(() =>
+      initial ? updateQuestion.mutateAsync({ questionId: initial.id, payload }) : addQuestion.mutateAsync({ quizId, payload }),
+    );
+    if (!saved) return;
     toast.success(initial ? "Question updated" : "Question saved");
     onOpenChange(false);
   };
@@ -396,7 +457,6 @@ function QuestionDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>Enter question, options, correct answer, timer and points. Each question timer will be 30 seconds (adjustable).</DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>Question *</Label>
@@ -445,12 +505,12 @@ function QuestionDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Timer (Seconds) *</Label>
-              <Input type="number" value={timerSeconds} onChange={(e) => setTimerSeconds(Number(e.target.value))} />
+              <Input type="number" min={5} max={600} value={timerSeconds} onChange={(e) => setTimerSeconds(Number(e.target.value))} />
               <p className="text-xs text-muted-foreground">Each question will be shown to users for the selected time in seconds.</p>
             </div>
             <div className="space-y-1.5">
               <Label>Points for Correct Answer *</Label>
-              <Input type="number" value={points} onChange={(e) => setPoints(Number(e.target.value))} />
+              <Input type="number" min={0} value={points} onChange={(e) => setPoints(Number(e.target.value))} />
               <p className="text-xs text-muted-foreground">Points will be given to user for correct answer.</p>
             </div>
           </div>

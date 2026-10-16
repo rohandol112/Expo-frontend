@@ -1,14 +1,23 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { BarChart3, Camera, Check, Download, FileText, X } from "lucide-react";
+import { BarChart3, Camera, Check, Download, FileText, Gift, X } from "lucide-react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ImageUploadGrid } from "@/components/forms/ImageUploadGrid";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useWinners, useSubmitWinnerPhoto } from "@/hooks/api/useWinners";
-import { useGiftRequests } from "@/hooks/api/useGiftRequests";
+import { useMonthlyWinners, useQuizWinners, useSubmitDeliveryPhoto } from "@/hooks/api/useWinners";
+import { useCompetitionLocations } from "@/hooks/api/useRewardsSettings";
+import { useLanguages } from "@/hooks/api/useLanguages";
+import { useReportListState } from "@/hooks/useReportListState";
+import { winnerService } from "@/services/winner.service";
+import { placeLabel } from "@/services/adapters/rewards.adapter";
+import { downloadCsv, EXPORT_LIMIT, type CsvColumn } from "@/lib/csv";
+import { handleError } from "@/lib/errorHandler";
+import { istMonth, istToday } from "@/lib/format";
+import { isStoredImage, type ImageValue } from "@/lib/mediaUpload";
 import type { Winner } from "@/types/referrals";
 import type { Column } from "@/components/tables/DataTable";
 import { ROUTES } from "@/constants/routes.constants";
@@ -18,6 +27,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_app/referrals/winners/")({ component: WinnersPage });
 
 type Tab = "monthly" | "quiz";
+
+const PAGE_SIZE = 20;
 
 function PointsCell({ value }: { value: number }) {
   return <span className="text-sm">{value.toLocaleString()}</span>;
@@ -57,37 +68,96 @@ function RewardsPill({ status }: { status: Winner["rewardsStatus"] }) {
   return <StatusBadge status={status === "Submitted" ? "Submitted" : "Pending"} variant={status === "Submitted" ? "emerald" : "amber"} />;
 }
 
+const BASE_CSV: CsvColumn<Winner>[] = [
+  { header: "Rank", value: (r) => r.rank },
+  { header: "Location Rank", value: (r) => r.locationRank },
+  { header: "Rewards Location", value: (r) => r.locationTitle },
+  { header: "Name", value: (r) => r.name },
+  { header: "Phone", value: (r) => r.phone },
+  { header: "Area, District, State", value: (r) => placeLabel(r) },
+  { header: "Language", value: (r) => r.language },
+];
+
+const MONTHLY_CSV: CsvColumn<Winner>[] = [
+  ...BASE_CSV,
+  { header: "Total Points", value: (r) => r.totalPoints },
+  { header: "Reading", value: (r) => r.readingPoints },
+  { header: "Quiz", value: (r) => r.quizPoints },
+  { header: "Bonus", value: (r) => r.bonusPoints },
+  { header: "Referral", value: (r) => r.referralPoints },
+  { header: "Streak Days", value: (r) => r.streakDays },
+  { header: "Gift Won", value: (r) => r.wonGift },
+  { header: "Gift Request", value: (r) => r.giftRequestStatus },
+  { header: "Rewards", value: (r) => r.rewardsStatus },
+];
+
+const QUIZ_CSV: CsvColumn<Winner>[] = [
+  ...BASE_CSV,
+  { header: "Quiz 1 Correct", value: (r) => r.quiz1Results?.filter(Boolean).length },
+  { header: "Quiz 1 Submitted", value: (r) => r.quiz1AttemptTime },
+  { header: "Quiz 2 Correct", value: (r) => r.quiz2Results?.filter(Boolean).length },
+  { header: "Quiz 2 Submitted", value: (r) => r.quiz2AttemptTime },
+  { header: "Quiz Points", value: (r) => r.quizPoints },
+  { header: "Gift Position", value: (r) => r.giftPosition },
+  { header: "Winner", value: (r) => (r.isWinner ? "Yes" : "No") },
+  { header: "Gift Request", value: (r) => r.giftRequestStatus },
+];
+
 function WinnersPage() {
   const navigate = useNavigate();
-  const winnersQuery = useWinners();
-  const submitPhoto = useSubmitWinnerPhoto();
-  const giftRequestsQuery = useGiftRequests();
-  const giftRequests = giftRequestsQuery.data?.items ?? [];
   const [tab, setTab] = useState<Tab>("monthly");
+  const [month, setMonth] = useState(istMonth());
+  const [date, setDate] = useState(istToday());
+  const list = useReportListState();
+  const locationsQuery = useCompetitionLocations();
+  const languagesQuery = useLanguages();
+  const submitPhoto = useSubmitDeliveryPhoto();
   const [photoTarget, setPhotoTarget] = useState<Winner | null>(null);
-  const [photo, setPhoto] = useState<File[]>([]);
+  const [photo, setPhoto] = useState<ImageValue[]>([]);
+  const [exporting, setExporting] = useState(false);
 
-  const items = winnersQuery.data?.items ?? [];
+  const filters = {
+    page: list.page,
+    per_page: PAGE_SIZE,
+    search: list.search || undefined,
+    language: list.dropdownValues.language || undefined,
+    location_id: list.dropdownValues.location ? Number(list.dropdownValues.location) : undefined,
+  };
+  const monthlyQuery = useMonthlyWinners({ ...filters, month }, tab === "monthly");
+  const quizQuery = useQuizWinners({ ...filters, date }, tab === "quiz");
+  const activeQuery = tab === "monthly" ? monthlyQuery : quizQuery;
+  const items = activeQuery.data?.items ?? [];
 
-  const locationCell = (r: Winner) => <span className="whitespace-nowrap text-sm">{`${r.area}, ${r.district}, ${r.state}`}</span>;
+  const locationCell = (r: Winner) => (
+    <div>
+      <span className="whitespace-nowrap text-sm">{placeLabel(r)}</span>
+      {r.locationTitle && <p className="text-[11px] text-muted-foreground">{r.locationTitle}{r.locationRank ? ` · #${r.locationRank}` : ""}</p>}
+    </div>
+  );
   const userCell = (r: Winner) => (
     <div>
       <p className="text-sm font-medium">{r.name}</p>
       <p className="text-xs text-muted-foreground">{r.phone}</p>
     </div>
   );
-
   const actionsCell = (r: Winner) => (
     <ActionMenu
       extraItems={[
-        { label: "Photo Submit", icon: Camera, onClick: () => { setPhotoTarget(r); setPhoto([]); } },
+        {
+          label: "Photo Submit",
+          icon: Camera,
+          onClick: () => {
+            if (!r.giftRequestId) return toast.info("This winner hasn't requested the gift yet");
+            setPhotoTarget(r);
+            setPhoto([]);
+          },
+        },
         {
           label: "Request Details",
           icon: FileText,
           onClick: () => {
-            const request = giftRequests.find((g) => g.userId === r.userId);
-            if (!request) return toast.info("No gift request found for this winner");
-            navigate({ to: "/referrals/gift-requests/$id", params: { id: request.id } });
+            if (!r.giftRequestId) return toast.info("No gift request found for this winner");
+            navigate({ to: "/referrals/gift-requests/$id", params: { id: r.giftRequestId } });
           },
         },
         { label: "Analytics", icon: BarChart3, onClick: () => navigate({ to: "/referrals/winners/$userId/analytics", params: { userId: r.userId } }) },
@@ -95,34 +165,69 @@ function WinnersPage() {
     />
   );
 
+  const rankCell = (r: Winner) => <span className="font-semibold">{r.rank}</span>;
+
   const monthlyColumns: Column<Winner>[] = [
+    { key: "rank", header: "Rank", cell: rankCell },
     { key: "user", header: "User Name & Phone", cell: userCell },
     { key: "location", header: "Location (Area, District, State)", cell: locationCell },
-    { key: "language", header: "Language", cell: (r) => r.language },
+    { key: "language", header: "Language", cell: (r) => r.language || "—" },
     { key: "total", header: "Total Points", cell: (r) => <span className="font-semibold">{r.totalPoints.toLocaleString()}</span> },
     { key: "reading", header: "Reading Points", cell: (r) => <PointsCell value={r.readingPoints} /> },
     { key: "quiz", header: "Quiz Points", cell: (r) => <PointsCell value={r.quizPoints} /> },
     { key: "bonus", header: "Bonus Points", cell: (r) => <PointsCell value={r.bonusPoints} /> },
     { key: "referral", header: "Referral Points", cell: (r) => <PointsCell value={r.referralPoints} /> },
     { key: "streak", header: "Streak", cell: (r) => <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">{r.streakDays} Days</span> },
+    { key: "won", header: "Gift Won", cell: (r) => (r.wonGift ? <span className="flex items-center gap-1 text-sm"><Gift className="h-3.5 w-3.5 text-amber-600" />{r.wonGift}</span> : <span className="text-muted-foreground">—</span>) },
     { key: "gift", header: "Gift Request", cell: (r) => <GiftRequestPill status={r.giftRequestStatus} at={r.giftRequestedAt} /> },
     { key: "rewards", header: "Rewards", cell: (r) => <RewardsPill status={r.rewardsStatus} /> },
     { key: "actions", header: "Actions", cell: actionsCell },
   ];
 
   const quizColumns: Column<Winner>[] = [
+    { key: "rank", header: "Rank", cell: rankCell },
     { key: "user", header: "User Name & Phone", cell: userCell },
     { key: "location", header: "Location (Area, District, State)", cell: locationCell },
-    { key: "language", header: "Language", cell: (r) => r.language },
-    { key: "q1", header: "Quiz 1 Answers (5 Rounds)", cell: (r) => <AnswerStrip results={r.quiz1Results} /> },
+    { key: "language", header: "Language", cell: (r) => r.language || "—" },
+    { key: "q1", header: "Quiz 1 Answers", cell: (r) => <AnswerStrip results={r.quiz1Results} /> },
     { key: "q1time", header: "Quiz 1 Attempt Time", cell: (r) => <span className="whitespace-nowrap text-sm text-muted-foreground">{r.quiz1AttemptTime ?? "—"}</span> },
-    { key: "q2", header: "Quiz 2 Answers (5 Rounds)", cell: (r) => <AnswerStrip results={r.quiz2Results} /> },
+    { key: "q2", header: "Quiz 2 Answers", cell: (r) => <AnswerStrip results={r.quiz2Results} /> },
     { key: "q2time", header: "Quiz 2 Attempt Time", cell: (r) => <span className="whitespace-nowrap text-sm text-muted-foreground">{r.quiz2AttemptTime ?? "—"}</span> },
     { key: "quizPoints", header: "Quiz Points", cell: (r) => <PointsCell value={r.quizPoints} /> },
+    {
+      key: "winner",
+      header: "Quiz Gift",
+      cell: (r) =>
+        r.isWinner ? (
+          <StatusBadge status={`Winner #${r.giftPosition}`} variant="emerald" />
+        ) : r.giftPosition ? (
+          <span className="text-xs text-muted-foreground">All correct · #{r.giftPosition}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
     { key: "gift", header: "Gift Request", cell: (r) => <GiftRequestPill status={r.giftRequestStatus} at={r.giftRequestedAt} /> },
     { key: "rewards", header: "Rewards", cell: (r) => <RewardsPill status={r.rewardsStatus} /> },
     { key: "actions", header: "Actions", cell: actionsCell },
   ];
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const all =
+        tab === "monthly"
+          ? await winnerService.monthly({ ...filters, month, page: 1, per_page: EXPORT_LIMIT })
+          : await winnerService.quiz({ ...filters, date, page: 1, per_page: EXPORT_LIMIT });
+      downloadCsv(tab === "monthly" ? `monthly-winners-${month}` : `quiz-winners-${date}`, all.items, tab === "monthly" ? MONTHLY_CSV : QUIZ_CSV);
+    } catch (error) {
+      handleError(error, "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const monthClosed = monthlyQuery.data?.monthClosed;
+  const winnersPerLocation = quizQuery.data?.winnersPerLocation;
 
   return (
     <div>
@@ -130,13 +235,16 @@ function WinnersPage() {
         title="Winners"
         breadcrumbs={[{ label: "Dashboard", to: ROUTES.DASHBOARD }, { label: "Referrals & Points", to: ROUTES.REFERRALS }, { label: "Winners" }]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex rounded-md border p-0.5">
               {(["monthly", "quiz"] as Tab[]).map((t) => (
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setTab(t)}
+                  onClick={() => {
+                    setTab(t);
+                    list.setPage(1);
+                  }}
                   className={cn(
                     "rounded px-3 py-1.5 text-sm font-medium transition-colors",
                     tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
@@ -146,25 +254,41 @@ function WinnersPage() {
                 </button>
               ))}
             </div>
-            <Button variant="outline" onClick={() => toast.info("Export coming soon")}><Download className="mr-2 h-4 w-4" />Export CSV</Button>
+            {tab === "monthly" ? (
+              <Input type="month" value={month} max={istMonth()} onChange={(e) => { setMonth(e.target.value || istMonth()); list.setPage(1); }} className="w-[160px]" aria-label="Month" />
+            ) : (
+              <Input type="date" value={date} max={istToday()} onChange={(e) => { setDate(e.target.value || istToday()); list.setPage(1); }} className="w-[160px]" aria-label="Quiz date" />
+            )}
+            <Button variant="outline" onClick={exportCsv} disabled={exporting}><Download className="mr-2 h-4 w-4" />{exporting ? "Exporting..." : "Export CSV"}</Button>
           </div>
         }
-        key={tab}
         data={items}
         columns={tab === "monthly" ? monthlyColumns : quizColumns}
-        loading={winnersQuery.isLoading}
+        loading={activeQuery.isLoading}
+        error={
+          activeQuery.error
+            ? "Unable to load winners."
+            : tab === "monthly" && monthClosed === false
+              ? "This month is still running: ranks can change until it ends, and claims open after that."
+              : tab === "quiz" && winnersPerLocation
+                ? `The first ${winnersPerLocation} players in each rewards location to get every quiz right win the day's gift.`
+                : undefined
+        }
         rowKey={(r) => r.id}
         searchPlaceholder="Search by name, phone number..."
         showDateRange={false}
+        serverSide
+        total={activeQuery.data?.total ?? 0}
+        pageSize={PAGE_SIZE}
+        page={list.page}
+        onPageChange={list.setPage}
+        onQueryChange={list.onQueryChange}
+        initialDropdownValues={list.dropdownValues}
         dropdowns={[
-          { key: "language", placeholder: "Languages", options: [...new Set(items.map((w) => w.language))].map((l) => ({ label: l, value: l })) },
+          { key: "location", placeholder: "Rewards Locations", options: (locationsQuery.data?.items ?? []).map((l) => ({ label: l.title, value: l.id })) },
+          { key: "language", placeholder: "Languages", options: (languagesQuery.data?.items ?? []).map((l) => ({ label: l.name, value: l.code })) },
         ]}
-        filter={(row, search, dropdowns) =>
-          (!dropdowns.language || row.language === dropdowns.language) &&
-          (!search || [row.name, row.phone].some((v) => v.toLowerCase().includes(search.toLowerCase())))
-        }
       />
-
       <Dialog open={Boolean(photoTarget)} onOpenChange={(open) => !open && setPhotoTarget(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -172,7 +296,7 @@ function WinnersPage() {
             <DialogDescription>Upload Photo for Gift Request{photoTarget ? ` — ${photoTarget.name}` : ""}</DialogDescription>
           </DialogHeader>
           <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
-            Please upload a clear photo of the gift item you received. Accepted formats: JPG, PNG | Maximum size: 5 MB
+            Upload a clear photo of the winner with the gift. It is shown to users in Previous Winners. The gift request must be approved first. Accepted formats: JPG, PNG | Maximum size: 5 MB
           </div>
           <ImageUploadGrid label="Photo" hint="JPG, PNG (Max 5MB)" value={photo} onChange={setPhoto} />
           <DialogFooter>
@@ -180,13 +304,18 @@ function WinnersPage() {
             <Button
               disabled={photo.length === 0 || submitPhoto.isPending}
               onClick={async () => {
-                if (!photoTarget) return;
-                await submitPhoto.mutateAsync(photoTarget.id);
+                const file = photo[0];
+                if (!photoTarget?.giftRequestId || !file || isStoredImage(file)) return;
+                try {
+                  await submitPhoto.mutateAsync({ giftRequestId: photoTarget.giftRequestId, file });
+                } catch {
+                  return;
+                }
                 toast.success("Photo submitted");
                 setPhotoTarget(null);
               }}
             >
-              Submit Photo
+              {submitPhoto.isPending ? "Uploading..." : "Submit Photo"}
             </Button>
           </DialogFooter>
         </DialogContent>

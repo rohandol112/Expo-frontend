@@ -40,7 +40,7 @@ function ListingDetailPage() {
           <div className="mt-6 grid gap-6 lg:grid-cols-[280px_1fr]">
             <div className="rounded-lg border bg-card p-4">
               {listing.coverImage || listing.images[0] ? (
-                <div className="flex aspect-square items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">{listing.coverImage ?? listing.images[0]}</div>
+                <img src={(listing.coverImage ?? listing.images[0]).url} alt={listing.name} className="aspect-square w-full rounded-md object-cover" />
               ) : (
                 <div className="flex aspect-square items-center justify-center rounded-md bg-muted"><ImageIcon className="h-8 w-8 text-muted-foreground" /></div>
               )}
@@ -52,6 +52,7 @@ function ListingDetailPage() {
                 <Detail label="Category" value={listing.category} />
                 <Detail label="Sub Category" value={listing.subcategory} />
                 <Detail label="Location" value={listingLocationLabel(listing)} />
+                {listing.shops && <Detail label="Shops" value={listing.shops} />}
                 <Detail label="Phone Number" value={listing.phone} />
                 <Detail label="WhatsApp Number" value={listing.whatsapp} />
                 <Detail label="Email" value={listing.email} />
@@ -66,6 +67,14 @@ function ListingDetailPage() {
                 <div className="mt-4">
                   <dt className="text-xs font-medium uppercase text-muted-foreground">Short Description</dt>
                   <dd className="mt-1 text-sm">{listing.shortDescription}</dd>
+                </div>
+              )}
+              {listing.images.length > 1 && (
+                <div className="mt-4">
+                  <dt className="text-xs font-medium uppercase text-muted-foreground">Images</dt>
+                  <dd className="mt-2 flex flex-wrap gap-2">
+                    {listing.images.map((img) => <img key={img.key} src={img.url} alt="" className="h-16 w-16 rounded object-cover" />)}
+                  </dd>
                 </div>
               )}
               {listing.fullDescription && (

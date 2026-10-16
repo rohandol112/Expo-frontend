@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes.constants";
 import { toast } from "sonner";
 import type { ListingType } from "@/types/listing";
-import type { ListingSubCategory } from "@/types/listingCategory";
+import type { ListingSubCategory, ListingSubCategoryInput } from "@/types/listingCategory";
+import type { ImageValue } from "@/lib/mediaUpload";
 
 export const Route = createFileRoute("/_app/listings/sub-categories/add")({ component: AddSubCategoryPage });
 
@@ -25,6 +26,16 @@ const TYPES: { value: ListingType; label: string; desc: string; icon: typeof Sto
   { value: "Product", label: "Products", desc: "Sellable items", icon: Package },
   { value: "Service", label: "Services", desc: "Services & solutions", icon: Wrench },
 ];
+
+/** Runs a save, leaving error toasts to the mutation hooks; resolves true on success. */
+async function attempt(run: () => Promise<unknown>): Promise<boolean> {
+  try {
+    await run();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function AddSubCategoryPage() {
   const navigate = useNavigate();
@@ -39,7 +50,7 @@ export function SubCategoryForm({ onDone, initial }: { onDone: () => void; initi
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [type, setType] = useState<ListingType>(initial?.type ?? "Shop");
-  const [icon, setIcon] = useState<File[]>([]);
+  const [icon, setIcon] = useState<ImageValue[]>(initial?.icon ? [initial.icon] : []);
   const [status, setStatus] = useState<"Active" | "Inactive">((initial?.status as "Active" | "Inactive") ?? "Active");
   const [sortOrder, setSortOrder] = useState(initial?.sortOrder ?? (subCategoriesQuery.data?.items.length ?? 0) + 1);
   const [displayOnHome, setDisplayOnHome] = useState(initial?.displayOnHome ?? true);
@@ -52,12 +63,9 @@ export function SubCategoryForm({ onDone, initial }: { onDone: () => void; initi
       toast.error("Please select a category and enter a sub category name.");
       return;
     }
-    const payload = { categoryId, category: category.name, name, type, icon: icon[0]?.name ?? initial?.icon, status, sortOrder, displayOnHome };
-    if (initial) {
-      await updateSubCategory.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createSubCategory.mutateAsync(payload);
-    }
+    const payload: ListingSubCategoryInput = { categoryId, name, type, icon, status, sortOrder, displayOnHome };
+    const saved = await attempt(() => (initial ? updateSubCategory.mutateAsync({ id: initial.id, payload }) : createSubCategory.mutateAsync(payload)));
+    if (!saved) return;
     toast.success(initial ? "Sub category updated" : "Sub category saved");
     onDone();
   };

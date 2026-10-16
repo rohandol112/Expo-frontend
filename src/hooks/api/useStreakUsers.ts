@@ -1,14 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { streakUserService } from "@/services/streakUser.service";
+import type { ReportQuery } from "@/services/referralUser.service";
 
 export const streakUserKeys = {
   all: ["streak-users"] as const,
-  list: () => [...streakUserKeys.all, "list"] as const,
+  list: (query: object) => [...streakUserKeys.all, "list", query] as const,
 };
 
-export function useStreakUsers() {
+export function useStreakUsers(query: ReportQuery & { streak_range?: string }) {
   return useQuery({
-    queryKey: streakUserKeys.list(),
-    queryFn: () => streakUserService.list(),
+    queryKey: streakUserKeys.list(query),
+    queryFn: () => streakUserService.list(query),
+    placeholderData: keepPreviousData,
   });
 }

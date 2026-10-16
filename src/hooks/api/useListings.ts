@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { handleError } from "@/lib/errorHandler";
 import { listingService } from "@/services/listing.service";
 import type { Listing } from "@/types/listing";
 
@@ -35,6 +36,7 @@ export function useCreateListing() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Parameters<typeof listingService.create>[0]) => listingService.create(payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: listingKeys.all }),
   });
 }
@@ -43,6 +45,7 @@ export function useUpdateListing() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof listingService.update>[1] }) => listingService.update(id, payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: listingKeys.all }),
   });
 }
@@ -51,6 +54,7 @@ export function useDeleteListing() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => listingService.remove(id),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: listingKeys.all }),
   });
 }

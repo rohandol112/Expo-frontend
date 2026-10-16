@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { handleError } from "@/lib/errorHandler";
 import { bannerService } from "@/services/banner.service";
 
 export const bannerKeys = {
@@ -26,6 +27,7 @@ export function useCreateBanner() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Parameters<typeof bannerService.create>[0]) => bannerService.create(payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: bannerKeys.all }),
   });
 }
@@ -34,6 +36,7 @@ export function useUpdateBanner() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof bannerService.update>[1] }) => bannerService.update(id, payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: bannerKeys.all }),
   });
 }
@@ -42,6 +45,7 @@ export function useDeleteBanner() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => bannerService.remove(id),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: bannerKeys.all }),
   });
 }
@@ -50,6 +54,7 @@ export function useReorderBanners() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (orderedIds: string[]) => bannerService.reorder(orderedIds),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: bannerKeys.all }),
   });
 }

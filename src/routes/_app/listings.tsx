@@ -39,9 +39,13 @@ export function listingColumns(handlers?: {
       header: "Listing Name",
       cell: (r) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
-            No media
-          </div>
+          {(r.coverImage ?? r.images[0]) ? (
+            <img src={(r.coverImage ?? r.images[0]).url} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">
+              No media
+            </div>
+          )}
           <div className="min-w-0">
             <p className="text-sm font-medium line-clamp-1">{r.name}</p>
             <p className="text-xs text-muted-foreground line-clamp-1">{r.shortDescription || r.offerMessage || "—"}</p>

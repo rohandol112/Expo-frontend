@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { handleError } from "@/lib/errorHandler";
 import { rewardsSettingsService } from "@/services/rewardsSettings.service";
-import type { CompetitionLocation, ImportantLink, RewardsSettings } from "@/types/referrals";
+import type { CompetitionLocationInput, ImportantLink, RewardsSettings } from "@/types/referrals";
 
 export const rewardsSettingsKeys = {
   all: ["rewards-settings"] as const,
@@ -21,6 +22,7 @@ export function useUpdateRewardsSettings() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Partial<RewardsSettings>) => rewardsSettingsService.update(payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rewardsSettingsKeys.settings() }),
   });
 }
@@ -43,7 +45,8 @@ export function useCompetitionLocation(id: string) {
 export function useCreateCompetitionLocation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: Omit<CompetitionLocation, "id">) => rewardsSettingsService.createLocation(payload),
+    mutationFn: (payload: CompetitionLocationInput) => rewardsSettingsService.createLocation(payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rewardsSettingsKeys.locations() }),
   });
 }
@@ -51,7 +54,8 @@ export function useCreateCompetitionLocation() {
 export function useUpdateCompetitionLocation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<Omit<CompetitionLocation, "id">> }) => rewardsSettingsService.updateLocation(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: CompetitionLocationInput }) => rewardsSettingsService.updateLocation(id, payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rewardsSettingsKeys.locations() }),
   });
 }
@@ -60,6 +64,7 @@ export function useDeleteCompetitionLocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => rewardsSettingsService.removeLocation(id),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rewardsSettingsKeys.locations() }),
   });
 }
@@ -83,6 +88,7 @@ export function useCreateImportantLink() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Omit<ImportantLink, "id">) => rewardsSettingsService.createLink(payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rewardsSettingsKeys.links() }),
   });
 }
@@ -90,7 +96,8 @@ export function useCreateImportantLink() {
 export function useUpdateImportantLink() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<Omit<ImportantLink, "id">> }) => rewardsSettingsService.updateLink(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: Omit<ImportantLink, "id"> }) => rewardsSettingsService.updateLink(id, payload),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rewardsSettingsKeys.links() }),
   });
 }
@@ -99,6 +106,7 @@ export function useDeleteImportantLink() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => rewardsSettingsService.removeLink(id),
+    onError: (error) => handleError(error),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: rewardsSettingsKeys.links() }),
   });
 }

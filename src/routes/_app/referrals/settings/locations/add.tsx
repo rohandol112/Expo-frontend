@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateCompetitionLocation, useUpdateCompetitionLocation } from "@/hooks/api/useRewardsSettings";
-import type { CompetitionLocation } from "@/types/referrals";
+import type { CompetitionLocation, CompetitionLocationInput } from "@/types/referrals";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ROUTES } from "@/constants/routes.constants";
 import { toast } from "sonner";
 
@@ -19,19 +20,16 @@ function AddLocationPage() {
   return <LocationForm onDone={() => navigate({ to: ROUTES.REFERRALS_SETTINGS })} />;
 }
 
-function splitList(value: string) {
-  return value ? value.split(", ").filter(Boolean) : [];
-}
-
 export function LocationForm({ onDone, initial }: { onDone: () => void; initial?: CompetitionLocation }) {
   const createLocation = useCreateCompetitionLocation();
   const updateLocation = useUpdateCompetitionLocation();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [selection, setSelection] = useState<CascadingLocationValue>({
-    states: splitList(initial?.state ?? ""),
-    districts: splitList(initial?.district ?? ""),
-    areas: splitList(initial?.area ?? ""),
+    states: initial?.stateIds ?? [],
+    districts: initial?.districtIds ?? [],
+    areas: initial?.areaIds ?? [],
   });
+  const [status, setStatus] = useState<"Active" | "Inactive">(initial?.status === "Inactive" ? "Inactive" : "Active");
   const saving = createLocation.isPending || updateLocation.isPending;
 
   const submit = async () => {
@@ -39,17 +37,21 @@ export function LocationForm({ onDone, initial }: { onDone: () => void; initial?
       toast.error("Please enter a location title and select at least one state.");
       return;
     }
-    const payload = {
+    const payload: CompetitionLocationInput = {
       title: title.trim(),
-      state: selection.states.join(", "),
-      district: selection.districts.join(", "),
-      area: selection.areas.length ? selection.areas.join(", ") : "All Areas",
-      status: initial?.status ?? ("Active" as const),
+      stateIds: selection.states,
+      districtIds: selection.districts,
+      areaIds: selection.areas,
+      status,
     };
-    if (initial) {
-      await updateLocation.mutateAsync({ id: initial.id, payload });
-    } else {
-      await createLocation.mutateAsync(payload);
+    try {
+      if (initial) {
+        await updateLocation.mutateAsync({ id: initial.id, payload });
+      } else {
+        await createLocation.mutateAsync(payload);
+      }
+    } catch {
+      return;
     }
     toast.success(initial ? "Location updated" : "Location saved");
     onDone();
@@ -76,8 +78,14 @@ export function LocationForm({ onDone, initial }: { onDone: () => void; initial?
           </div>
         </FormSection>
 
-        <FormSection title="2. Select Locations" description="Choose states, then districts and areas within them.">
+        <FormSection title="2. Select Locations" description="Choose states, then districts and areas within them. Users whose saved location falls inside belong to this rewards program; where two locations overlap, the more specific one wins.">
           <CascadingLocationPicker value={selection} onChange={setSelection} />
+        </FormSection>
+        <FormSection title="3. Status" description="Inactive locations stop running quizzes and gifts, but keep their history.">
+          <RadioGroup value={status} onValueChange={(v) => setStatus(v as "Active" | "Inactive")} className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="Active" />Active</label>
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="Inactive" />Inactive</label>
+          </RadioGroup>
         </FormSection>
       </div>
 

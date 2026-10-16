@@ -1,22 +1,61 @@
-import type { GiftRank } from "@/types/referrals";
-import { giftRanks as seedGiftRanks, defaultGiftRanksForLocation } from "@/mock/giftRanks.mock";
+import { API } from "@/lib/apiEndpoints";
+import { httpClient } from "@/lib/httpClient";
+import { imageKey, storedImage } from "@/lib/mediaUpload";
+import { uploadRewardImage } from "@/services/adapters/rewards.adapter";
+import type { GiftRank, GiftRankInput } from "@/types/referrals";
 
-let ranksByLocation: Record<string, GiftRank[]> = { all: [...seedGiftRanks] };
+interface ApiGiftRank {
+  rank: number;
+  location_id: number | null;
+  inherited: boolean;
+  gift_name: string;
+  short_description: string | null;
+  photo_key: string | null;
+  photo_url: string | null;
+  gift_value: number | null;
+}
 
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value));
+/** "all" is the All Locations default; anything else is a competition location id. */
+const scopeParam = (locationId: string) => (locationId === "all" ? undefined : Number(locationId));
+
+function toRank(r: ApiGiftRank, locationId: string): GiftRank {
+  return {
+    rank: r.rank,
+    locationId,
+    giftName: r.gift_name ?? "",
+    shortDescription: r.short_description ?? "",
+    photo: storedImage(r.photo_key, r.photo_url),
+    giftValue: r.gift_value,
+    inherited: r.inherited,
+  };
 }
 
 export const giftRankService = {
+  /** The 10 rank slots for a scope; empty slots come back with a blank gift name. */
   async list(locationId: string): Promise<GiftRank[]> {
-    if (!ranksByLocation[locationId]) {
-      ranksByLocation[locationId] = defaultGiftRanksForLocation(locationId);
-    }
-    return clone(ranksByLocation[locationId]);
+    const data = await httpClient.get<{ location_id: number | null; ranks: ApiGiftRank[] }>(API.rewards.giftRanks, {
+      params: { location_id: scopeParam(locationId) },
+    });
+    return data.ranks.map((r) => toRank(r, locationId));
   },
 
-  async saveAll(locationId: string, ranks: GiftRank[]): Promise<GiftRank[]> {
-    ranksByLocation = { ...ranksByLocation, [locationId]: ranks.map((r) => ({ ...r, locationId })) };
-    return clone(ranksByLocation[locationId]);
+  /**
+   * Replaces the scope's ranks. For a location, rows still inherited from All
+   * Locations are left out, so they keep following the default.
+   */
+  async saveAll(locationId: string, ranks: GiftRankInput[]): Promise<GiftRank[]> {
+    const upload = uploadRewardImage("gift");
+    const own = locationId === "all" ? ranks : ranks.filter((r) => !r.inherited);
+    const body = await Promise.all(
+      own.map(async (r) => ({
+        rank: r.rank,
+        gift_name: r.giftName.trim(),
+        short_description: r.shortDescription.trim() || null,
+        photo_key: await imageKey(r.photo, upload),
+        gift_value: r.giftValue,
+      })),
+    );
+    await httpClient.put(API.rewards.giftRanks, { location_id: scopeParam(locationId) ?? null, ranks: body });
+    return this.list(locationId);
   },
 };
